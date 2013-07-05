@@ -1,4 +1,4 @@
 chatless
 ========
 
-stateless restful chat api
+connectionless restful chat api
