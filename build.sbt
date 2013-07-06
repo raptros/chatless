@@ -8,7 +8,12 @@ scalaVersion := "2.10.2"
 
 resolvers += "spray repo" at "http://repo.spray.io"
 
+
+
 libraryDependencies ++= Seq(
+  "org.scalaz" %% "scalaz-core" % "7.0.0",
+  "com.chuusai" %% "shapeless" % "1.2.4",
+  "org.json4s" %% "json4s-native" % "3.2.4",
   "io.spray" % "spray-can" % "1.2-M8",
   "io.spray" % "spray-routing" % "1.2-M8",
   "io.spray" % "spray-testkit" % "1.2-M8" % "test",
