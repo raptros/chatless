@@ -1,30 +1,16 @@
-
-/**
- * Created with IntelliJ IDEA.
- * User: aidan
- * Date: 7/5/13
- * Time: 1:58 PM
- * To change this template use File | Settings | File Templates.
- */
 package object chatless {
+  import org.json4s.DefaultFormats
   import org.json4s.native.Serialization
   import org.json4s.NoTypeHints
-  import org.json4s._
-  import org.json4s.JsonAST.JValue
-  import org.json4s.JsonDSL._
 
+  import spray.httpx.unmarshalling._
+  import spray.http.HttpEntity
   import scala.util.{Try, Success, Failure}
-
-  implicit val formats = Serialization.formats(NoTypeHints)
-
 
   type UserId = String
   type MessageId = String
   type TopicId = String
-
   type EventId = String
-
-  case class RequestError(resourceRef:String, explanation:String)
 
   implicit class TryToConv[A](attempt:Try[A]) {
     trait FailureConv[B] {
@@ -39,14 +25,13 @@ package object chatless {
     }
   }
 
-  def throwableToJson(t:Throwable):JObject = "failed" -> {
-    pair2Assoc("exception" -> JString(t.getClass.toString)) ~
-      ("message" -> Option(t.getMessage))
-  }
+  import CustomSerializations._
 
-  def routeEnvToJson(cid:Option[UserId]=None,
-                     rtid:Option[TopicId]=None):JObject = "env" -> {
-    pair2Assoc("cid" -> cid) ~ ("rtid" -> rtid)
+  implicit val formats = Serialization.formats(NoTypeHints) + customFormats
+
+  implicit def fromStringUnmarshaller[A](implicit um:Unmarshaller[String],
+                                         fs:Deserializer[String, A]):Unmarshaller[A] = new Deserializer[HttpEntity, A] {
+    def apply(ent:HttpEntity):Deserialized[A] = um(ent).right flatMap { dsd => fs(dsd) }
   }
 
 }
