@@ -75,32 +75,41 @@ object CustomCodecs {
     case _ => DecodeResult.fail("not a valid resource spec", c.history)
   }}
 
-  def JDecodeGetAll:DecodeJson[GetSpec] = DecodeJson { c =>
+/*  def JDecodeGetAll:DecodeJson[GetSpec] = DecodeJson { c =>
     (c --\ "allfields").as[Boolean] flatMap { allfields =>
       if (allfields) DecodeResult.okResult(GetAll) else DecodeResult.fail("nope", c.history)
     }
-  }
+  }*/
 
   def JDecodeGetFields:DecodeJson[GetSpec] = DecodeJson { c => for {
     op <- (c --\ "op").as[String]
+    fields <- (c --\ "fields").as[List[String]]
+    res <- if (op == "get") okResult(GetFields(fields:_*)) else failResult("not a get all fields", c.history)
+  } yield res }
+
+  def JDecodeGetAll:DecodeJson[GetSpec] = DecodeJson { c => for {
+    op <- (c --\ "op").as[String]
+    allF <- (c --\ "allfields").as[Boolean]
+    res <- if (op == "get" && allF) okResult(GetAll) else failResult("not a get all fields", c.history)
+  } yield res }
+
+  def JDecodeGetOp:DecodeJson[GetSpec] = JDecodeGetAll ||| JDecodeGetFields
+
+  def JDecodeReplaceField:DecodeJson[UpdateSpec[_]] = DecodeJson { c => for {
+    op <- (c --\ "op").as[String]
+    spec <- (c --\ "spec").as[String]
 
   }
-    (c --\ "fields").as[List[String]] map { fields =>
-      GetFields(fields : _*)
-    }
   }
 
-  def JDecodeGetOp:DecodeJson[GetSpec] = (JDecodeGetAll ||| JDecodeGetFields) validate { c =>
 
-  }
+//  def JDecodeUpdateSpec:
 
-  def JDecodeUpdateSpec:
-
-  implicit def JDecodeOpSpec:DecodeJson[OpSpec] = DecodeJson { c => for {
+/*  implicit def JDecodeOpSpec:DecodeJson[OpSpec] = DecodeJson { c => for {
     op <- (c --\ "op").as[String]
     spec <- if ("op" == "get")
   }
-  }
+  }*/
 
   implicit def OperationEncodeJ:EncodeJson[Operation] = jencode3L { op:Operation =>
     (op.cid, op.res, op.spec)
