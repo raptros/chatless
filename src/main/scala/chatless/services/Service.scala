@@ -1,14 +1,12 @@
-package chatless
+package chatless.services
 
 import spray.routing._
 import spray.http._
 import spray.httpx.unmarshalling.Unmarshaller
 import MediaTypes._
 
-import org.json4s._
-import org.json4s.native.JsonMethods._
-
-import shapeless._
+import argonaut._
+import Argonaut._
 
 import scala.concurrent.duration._
 import spray.util.LoggingContext
@@ -25,7 +23,7 @@ trait Service extends Topics with Users {
   val eventsBase:Directive0 = pathPrefix("events")
 
   def completeStateError(err:StateError, code:StatusCode) = respondWithMediaType(`application/json`) {
-    complete { code -> compact(render(ToJson(err))) }
+    complete { code -> err.asJson.spaces2 }
   }
 
   def handleStateError(se:StateError) = se match {
@@ -42,7 +40,7 @@ trait Service extends Topics with Users {
 
   val finishApis = allApis { dbReq =>
     onSuccess(dbActor ? dbReq) {
-      case (jv:JValue) => respondWithMediaType(`application/json`) { complete { compact(render(jv))  } }
+      case (json:Json) => respondWithMediaType(`application/json`) { complete { json.nospaces } }
       case _ => throw new Exception("wtf")
     }
   }

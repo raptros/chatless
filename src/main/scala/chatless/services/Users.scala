@@ -1,10 +1,12 @@
-package chatless
+package chatless.services
 
 import spray.routing._
 import shapeless._
-import chatless.db.{Operation, GetAll, GetFields, ResUser, ReplaceField}
+import chatless._
+import chatless.db._
+import shapeless.::
 
-trait Users extends ServiceBase {
+trait Users extends ServiceBase with SpecDirectives {
   private val usersBase:Directive1[UserId] = userAuth
   private val nick:Directive[UserId :: UserId :: HNil] = user & path("nick" / PathEnd)
   private val pPublic:Directive[UserId :: UserId :: HNil] = user & path("public" / PathEnd)
@@ -27,9 +29,13 @@ trait Users extends ServiceBase {
     Operation(cid, ResUser(ruid), ReplaceField("nick", newNick))
   }
 
+  val userPublic:DOperation = (user & booleanField("public")) as { (cid:UserId, ruid:UserId, spec:OpSpec) =>
+    Operation(cid, ResUser(ruid), spec)
+  }
+/*
   val getUserPublic:DOperation = (get & pPublic) as { (cid:UserId, ruid:UserId) =>
     Operation(cid, ResUser(ruid), GetFields("nick"))
-  }
+  }*/
 
   /*val putUserPublic:DOperation = (put & pPublic & dEntity(as[Boolean])) as { (cid:UserId, ruid:UserId, nPublic:Boolean) =>
     Operation(cid, ResUser(ruid), ReplaceField("public", nPublic))
@@ -38,7 +44,6 @@ trait Users extends ServiceBase {
   val userApi = getUser |
     getNick |
     putNick |
-    getUserPublic /*|
-    putUserPublic */
+    userPublic
 
 }

@@ -1,11 +1,13 @@
 package chatless
 
+/*
 import org.json4s._
 import org.json4s.native.JsonMethods._
 import org.json4s.JsonDSL._
 import scala.reflect.runtime.universe._
 import chatless.db._
-
+*/
+/*
 object ToJson {
   def apply(h:Handle):JValue = h match {
     case TopicHandle(tid, opid, title) => pair2Assoc("tid" -> tid) ~ ("opid" -> opid) ~ ("title" -> title)
@@ -37,4 +39,4 @@ object ToJson {
         ("message" -> Option(t.getMessage))
     }
   }
-}
+}*/

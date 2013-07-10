@@ -1,4 +1,4 @@
-package chatless
+package chatless.services
 
 import akka.actor.ActorSelection
 import chatless.db.Operation
@@ -13,6 +13,8 @@ import spray.httpx.encoding.NoEncoding
 import akka.pattern.AskableActorSelection
 import scala.concurrent.Future
 import spray.routing.authentication._
+import chatless._
+import chatless.db.Operation
 
 trait ServiceBase extends HttpService {
   type DOperation = Directive1[Operation]

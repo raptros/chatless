@@ -1,23 +1,25 @@
+import chatless._
 import chatless.db._
 import chatless.db.GetFields
 import chatless.db.ResTopic
 import chatless.db.ResUser
-import chatless.{ServiceBase, UserId, TopicId}
-import org.json4s.native.Serialization
-import org.json4s.{NoTypeHints, FullTypeHints, ShortTypeHints}
+import chatless.services.ServiceBase
+import chatless.{UserId, TopicId}
 import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.{FunSpec, FunSuite, Suite, WordSpec}
 import scala.Some
 import spray.http.{HttpRequest, BasicHttpCredentials}
-import spray.httpx.Json4sSupport
 import spray.routing.Route
 import spray.routing.authentication.{UserPass, UserPassAuthenticator, BasicAuth, ContextAuthenticator}
 import spray.testkit.ScalatestRouteTest
 
+import argonaut._
+import Argonaut._
+
 import scala.concurrent._
 
-trait ServiceSpecBase extends Json4sSupport
-with ShouldMatchers
+trait ServiceSpecBase extends
+ShouldMatchers
 with ScalatestRouteTest
 with ServiceBase
 with OperationMatchers  { this:FunSpec =>
@@ -46,7 +48,6 @@ with OperationMatchers  { this:FunSpec =>
 
   val classList = List(classOf[ResUser], classOf[ResTopic], classOf[OpSpec], classOf[GetFields])
 
-  implicit val json4sFormats = Serialization.formats(NoTypeHints) //Serialization.formats(FullTypeHints(classList))
 
   val addCreds = addCredentials(BasicHttpCredentials(userId, password))
 
@@ -54,7 +55,7 @@ with OperationMatchers  { this:FunSpec =>
 
   def describeResultOf(req:HttpRequest, auth:Boolean = true)(inner: Operation => Unit) = describe(s"${req.method.value} to ${req.uri}") {
     req ~> { if (auth) addCreds else { (r:HttpRequest) => r } } ~> apiInspector ~> check {
-      inner(entityAs[Operation])
+      inner(entityAs[Json].as[Operation].getOr(throw new Exception("json object not extractable to Operation")))
     }
   }
 

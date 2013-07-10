@@ -15,7 +15,7 @@ libraryDependencies ++= Seq(
   "org.mongodb" %% "casbah" % "2.6.2",
   "org.scalaz" %% "scalaz-core" % "7.0.0",
   "com.chuusai" %% "shapeless" % "1.2.4",
-  "org.json4s" %% "json4s-native" % "3.2.4",
+  "io.argonaut" %% "argonaut" % "6.0-RC3",
   "io.spray" % "spray-can" % "1.2-M8",
   "io.spray" % "spray-routing" % "1.2-M8",
   "io.spray" % "spray-testkit" % "1.2-M8" % "test",

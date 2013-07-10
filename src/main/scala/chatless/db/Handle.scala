@@ -2,9 +2,7 @@ package chatless.db
 
 import java.util.Date
 
-import org.json4s._
-import org.json4s.JsonDSL._
-import org.json4s.native.JsonMethods._
+import argonaut.Json
 import chatless.{UserId, TopicId, MessageId}
 
 sealed trait Handle
@@ -32,7 +30,7 @@ sealed trait Full {
 case class User(uid:UserId,
                 nick:String,
                 public:Boolean,
-                info:JObject,
+                info:Json,
                 following:List[UserId],
                 followers:List[UserId],
                 blocked:List[UserId],

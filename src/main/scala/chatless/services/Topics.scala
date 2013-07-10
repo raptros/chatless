@@ -1,19 +1,20 @@
-package chatless
+package chatless.services
 
 import spray.routing._
 import HListDeserializer._
 import spray.http._
 
-import org.json4s._
-import org.json4s.JsonDSL._
-import org.json4s.native.JsonMethods._
+import argonaut._
+import Argonaut._
+import argonaut.DecodeJson._
+import argonaut.EncodeJson._
 
 import shapeless._
-import spray.httpx.encoding._
 import spray.httpx.unmarshalling.Deserializer._
 
-import scala.concurrent._
 import chatless.db._
+import chatless._
+import shapeless.::
 
 trait Topics extends ServiceBase {
 

@@ -19,11 +19,11 @@ trait OperationMatchers {
       operation.res)
   }
 
-  def opSpec(expectedValue:OpSpec) = new HavePropertyMatcher[Operation, OpSpec] {
+  def spec(expectedValue:OpSpec) = new HavePropertyMatcher[Operation, OpSpec] {
     def apply(operation:Operation) = HavePropertyMatchResult(
-      operation.opSpec == expectedValue,
-      "opSpec",
+      operation.spec == expectedValue,
+      "spec",
       expectedValue,
-      operation.opSpec)
+      operation.spec)
   }
 }

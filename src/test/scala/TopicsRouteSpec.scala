@@ -1,11 +1,16 @@
-import chatless.Topics
 import chatless.db._
+import chatless.services.Topics
+import chatless._
 import org.scalatest.{FunSpec, WordSpec}
+
+import argonaut._
+import Argonaut._
+import chatless.CustomCodecs._
 
 
 class TopicsRouteSpec extends FunSpec with ServiceSpecBase with Topics
 {
-  val apiInspector = topicsApi { dbReq => complete { dbReq } }
+  val apiInspector = topicsApi { dbReq => complete { dbReq.asJson } }
 
   describe("the operation object returned when the topics api receives a") {
     describeResultOf(Get("/topics/")) { op =>
@@ -16,7 +21,7 @@ class TopicsRouteSpec extends FunSpec with ServiceSpecBase with Topics
         op should have (res (ResUser(userId)))
       }
       it("specifies the topics field") {
-        op should have (opSpec (GetFields("topics")))
+        op should have (spec (GetFields("topics")))
       }
     }
     describeResultOf(Get("/topics/2344")) { op =>
@@ -27,7 +32,7 @@ class TopicsRouteSpec extends FunSpec with ServiceSpecBase with Topics
         op should have (res (ResTopic("2344")))
       }
       it("selects the entire object") {
-        op should have (opSpec (GetAll))
+        op should have (spec (GetAll))
       }
     }
   }

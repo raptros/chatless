@@ -5,13 +5,10 @@ import spray.routing._
 import spray.http._
 import MediaTypes._
 
-import org.json4s._
-import org.json4s.JsonDSL._
-import org.json4s.native.JsonMethods._
+import argonaut._
+import Argonaut._
 
 import shapeless._
-
-import scala.reflect.runtime.universe._
 
 import scala.concurrent._
 import ExecutionContext.Implicits.global
@@ -45,34 +42,40 @@ class DbActor(val mc:MongoClient) extends Actor {
     case x => sender ! Status.Failure(UnhandleableMessage(x))
   }
 
-  def handleOperation(op:Operation):JValue = op match {
+  def handleOperation(op:Operation):Json = op match {
     case Operation(cid, ResUser(ruid), spec) => handleUserOperation(cid, ruid, spec)
-    case Operation(cid, ResTopic(rtid), spec) => JObject()
+    case Operation(cid, ResTopic(rtid), spec) => jEmptyObject
   }
 
-  def handleUserOperation(cid:UserId, ruid:UserId, spec:OpSpec):JValue = spec match {
+  def handleUserOperation(cid:UserId, ruid:UserId, spec:OpSpec):Json = spec match {
     case GetAll => getUser(cid, ruid)
-    case GetFields(fields @ _*) => JObject(getUser(cid, ruid) filterField  { fields contains _._1 })
+    case GetFields(fields @ _*) => {
+      val user = getUser(cid, ruid)
+      (fields flatMap { user field _ } fold jEmptyObject) { _ deepmerge _ }
+    }
     case _ => throw OperationNotSupported(cid, ResUser(ruid), spec)
   }
 
-  def getUser(cid:UserId, ruid:UserId):JValue = if (cid == ruid) {
-    pair2Assoc("uid" -> ruid) ~ ("nick" -> "...") ~
-      ("public" -> true) ~ ("info" -> JObject())
+  def getUser(cid:UserId, ruid:UserId):Json = if (cid == ruid) {
+    ("uid" := ruid) ->: ("nick" := "...") ->: ("public" := true) ->: ("info" := jEmptyObject) ->: jEmptyObject
   } else {
-    pair2Assoc("uid" -> ruid) ~ ("nick" -> "...")
+    ("uid" := ruid) ->: ("nick" := "...") ->: jEmptyObject
   }
 
-  def handleTopicOperation(cid:UserId, rtid:TopicId, spec:OpSpec):JValue = spec match {
+  def handleTopicOperation(cid:UserId, rtid:TopicId, spec:OpSpec):Json = spec match {
     case GetAll => getTopic(cid, rtid)
-    case GetFields(fields @ _*) => JObject(getTopic(cid, rtid) filterField  { fields contains _._1 })
+    case GetFields(fields @ _*) => {
+      val topic = getTopic(cid, rtid)
+      (fields flatMap { topic field _ } fold jEmptyObject) { _ deepmerge _ }
+    }
     case _ => throw OperationNotSupported(cid, ResTopic(rtid), spec)
   }
 
-  def getTopic(cid:UserId, rtid:TopicId) = {
-    pair2Assoc("tid" -> rtid) ~ ("title" -> "duck lords") ~
-      ("public" -> true) ~ ("info" -> JObject() )
-  }
+  def getTopic(cid:UserId, rtid:TopicId):Json = ("tid" := rtid) ->:
+    ("title" := "duck lords") ->:
+    ("public" := true) ->:
+    ("info" := jEmptyObject ) ->:
+    jEmptyObject
 
 }
 

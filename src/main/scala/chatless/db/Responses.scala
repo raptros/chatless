@@ -1,8 +1,12 @@
 package chatless.db
 
 import chatless.{UserId, TopicId, MessageId}
+import argonaut._
+import Argonaut._
 
-sealed abstract class StateError(msg:String) extends Throwable(msg)
+sealed abstract class StateError(msg:String) extends Throwable(msg) {
+  def asJson:Json = ("msg" := msg) ->: jEmptyObject
+}
 
 case class UnhandleableMessage(what:Any) extends StateError("can't handle ${what.getClass}.")
 

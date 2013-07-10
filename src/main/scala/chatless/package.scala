@@ -1,10 +1,9 @@
-package object chatless {
-  import org.json4s.DefaultFormats
-  import org.json4s.native.Serialization
-  import org.json4s.NoTypeHints
+import spray.httpx.marshalling.Marshaller
 
+package object chatless {
   import spray.httpx.unmarshalling._
   import spray.http.HttpEntity
+  import spray.http.MediaTypes._
   import scala.util.{Try, Success, Failure}
 
   type UserId = String
@@ -25,13 +24,26 @@ package object chatless {
     }
   }
 
-  import CustomSerializations._
+  import argonaut._
+  import Argonaut._
+  import CustomCodecs._
 
-  implicit val formats = Serialization.formats(NoTypeHints) + customFormats
+//  implicit def deserializeStringAsJson:Deserializer[String, Json] =
+  import scalaz.\/._
+  import scalaz.syntax.id._
 
-  implicit def fromStringUnmarshaller[A](implicit um:Unmarshaller[String],
-                                         fs:Deserializer[String, A]):Unmarshaller[A] = new Deserializer[HttpEntity, A] {
-    def apply(ent:HttpEntity):Deserialized[A] = um(ent).right flatMap { dsd => fs(dsd) }
+  implicit def marshallJson:Marshaller[Json] = Marshaller.delegate(`application/json`) { json:Json => json.nospaces }
+
+  implicit def jsonFromString:Deserializer[String, Json] = new Deserializer[String, Json] {
+    val fail:String => Deserialized[Json] = e => MalformedContent(e).left[Json].toEither
+    val success:Json => Deserialized[Json] = j => j.right[DeserializationError].toEither
+    def apply(s:String):Deserialized[Json] = s.parseWith(success, fail)
   }
+
+  implicit def fromStringUnmarshaller[A](implicit fs:Deserializer[String, A]):Unmarshaller[A] = new Deserializer[HttpEntity, A] {
+    def apply(ent:HttpEntity):Deserialized[A] = BasicUnmarshallers.StringUnmarshaller(ent).right flatMap { dsd => fs(dsd) }
+  }
+
+//  implicit def jsonUnmarshaller:Unmarshaller(jdd)
 
 }

@@ -4,6 +4,7 @@ import akka.actor.{Deploy, ActorSystem, Props}
 import akka.io.IO
 import spray.can.Http
 import chatless.db.DbActor
+import chatless.services.ServiceActor
 
 object Boot extends App {
  // we need an ActorSystem to host our application in

@@ -1,4 +1,4 @@
-package chatless
+package chatless.services
 
 import akka.actor.Actor
 import spray.routing.authentication._
@@ -6,6 +6,7 @@ import spray.routing.authentication._
 import com.mongodb.casbah.Imports._
 import spray.routing.RequestContext
 import scala.concurrent._
+import chatless._
 
 /** this is the actor for the chatless service. */
 class ServiceActor extends Actor with Service {
