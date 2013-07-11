@@ -7,14 +7,44 @@ import chatless.CustomCodecs._
 
 import scala.reflect.runtime.universe._
 
+abstract class ValueContainer[A:EncodeJson] {
+  def contained:Json
+  def asJson:Json = ("contained" := contained) ->: jEmptyObject
+}
+
+object ValueContainer {
+  implicit def VCEncodeJ:EncodeJson[ValueContainer[_]] = EncodeJson { vc:ValueContainer[_] => vc.asJson }
+}
+
+case class BooleanVC(contained:Boolean) extends ValueContainer[Boolean] {
+  override def asJson =  ("type" := "Boolean") ->: super.asJson
+}
+
+case class StringVC(contained:String) extends ValueContainer[String] {
+  override def asJson = ("type" := "String") ->: super.asJson
+}
+
 sealed abstract class OpRes {
   def asJson:Json = jEmptyObject
 }
+
 case class ResUser(uid:UserId) extends OpRes {
   override def asJson:Json = ("res" := "user") ->: ("uid" := uid) ->: super.asJson
 }
+
 case class ResTopic(tid:TopicId) extends OpRes {
   override def asJson:Json = ("res" := "topic") ->: ("tid" := tid) ->: super.asJson
+}
+
+object OpRes {
+  implicit def OpResEncodeJ:EncodeJson[OpRes] = EncodeJson { _.asJson }
+
+  implicit def JDecodeOpRes:DecodeJson[OpRes] = DecodeJson { c => (c --\ "res").as[String] flatMap {
+    case "user" => (c --\ "uid").as[String] map { uid => ResUser(uid) }
+    case "topic" => (c --\ "tid").as[String] map { tid => ResTopic(tid) }
+    case _ => DecodeResult.fail("not a valid resource spec", c.history)
+  }}
+
 }
 
 sealed abstract class OpSpec {
@@ -31,27 +61,36 @@ case object GetAll extends GetSpec {
   override def asJson = ("allfields" := true) ->: super.asJson
 }
 
-sealed abstract class UpdateSpec[+A:TaggedAndEncodable] extends OpSpec {
-  val value:A
+sealed abstract class UpdateSpec extends OpSpec {
+  val value:ValueContainer[_]
   val field:String
   override def asJson = ("op" := "update") ->:
     ("field" := field) ->:
     ("value" := value) ->:
-    ("type" := typeTag[A].tpe.toString) ->:
     super.asJson
 }
-case class ReplaceField[A:TaggedAndEncodable](field:String, value:A) extends UpdateSpec {
+
+case class ReplaceField(field:String, value:ValueContainer[_]) extends UpdateSpec {
   override def asJson = ("spec" := "replace") ->: super.asJson
 }
-case class AppendToList[A:TaggedAndEncodable](field:String, value:A) extends UpdateSpec {
+
+case class AppendToList(field:String, value:ValueContainer[_]) extends UpdateSpec {
   override def asJson = ("spec" := "append") ->: super.asJson
 }
-case class DeleteFromList[A:TaggedAndEncodable](field:String, value:A) extends UpdateSpec {
+
+case class DeleteFromList(field:String, value:ValueContainer[_]) extends UpdateSpec {
   override def asJson = ("spec" := "delete") ->: super.asJson
 }
 
 case class Operation(cid:UserId, res:OpRes, spec:OpSpec)
 
+object Operation {
+  implicit def OperationEncodeJ:EncodeJson[Operation] = jencode3L { op:Operation =>
+    (op.cid, op.res, op.spec)
+  } ("cid", "res", "spec")
+
+  implicit def JDecodeOperation:DecodeJson[Operation] = jdecode3L { Operation.apply } ("cid", "res", "spec")
+}
 
 
 

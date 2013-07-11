@@ -26,7 +26,7 @@ trait Users extends ServiceBase with SpecDirectives {
   }
 
   val putNick:DOperation = (put & nick & dEntity(as[String])) as { (cid:UserId, ruid:UserId, newNick:String) =>
-    Operation(cid, ResUser(ruid), ReplaceField("nick", newNick))
+    Operation(cid, ResUser(ruid), ReplaceField("nick", StringVC(newNick)))
   }
 
   val userPublic:DOperation = (user & booleanField("public")) as { (cid:UserId, ruid:UserId, spec:OpSpec) =>

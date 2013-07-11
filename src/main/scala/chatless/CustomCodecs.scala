@@ -69,15 +69,6 @@ object CustomCodecs {
   implicit def OpSpecEncodeJ:EncodeJson[OpSpec] = EncodeJson { spec:OpSpec => spec.asJson }
 
 
-  implicit def OpResEncodeJ:EncodeJson[OpRes] = EncodeJson { _.asJson }
-
-
-  implicit def JDecodeOpRes:DecodeJson[OpRes] = DecodeJson { c => (c --\ "res").as[String] flatMap {
-    case "user" => (c --\ "uid").as[String] map { uid => ResUser(uid) }
-    case "topic" => (c --\ "tid").as[String] map { tid => ResTopic(tid) }
-    case _ => DecodeResult.fail("not a valid resource spec", c.history)
-  }}
-
 /*  def JDecodeGetAll:DecodeJson[GetSpec] = DecodeJson { c =>
     (c --\ "allfields").as[Boolean] flatMap { allfields =>
       if (allfields) DecodeResult.okResult(GetAll) else DecodeResult.fail("nope", c.history)
@@ -98,7 +89,7 @@ object CustomCodecs {
 
   def JDecodeGetOp:DecodeJson[GetSpec] = JDecodeGetAll ||| JDecodeGetFields
 
-  def JDecodeUpdateSpec1:DecodeJson[UpdateSpec[_]] = DecodeJson { c => for {
+  def JDecodeUpdateSpec1:DecodeJson[UpdateSpec] = DecodeJson { c => for {
     op <- (c --\ "op").as[String]
     spec <- (c --\ "spec").as[String]
     value <- (c --\ "value ").as[String]
@@ -107,21 +98,6 @@ object CustomCodecs {
     }
   }
 
-  trait TaggedAndEncodable[A] extends TypeTag[A] with EncodeJson[A]
-
-  implicit def toTaggedAndEncodable[A](implicit tt:TypeTag[A], ej:EncodeJson[A]):TaggedAndEncodable[A] = new TaggedAndEncodable[A] {
-    def encode(a:A) = ej.encode(a)
-
-    def in[U <: Universe with Singleton](otherMirror: reflect.api.Mirror[U]): U # TypeTag[A] = tt.in(otherMirror)
-
-    def mirror = tt.mirror
-
-    def tpe = tt.tpe
-  }
-
-
-
-
 //  def JDecodeUpdateSpec:
 
 /*  implicit def JDecodeOpSpec:DecodeJson[OpSpec] = DecodeJson { c => for {
@@ -129,12 +105,6 @@ object CustomCodecs {
     spec <- if ("op" == "get")
   }
   }*/
-
-  implicit def OperationEncodeJ:EncodeJson[Operation] = jencode3L { op:Operation =>
-    (op.cid, op.res, op.spec)
-  } ("cid", "res", "spec")
-
-  implicit def JDecodeOperation:DecodeJson[Operation] = jdecode3L { Operation.apply } ("cid", "res", "spec")
 
  //todo just put all the implementation stuff inside the classes they belong to
 

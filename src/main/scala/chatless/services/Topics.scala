@@ -44,7 +44,7 @@ trait Topics extends ServiceBase {
 
   /** set the topic title */
   val putTopicTitle:DOperation = (put & topicTitle & dEntity(as[String])) as { (cid:UserId, rtid:TopicId, nTitle:String) =>
-    Operation(cid, ResTopic(rtid), ReplaceField("title", nTitle))
+    Operation(cid, ResTopic(rtid), ReplaceField("title", StringVC(nTitle)))
   }
 
   /** is topic public ? */
@@ -54,7 +54,7 @@ trait Topics extends ServiceBase {
 
   /** modify the publicness */
   val putTopicPublic:DOperation = (put & topicPublic & dEntity(as[Boolean])) as { (cid:UserId, rtid:TopicId, nPub:Boolean) =>
-    Operation(cid, ResTopic(rtid), ReplaceField("public", nPub))
+    Operation(cid, ResTopic(rtid), ReplaceField("public", BooleanVC(nPub)))
   }
 
   /** get topic info */
@@ -64,7 +64,7 @@ trait Topics extends ServiceBase {
 
   /** modify the info */
   val putTopicInfo:DOperation = (put & topicInfo & dEntity(as[String])) as { (cid:UserId, rtid:TopicId, nInfo:String) =>
-    Operation(cid, ResTopic(rtid), ReplaceField("info", nInfo))
+    Operation(cid, ResTopic(rtid), ReplaceField("info", StringVC(nInfo)))
   }
 
   /** all topics paths */
