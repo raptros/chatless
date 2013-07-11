@@ -82,6 +82,35 @@ case class DeleteFromList(field:String, value:ValueContainer[_]) extends UpdateS
   override def asJson = ("spec" := "delete") ->: super.asJson
 }
 
+
+object OpSpec {
+  def JDecodeGetFields:DecodeJson[GetSpec] = DecodeJson { c => for {
+    op <- (c --\ "op").as[String]
+    fields <- (c --\ "fields").as[List[String]]
+    res <- if (op == "get") okResult(GetFields(fields:_*)) else failResult("not a get all fields", c.history)
+  } yield res }
+
+  def JDecodeGetAll:DecodeJson[GetSpec] = DecodeJson { c => for {
+    op <- (c --\ "op").as[String]
+    allF <- (c --\ "allfields").as[Boolean]
+    res <- if (op == "get" && allF) okResult(GetAll) else failResult("not a get all fields", c.history)
+  } yield res }
+
+  def JDecodeGetOp:DecodeJson[GetSpec] = JDecodeGetAll ||| JDecodeGetFields
+
+  def JDecodeUpdateSpec1:DecodeJson[UpdateSpec] = DecodeJson { c => for {
+    op <- (c --\ "op").as[String]
+    spec <- (c --\ "spec").as[String]
+    field <- (c --\ "field").as[String]
+    value <- (c --\ "value ").as[ValueContainer[_]]
+    res <- (op, spec) match {
+      case ("update", "replace") => okResult(ReplaceField(field, value))
+      case ("update", "replace") => okResult(ReplaceField(field, value))
+    }
+  } yield res }
+
+}
+
 case class Operation(cid:UserId, res:OpRes, spec:OpSpec)
 
 object Operation {
