@@ -16,6 +16,9 @@ import chatless.db._
 import chatless._
 import shapeless.::
 
+import CustomCodecs._
+import scala.reflect.runtime.universe._
+
 trait Topics extends ServiceBase {
 
   private val topicsBase:Directive1[UserId] = userAuth & pathPrefix("topics")

@@ -2,6 +2,9 @@ package chatless
 import chatless.db._
 import argonaut._
 import Argonaut._
+import scala.reflect.runtime.universe._
+import scala.reflect.api.Universe
+import scalaz.syntax.id._
 import scalaz._
 import scalaz.Functor._
 
@@ -95,12 +98,28 @@ object CustomCodecs {
 
   def JDecodeGetOp:DecodeJson[GetSpec] = JDecodeGetAll ||| JDecodeGetFields
 
-  def JDecodeReplaceField:DecodeJson[UpdateSpec[_]] = DecodeJson { c => for {
+  def JDecodeUpdateSpec1:DecodeJson[UpdateSpec[_]] = DecodeJson { c => for {
     op <- (c --\ "op").as[String]
     spec <- (c --\ "spec").as[String]
+    value <- (c --\ "value ").as[String]
+  } yield (op, spec) match {
+      case ("update", "replace") =>
+    }
+  }
 
+  trait TaggedAndEncodable[A] extends TypeTag[A] with EncodeJson[A]
+
+  implicit def toTaggedAndEncodable[A](implicit tt:TypeTag[A], ej:EncodeJson[A]):TaggedAndEncodable[A] = new TaggedAndEncodable[A] {
+    def encode(a:A) = ej.encode(a)
+
+    def in[U <: Universe with Singleton](otherMirror: reflect.api.Mirror[U]): U # TypeTag[A] = tt.in(otherMirror)
+
+    def mirror = tt.mirror
+
+    def tpe = tt.tpe
   }
-  }
+
+
 
 
 //  def JDecodeUpdateSpec:
