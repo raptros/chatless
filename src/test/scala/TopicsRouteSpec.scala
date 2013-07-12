@@ -2,10 +2,10 @@ import chatless.db._
 import chatless.services.Topics
 import chatless._
 import org.scalatest.{FunSpec, WordSpec}
+import spray.httpx.marshalling.Marshaller._
 
 import argonaut._
 import Argonaut._
-import chatless.CustomCodecs._
 
 
 class TopicsRouteSpec extends FunSpec with ServiceSpecBase with Topics
@@ -13,27 +13,20 @@ class TopicsRouteSpec extends FunSpec with ServiceSpecBase with Topics
   val apiInspector = topicsApi { dbReq => complete { dbReq.asJson } }
 
   describe("the operation object returned when the topics api receives a") {
-    describeResultOf(Get("/topics/")) { op =>
-      it("contains the user's id") {
-        op should have (cid (userId))
-      }
-      it("selects that user's resource") {
-        op should have (res (ResUser(userId)))
-      }
-      it("specifies the topics field") {
-        op should have (spec (GetFields("topics")))
-      }
-    }
-    describeResultOf(Get("/topics/2344")) { op =>
-      it("contains the user's id") {
-        op should have (cid (userId))
-      }
-      it("selects the correct topic resource") {
-        op should have (res (ResTopic("2344")))
-      }
-      it("selects the entire object") {
-        op should have (spec (GetAll))
-      }
-    }
+    describeResultOf(Get("/topics/")) { operationTest(ResUser(userId), GetFields("topics")) }
+
+    describeResultOf(Get("/topics/2344")) { operationTest(ResTopic("2344"), GetAll) }
+
+    describeResultOf(Get("/topics/2344/public")) { operationTest(ResTopic("2344"), GetFields("public")) }
+
+/*    describeResultOf(Put("/topics/2344/public", true)) {
+      operationTest(ResTopic("2344"), ReplaceField("public", BooleanVC(true)) )
+    }*/
+
+/*    describeResultOf(Put("/topics/2344/public", false)) {
+      operationTest(ResTopic("2344"), ReplaceField("public", BooleanVC(false)))
+    }*/
+
+    describeResultOf(Get("/topics/2344/title")) { operationTest(ResTopic("2344"), GetFields("title")) }
   }
 }

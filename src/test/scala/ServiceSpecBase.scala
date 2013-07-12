@@ -32,10 +32,10 @@ with OperationMatchers  { this:FunSpec =>
   /**fake auth stuff for testing*/
   val upa:UserPassAuthenticator[UserId] = { (oup:Option[UserPass]) =>
     future {
-      oup flatMap {
-        case UserPass(uid, pass) if uid == userId && pass == password => Some(userId)
-        case _ => None
-      }
+      for {
+        UserPass(uid, pass) <- oup
+        if uid == userId && pass == password
+      } yield uid
     }
   }
 
@@ -56,6 +56,18 @@ with OperationMatchers  { this:FunSpec =>
   def describeResultOf(req:HttpRequest, auth:Boolean = true)(inner: Operation => Unit) = describe(s"${req.method.value} to ${req.uri}") {
     req ~> { if (auth) addCreds else { (r:HttpRequest) => r } } ~> apiInspector ~> check {
       inner(entityAs[Json].as[Operation].getOr(throw new Exception("json object not extractable to Operation")))
+    }
+  }
+
+  def operationTest(eRes:OpRes, eSpec:OpSpec)(op:Operation) = {
+    it("contains the user's id") {
+      op should have (cid (userId))
+    }
+    it(s"selects resource $eRes") {
+      op should have (res (eRes))
+    }
+    it(s"specifies the action $eSpec") {
+      op should have (spec (eSpec))
     }
   }
 

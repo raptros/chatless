@@ -1,10 +1,10 @@
-import spray.httpx.marshalling.Marshaller
 
 package object chatless {
   import spray.httpx.unmarshalling._
   import spray.http.HttpEntity
   import spray.http.MediaTypes._
   import scala.util.{Try, Success, Failure}
+  import spray.httpx.marshalling._
 
   type UserId = String
   type MessageId = String
@@ -26,9 +26,8 @@ package object chatless {
 
   import argonaut._
   import Argonaut._
-  import CustomCodecs._
 
-//  implicit def deserializeStringAsJson:Deserializer[String, Json] =
+  //  implicit def deserializeStringAsJson:Deserializer[String, Json] =
   import scalaz.\/._
   import scalaz.syntax.id._
 

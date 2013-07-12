@@ -16,65 +16,35 @@ import chatless.db._
 import chatless._
 import shapeless.::
 
-import CustomCodecs._
 import scala.reflect.runtime.universe._
 
-trait Topics extends ServiceBase {
+trait Topics extends ServiceBase with SpecDirectives {
 
   private val topicsBase:Directive1[UserId] = userAuth & pathPrefix("topics")
   private val singleTopic:Directive[UserId :: TopicId :: HNil] = topicsBase & pathPrefix(Segment)
-  private val topicTitle:Directive[UserId :: TopicId :: HNil] = singleTopic & path("title" / PathEnd)
-  private val topicPublic:Directive[UserId :: TopicId :: HNil] = singleTopic & path("public" / PathEnd)
-  private val topicInfo:Directive[UserId :: TopicId :: HNil] = singleTopic & path("info" / PathEnd)
+  //private val topicInfo:Directive[UserId :: TopicId :: HNil] = singleTopic & path("info" / PathEnd)
 
+  val topicOperation:HListDeserializer[UserId :: TopicId :: OpSpec :: HNil, Operation] = {
+    (cid:UserId, rtid:TopicId, spec:OpSpec) => Operation(cid, ResTopic(rtid), spec)
+  }
   /** get the topic handles of the topics the user is participating in*/
   val getTopics:DOperation = (get & topicsBase & path(PathEnd)) as { cid:UserId =>
     Operation(cid, ResUser(cid), GetFields("topics"))
   }
 
   /** get a single topic handle */
-  val getSingleTopic:DOperation = (get & singleTopic & path(PathEnd)) as { (cid:UserId, rtid:TopicId) =>
-    Operation(cid, ResTopic(rtid), GetAll)
+  val getSingleTopic:DOperation = (get & singleTopic & path(PathEnd)) as {
+    (cid:UserId, rtid:TopicId) => Operation(cid, ResTopic(rtid), GetAll)
   }
 
-  /** get a topic title*/
-  val getTopicTitle:DOperation = (get & topicTitle) as { (cid:UserId, rtid:TopicId) =>
-    Operation(cid, ResTopic(rtid), GetFields("title"))
-  }
+  val topicTitle:DOperation = (singleTopic & stringField("title")) as topicOperation
 
-  /** set the topic title */
-  val putTopicTitle:DOperation = (put & topicTitle & dEntity(as[String])) as { (cid:UserId, rtid:TopicId, nTitle:String) =>
-    Operation(cid, ResTopic(rtid), ReplaceField("title", StringVC(nTitle)))
-  }
+  val topicPublic:DOperation = (singleTopic & booleanField("public")) as topicOperation
 
-  /** is topic public ? */
-  val getTopicPublic:DOperation = (get & topicPublic) as { (cid:UserId, rtid:TopicId) =>
-    Operation(cid, ResTopic(rtid), GetFields("public"))
-  }
-
-  /** modify the publicness */
-  val putTopicPublic:DOperation = (put & topicPublic & dEntity(as[Boolean])) as { (cid:UserId, rtid:TopicId, nPub:Boolean) =>
-    Operation(cid, ResTopic(rtid), ReplaceField("public", BooleanVC(nPub)))
-  }
-
-  /** get topic info */
-  val getTopicInfo:DOperation = (get & topicInfo) as { (cid:UserId, rtid:TopicId) =>
-    Operation(cid, ResTopic(rtid), GetFields("info"))
-  }
-
-  /** modify the info */
-  val putTopicInfo:DOperation = (put & topicInfo & dEntity(as[String])) as { (cid:UserId, rtid:TopicId, nInfo:String) =>
-    Operation(cid, ResTopic(rtid), ReplaceField("info", StringVC(nInfo)))
-  }
+  /** topic info */
+  val topicInfo:DOperation = (singleTopic & jsonField("info")) as topicOperation
 
   /** all topics paths */
-  val topicsApi:DOperation = getTopics |
-    getSingleTopic |
-    getTopicTitle |
-    putTopicTitle |
-    getTopicPublic |
-    putTopicPublic |
-    getTopicInfo |
-    putTopicInfo
+  val topicsApi:DOperation = getTopics | getSingleTopic | topicTitle | topicPublic | topicInfo
 
 }

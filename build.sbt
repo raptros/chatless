@@ -10,7 +10,7 @@ scalaVersion := "2.10.2"
 
 resolvers += "spray repo" at "http://repo.spray.io"
 
-scalacOptions ++= Seq("-deprecation", "-unchecked")
+scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
 
 autoScalaLibrary := true
 
