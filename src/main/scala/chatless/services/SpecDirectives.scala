@@ -30,4 +30,6 @@ trait SpecDirectives { this:ServiceBase =>
     val putF:Directive1[OpSpec] = (put & pathD & dEntity(as[Json])) as { v:Json => ReplaceField(field, JsonVC(v)) }
     getF | putF
   }
+
+  def stringListField(field:String)
 }
