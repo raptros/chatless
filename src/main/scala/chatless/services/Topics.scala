@@ -27,10 +27,6 @@ trait Topics extends ServiceBase with SpecDirectives {
   val topicOperation:HListDeserializer[UserId :: TopicId :: OpSpec :: HNil, Operation] = {
     (cid:UserId, rtid:TopicId, spec:OpSpec) => Operation(cid, ResTopic(rtid), spec)
   }
-  /** get the topic handles of the topics the user is participating in*/
-  val getTopics:DOperation = (get & topicsBase & path(PathEnd)) as { cid:UserId =>
-    Operation(cid, ResUser(cid), GetFields("topics"))
-  }
 
   /** get a single topic handle */
   val getSingleTopic:DOperation = (get & singleTopic & path(PathEnd)) as {
@@ -45,6 +41,6 @@ trait Topics extends ServiceBase with SpecDirectives {
   val topicInfo:DOperation = (singleTopic & jsonField("info")) as topicOperation
 
   /** all topics paths */
-  val topicsApi:DOperation = getTopics | getSingleTopic | topicTitle | topicPublic | topicInfo
+  val topicsApi:DOperation = getSingleTopic | topicTitle | topicPublic | topicInfo
 
 }

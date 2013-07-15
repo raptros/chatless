@@ -119,7 +119,7 @@ paths
 
     get: list of rejected requests
 
-20. /me/requests/denied/:rid
+20. /me/requests/rejected/:rid
 
     get: did I reject :rid?
 
