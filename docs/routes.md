@@ -177,6 +177,10 @@ user
 
     post(request object): posts the request to user --- !( {:uid}/me/blocked/
 
+12. /user/:uid/request/:rid
+    
+    get: returns the status of :rid --- :rid/sender == /me/id
+
 topics
 ------
 
@@ -252,7 +256,7 @@ topics
 
     post(topic request object): sends request to topic --- anyone
 
-14. /topic/:tid/requests/:rid
+14. /topic/:tid/request/:rid
 
     get: return the description of submitted request :rqid --- /me/id == /topic/:tid/op || /topic/:tid/sops/@/me/id
 
