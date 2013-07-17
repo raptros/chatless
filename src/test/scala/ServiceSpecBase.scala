@@ -57,19 +57,25 @@ with OperationMatchers  { this:FunSpec =>
 
 //  def describeRequest(req:HttpRequest, auth:Boolean=true)(to:Route)(inner:RouteResult => Unit)
 
-  def describeResultOf(req:HttpRequest, auth:Boolean = true)(inner: Operation => Unit) = describe(s"${req.method.value} to ${req.uri}") {
-    val oEnt:Option[HttpEntity] = req ~> { if (auth) addCreds else { (r:HttpRequest) => r } } ~> apiInspector ~> check {
-      if (handled) Some(entity) else None
-    }
-    val oJson = oEnt flatMap { e => e.as[Json].right.toOption }
-    val oOperation = oJson flatMap { j => j.as[Operation].value }
+  def describeResultOf(req:HttpRequest, auth:Boolean = true)(inner: Operation => Unit) = {
+    val entityString = req.entity.toOption map { b:HttpBody =>
+      s" with entity ${b.asString}"
+    } getOrElse ""
+    val name = s"${req.method.value} to ${req.uri}" + entityString
+    describe(name) {
+      val oEnt:Option[HttpEntity] = req ~> { if (auth) addCreds else { (r:HttpRequest) => r } } ~> apiInspector ~> check {
+        if (handled) Some(entity) else None
+      }
+      val oJson = oEnt flatMap { e => e.as[Json].right.toOption }
+      val oOperation = oJson flatMap { j => j.as[Operation].value }
 
-    it("must have produced an actual operation") {
-      assert(oEnt.nonEmpty, "it wasn't actually handled")
-      assert(oJson.nonEmpty, s"couldn't get the json out of the entity $oEnt")
-      assert(oOperation.nonEmpty, s"couldn't get the operation out of the json $oJson")
+      it("must have produced an actual operation") {
+        assert(oEnt.nonEmpty, "it wasn't actually handled")
+        assert(oJson.nonEmpty, s"couldn't get the json out of the entity $oEnt")
+        assert(oOperation.nonEmpty, s"couldn't get the operation out of the json $oJson")
+      }
+      oOperation foreach inner
     }
-    oOperation foreach inner
   }
 
   def operationTest(eRes:OpRes, eSpec:OpSpec)(op:Operation) = {

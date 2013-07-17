@@ -101,7 +101,7 @@ paths
 
     get: list of (open!) requests that have been sent to me
 
-16. /me/requests/:rid
+16. /me/request/:rid
 
     get: return the description of submitted request :rqid
 

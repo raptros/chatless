@@ -21,36 +21,45 @@ import shapeless.::
 
 trait MeApi extends ServiceBase with SpecDirectives {
   val me:Directive[UserId :: OpRes :: HNil] = (userAuth & pathPrefix("me")) map { cid:UserId =>
-    cid :: ResUser(cid).asInstanceOf[OpRes] :: HNil
+    cid :: ResMe.asInstanceOf[OpRes] :: HNil
   }
   private val gets:Directive1[OpSpec] = { path(PathEnd) & provide(GetAll) } |
-    getPathField("nick") |
-    getPathField("public") |
-    getPathField("info") |
-    getPathField("following") |
-    testListPath("following") |
-    getPathField("followers") |
-    testListPath("followers") |
-    getPathField("blocked") |
-    testListPath("blocked") |
-    getPathField("topics") |
-    testListPath("topics") |
-    getPathField("tags") |
-    testListPath("tags")
+    fieldPathGet("nick") |
+    fieldPathGet("public") |
+    fieldPathGet("info") |
+    fieldPathGet("following") |
+    listPathItemTest("following") |
+    fieldPathGet("followers") |
+    listPathItemTest("followers") |
+    fieldPathGet("blocked") |
+    listPathItemTest("blocked") |
+    fieldPathGet("topics") |
+    listPathItemTest("topics") |
+    fieldPathGet("tags") |
+    listPathItemTest("tags")
 
-  private val puts:Directive1[OpSpec] = replacePathField("nick") { StringVC.apply _ } |
-    replacePathField("public") { BooleanVC.apply _ } |
-    replacePathField("info") { JsonVC.apply _ } |
-    addListPath("following") |
-    addListPath("blocked") |
-    addListPath("topics") |
-    addListPath("tags")
+  private val puts:Directive1[OpSpec] = fieldPathReplace("nick") { StringVC.apply _ } |
+    fieldPathReplace("public") { BooleanVC.apply _ } |
+    fieldPathReplace("info") { JsonVC.apply _ } |
+    listPathItemAppend("following") |
+    listPathItemAppend("blocked") |
+    listPathItemAppend("topics") |
+    listPathItemAppend("tags")
 
-  private val deletes:Directive1[OpSpec] = deleteListPath("following") |
-    deleteListPath("followers") |
-    deleteListPath("blocked") |
-    deleteListPath("topics") |
-    deleteListPath("tags")
+  private val deletes:Directive1[OpSpec] = listPathItemDelete("following") |
+    listPathItemDelete("followers") |
+    listPathItemDelete("blocked") |
+    listPathItemDelete("topics") |
+    listPathItemDelete("tags")
+
+  private val meReqs:Directive[UserId :: OpRes :: HNil] = (userAuth & pathPrefix("me" / "requests")) map { cid: UserId =>
+    cid :: ResMeReqs.asInstanceOf[OpRes] :: HNil
+  }
+
+  private val getReq:Directive[UserId :: OpRes :: OpSpec :: HNil] = (get & userAuth &
+    path("me" / "request" / Segment / PathEnd)) hmap {
+    case cid :: rid :: HNil => cid :: ResRequest(rid).asInstanceOf[OpRes] :: GetAll.asInstanceOf[OpSpec] :: HNil
+  }
 
   private val getting:Directive[UserId :: OpRes :: OpSpec :: HNil] = get & me & gets
 
@@ -58,5 +67,17 @@ trait MeApi extends ServiceBase with SpecDirectives {
 
   private val deleting:Directive[UserId :: OpRes :: OpSpec :: HNil] = delete & me & deletes
 
-  val meApi:DOperation = (getting | putting | deleting) as { operation }
+  private val reqsGets:Directive1[OpSpec] = { path(PathEnd) & provide(GetFields("open")) } |
+    fieldPathGet("accepted") |
+    listPathItemTest("accepted") |
+    fieldPathGet("rejected") |
+    listPathItemTest("rejected")
+
+  private val reqsPuts:Directive1[OpSpec] = listPathItemAppend("accepted") | listPathItemAppend("rejected")
+
+  private val reqsGetting:Directive[UserId :: OpRes :: OpSpec :: HNil] = get & meReqs & reqsGets
+
+  private val reqsPutting:Directive[UserId :: OpRes :: OpSpec :: HNil] = put & meReqs & reqsPuts
+
+  val meApi:DOperation = (getting | putting | deleting | getReq | reqsGetting | reqsPutting) as { operation }
 }

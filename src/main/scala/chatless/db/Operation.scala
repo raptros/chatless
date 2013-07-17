@@ -53,13 +53,20 @@ object OpRes {
 
   implicit def JDecodeOpRes:DecodeJson[OpRes] = DecodeJson { c =>
     (c --\ "res").as[String] flatMap {
+      case "me" => okResult { ResMe }
       case "user" => (c --\ "uid").as[String] map { ResUser }
       case "topic" => (c --\ "tid").as[String] map { ResTopic }
-      case "ureqs" => (c --\ "uid").as[String] map { ResUserReqs }
       case "req" => (c --\ "rid").as[String] map { ResRequest }
+      case "mreqs" => okResult { ResMeReqs }
+      case "ureqs" => (c --\ "uid").as[String] map { ResUserReqs }
+      case "treqs" => (c --\ "tid").as[String] map { ResTopicReqs }
       case _ => DecodeResult.fail("not a valid resource spec", c.history)
     }
   }
+}
+
+case object ResMe extends OpRes {
+  override def asJson:Json = ("res" := "me") ->: super.asJson
 }
 
 case class ResUser(uid:UserId) extends OpRes {
@@ -74,8 +81,15 @@ case class ResRequest(rid:RequestId) extends OpRes {
   override def asJson:Json = ("res" := "req") ->: ("rid" := rid) ->: super.asJson
 }
 
+case object ResMeReqs extends OpRes {
+  override def asJson:Json = ("res" := "mreqs") ->: super.asJson
+}
 case class ResUserReqs(uid:UserId) extends OpRes {
   override def asJson:Json = ("res" := "ureqs") ->: ("uid" := uid) ->: super.asJson
+}
+
+case class ResTopicReqs(tid:TopicId) extends OpRes {
+  override def asJson:Json = ("res" := "treqs") ->: ("tid" := tid) ->: super.asJson
 }
 
 sealed abstract class OpSpec {
@@ -97,6 +111,7 @@ object OpSpec {
         case "append" => jdecode2L { AppendToList } ("field", "value")
         case "delete" => jdecode2L { DeleteFromList } ("field", "value")
       } flatMap { _ decode c }
+      case "create" => (c --\ "value").as[ValueContainer] map { Create.apply _ }
       case _ => failResult(s"no such op", c.history)
     }
   }
@@ -140,6 +155,9 @@ case class DeleteFromList(field:String, value:ValueContainer) extends UpdateSpec
   override def asJson = ("spec" := "delete") ->: super.asJson
 }
 
+case class Create(value:ValueContainer) extends OpSpec {
+  override def asJson = ("op" := "create") ->: ("value" := value) ->: super.asJson
+}
 
 case class Operation(cid:UserId, res:OpRes, spec:OpSpec)
 
