@@ -10,6 +10,7 @@ package object chatless {
   type MessageId = String
   type TopicId = String
   type EventId = String
+  type RequestId = String
 
   implicit class TryToConv[A](attempt:Try[A]) {
     trait FailureConv[B] {
@@ -32,6 +33,8 @@ package object chatless {
   import scalaz.syntax.id._
 
   implicit def marshallJson:Marshaller[Json] = Marshaller.delegate(`application/json`) { json:Json => json.nospaces }
+
+  implicit def marshallBoolean:Marshaller[Boolean] = Marshaller.delegate(`text/plain`) { bool:Boolean => bool.toString }
 
   implicit def jsonFromString:Deserializer[String, Json] = new Deserializer[String, Json] {
     val fail:String => Deserialized[Json] = e => MalformedContent(e).left[Json].toEither
