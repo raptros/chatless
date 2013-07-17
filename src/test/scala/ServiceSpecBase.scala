@@ -8,7 +8,9 @@ import chatless.{UserId, TopicId}
 import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.{FunSpec, FunSuite, Suite, WordSpec}
 import scala.Some
-import spray.http.{HttpRequest, BasicHttpCredentials}
+import spray.http._
+import spray.httpx._
+import spray.httpx.unmarshalling._
 import spray.routing.Route
 import spray.routing.authentication.{UserPass, UserPassAuthenticator, BasicAuth, ContextAuthenticator}
 import spray.testkit.ScalatestRouteTest
@@ -24,7 +26,7 @@ with ScalatestRouteTest
 with ServiceBase
 with OperationMatchers  { this:FunSpec =>
 
-  val userId = s"test-${this.getClass}-123"
+  val userId = s"test-${this.getClass.getSimpleName}-123"
   val password = "hypermachinery"
 
   def actorRefFactory = system
@@ -53,9 +55,26 @@ with OperationMatchers  { this:FunSpec =>
 
   val apiInspector:Route
 
-  def describeResultOf(req:HttpRequest, auth:Boolean = true)(inner: Operation => Unit) = describe(s"${req.method.value} to ${req.uri}") {
-    req ~> { if (auth) addCreds else { (r:HttpRequest) => r } } ~> apiInspector ~> check {
-      inner(entityAs[Json].as[Operation].getOr(throw new Exception("json object not extractable to Operation")))
+//  def describeRequest(req:HttpRequest, auth:Boolean=true)(to:Route)(inner:RouteResult => Unit)
+
+  def describeResultOf(req:HttpRequest, auth:Boolean = true)(inner: Operation => Unit) = {
+    val entityString = req.entity.toOption map { b:HttpBody =>
+      s" with entity ${b.asString}"
+    } getOrElse ""
+    val name = s"${req.method.value} to ${req.uri}" + entityString
+    describe(name) {
+      val oEnt:Option[HttpEntity] = req ~> { if (auth) addCreds else { (r:HttpRequest) => r } } ~> apiInspector ~> check {
+        if (handled) Some(entity) else None
+      }
+      val oJson = oEnt flatMap { e => e.as[Json].right.toOption }
+      val oOperation = oJson flatMap { j => j.as[Operation].value }
+
+      it("must have produced an actual operation") {
+        assert(oEnt.nonEmpty, "it wasn't actually handled")
+        assert(oJson.nonEmpty, s"couldn't get the json out of the entity $oEnt")
+        assert(oOperation.nonEmpty, s"couldn't get the operation out of the json $oJson")
+      }
+      oOperation foreach inner
     }
   }
 

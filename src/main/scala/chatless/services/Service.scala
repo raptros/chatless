@@ -19,9 +19,7 @@ import chatless.db.Operation
 import spray.httpx.encoding.NoEncoding
 
 /** defines the chatless service */
-trait Service extends Topics with Users {
-  val eventsBase:Directive0 = pathPrefix("events")
-
+trait Service extends MeApi with TopicApi with UserApi {
   def completeStateError(err:StateError, code:StatusCode) = respondWithMediaType(`application/json`) {
     complete { code -> err.asJson.spaces2 }
   }
@@ -36,7 +34,7 @@ trait Service extends Topics with Users {
     case (se:StateError) => log.warning(se.getMessage); handleStateError(se)
   }
 
-  val allApis:DOperation = topicsApi | userApi
+  val allApis:DOperation = meApi | userApi | topicApi
 
   val finishApis = allApis { dbReq =>
     onSuccess(dbActor ? dbReq) {
