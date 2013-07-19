@@ -105,6 +105,7 @@ object OpSpec {
         case "all" => okResult(GetAll)
         case "fields" => (c --\ "fields").as[List[String]] map { fields => GetFields(fields: _*) }
         case "contains" => jdecode2L { GetListContains } ("field", "value") decode c
+        case "relative" => jdecode4L { GetRelative }  ("forward", "baseId", "inclusive", "count") decode c
       }
       case "update" => (c --\ "spec").as[String] map {
         case "replace" => jdecode2L { ReplaceField } ("field", "value")
@@ -132,6 +133,10 @@ case class GetListContains(field:String, value:ValueContainer) extends GetSpec {
 case object GetAll extends GetSpec {
   def apply(a:Any) = this
   override def asJson = ("spec" := "all") ->: super.asJson
+}
+
+case class GetRelative(forward:Boolean, baseId:Option[String], inclusive:Boolean, count:Int) extends GetSpec {
+  override def asJson = ("spec" := "relative") ->: ("forward" := forward) ->: ("baseId" := baseId) ->: ("inclusive" := inclusive) ->: ("count" := count) ->: super.asJson
 }
 
 sealed abstract class UpdateSpec extends OpSpec {
