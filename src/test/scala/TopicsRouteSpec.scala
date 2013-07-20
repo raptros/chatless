@@ -134,4 +134,58 @@ class TopicsRouteSpec extends FunSpec with ServiceSpecBase with TopicApi {
       operationTest(ResTopicReqs("2344"), AppendToList("rejected", StringVC("3324")))
     }
   }
+
+  describe("the operation object returned when the /topic/:id/message subapi receives a") {
+    describeResultOf(Post("/topic/2344/message", ("test" := 123) ->: jEmptyObject)) {
+      operationTest(ResMessages("2344"), Create(JsonVC(("test" := 123) ->: jEmptyObject)))
+    }
+
+    describeResultOf(Get("/topic/2344/message")) {
+      operationTest(ResMessages("2344"), GetRelative(true, None, true, 1))
+    }
+
+    describeResultOf(Get("/topic/2344/message/first/5")) {
+      operationTest(ResMessages("2344"), GetRelative(true, None, true, 5))
+    }
+
+    describeResultOf(Get("/topic/2344/message/last")) {
+      operationTest(ResMessages("2344"), GetRelative(false, None, true, 1))
+    }
+
+    describeResultOf(Get("/topic/2344/message/last/5")) {
+      operationTest(ResMessages("2344"), GetRelative(false, None, true, 5))
+    }
+
+    describeResultOf(Get("/topic/2344/message/at/4ia324")) {
+      operationTest(ResMessages("2344"), GetRelative(false, Some("4ia324"), true, 1))
+    }
+
+    describeResultOf(Get("/topic/2344/message/at/4ia324/5")) {
+      operationTest(ResMessages("2344"), GetRelative(false, Some("4ia324"), true, 5))
+    }
+
+    describeResultOf(Get("/topic/2344/message/before/4ia324")) {
+      operationTest(ResMessages("2344"), GetRelative(false, Some("4ia324"), false, 1))
+    }
+
+    describeResultOf(Get("/topic/2344/message/before/4ia324/5")) {
+      operationTest(ResMessages("2344"), GetRelative(false, Some("4ia324"), false, 5))
+    }
+
+    describeResultOf(Get("/topic/2344/message/from/4ia324")) {
+      operationTest(ResMessages("2344"), GetRelative(true, Some("4ia324"), true, 1))
+    }
+
+    describeResultOf(Get("/topic/2344/message/from/4ia324/5")) {
+      operationTest(ResMessages("2344"), GetRelative(true, Some("4ia324"), true, 5))
+    }
+
+    describeResultOf(Get("/topic/2344/message/after/4ia324")) {
+      operationTest(ResMessages("2344"), GetRelative(true, Some("4ia324"), false, 1))
+    }
+
+    describeResultOf(Get("/topic/2344/message/after/4ia324/5")) {
+      operationTest(ResMessages("2344"), GetRelative(true, Some("4ia324"), false, 5))
+    }
+  }
 }

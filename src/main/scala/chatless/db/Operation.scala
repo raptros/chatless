@@ -60,6 +60,7 @@ object OpRes {
       case "mreqs" => okResult { ResMeReqs }
       case "ureqs" => (c --\ "uid").as[String] map { ResUserReqs }
       case "treqs" => (c --\ "tid").as[String] map { ResTopicReqs }
+      case "msgs" => (c --\ "tid").as[String] map { ResMessages }
       case _ => DecodeResult.fail("not a valid resource spec", c.history)
     }
   }
@@ -90,6 +91,10 @@ case class ResUserReqs(uid:UserId) extends OpRes {
 
 case class ResTopicReqs(tid:TopicId) extends OpRes {
   override def asJson:Json = ("res" := "treqs") ->: ("tid" := tid) ->: super.asJson
+}
+
+case class ResMessages(tid:TopicId) extends OpRes {
+  override def asJson:Json = ("res" := "msgs") ->: ("tid" := tid) ->: super.asJson
 }
 
 sealed abstract class OpSpec {
@@ -138,6 +143,16 @@ case object GetAll extends GetSpec {
 case class GetRelative(forward:Boolean, baseId:Option[String], inclusive:Boolean, count:Int) extends GetSpec {
   override def asJson = ("spec" := "relative") ->: ("forward" := forward) ->: ("baseId" := baseId) ->: ("inclusive" := inclusive) ->: ("count" := count) ->: super.asJson
 }
+
+/*
+object GetRelative {
+  def first(count:Int = 1):OpSpec = GetRelative(true, None, true, count)
+  def last(count:Int = 1):OpSpec = GetRelative(false, None, true, count)
+  def at(id:String, count:Int = 1):OpSpec = GetRelative(false, Some(id), true, count)
+  def before(id:String, count:Int = 1):OpSpec = GetRelative(false, Some(id), false, count)
+  def from(id:String, count:Int = 1):OpSpec = GetRelative(true, Some(id), true, count)
+  def after(id:String, count:Int = 1):OpSpec = GetRelative(true, Some(id), false, count)
+}*/
 
 sealed abstract class UpdateSpec extends OpSpec {
   val value:ValueContainer
