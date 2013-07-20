@@ -1,10 +1,7 @@
-import chatless._
+package chatless
+
 import chatless.db._
-import chatless.db.GetFields
-import chatless.db.ResTopic
-import chatless.db.ResUser
 import chatless.services.ServiceBase
-import chatless.{UserId, TopicId}
 import org.scalatest.matchers.ShouldMatchers
 import org.scalatest.{FunSpec, FunSuite, Suite, WordSpec}
 import scala.Some
@@ -19,6 +16,13 @@ import argonaut._
 import Argonaut._
 
 import scala.concurrent._
+import chatless.operation._
+import spray.http.HttpRequest
+import spray.routing.authentication.UserPass
+import chatless.operation.ResUser
+import scala.Some
+import chatless.operation.ResTopic
+import chatless.operation.GetFields
 
 trait ServiceSpecBase extends
 ShouldMatchers
