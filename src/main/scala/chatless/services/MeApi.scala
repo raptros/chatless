@@ -16,7 +16,11 @@ import argonaut.EncodeJson._
 
 import shapeless._
 import shapeless.::
-
+import chatless.operation._
+import chatless.operation.BooleanVC
+import shapeless.::
+import chatless.operation.JsonVC
+import chatless.operation.StringVC
 
 
 trait MeApi extends ServiceBase with SpecDirectives {

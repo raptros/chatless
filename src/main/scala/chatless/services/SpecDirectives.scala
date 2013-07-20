@@ -13,6 +13,10 @@ import spray.routing._
 import argonaut._
 import Argonaut._
 import shapeless._
+import chatless.operation._
+import shapeless.::
+import chatless.operation.JsonVC
+import chatless.operation.StringVC
 
 trait SpecDirectives { this:ServiceBase =>
 

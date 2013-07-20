@@ -20,6 +20,9 @@ import akka.actor.Props
 import akka.actor.Status
 import akka.event.Logging
 import chatless._
+import chatless.operation._
+import chatless.operation.ResTopic
+import chatless.operation.ResUser
 
 
 class DbActor(val mc:MongoClient) extends Actor {

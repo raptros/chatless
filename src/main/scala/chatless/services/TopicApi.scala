@@ -10,6 +10,11 @@ import spray.httpx.unmarshalling.Deserializer._
 import chatless.db._
 import chatless._
 import shapeless.::
+import chatless.operation._
+import chatless.operation.BooleanVC
+import shapeless.::
+import chatless.operation.JsonVC
+import chatless.operation.StringVC
 
 
 trait TopicApi extends ServiceBase with SpecDirectives {

@@ -1,3 +1,5 @@
+package chatless.optests
+
 import chatless.db._
 import chatless.services.TopicApi
 import chatless._
@@ -6,9 +8,15 @@ import spray.httpx.marshalling.Marshaller._
 
 import argonaut._
 import Argonaut._
+import chatless.operation._
+import chatless.operation.ResTopic
+import chatless.operation.JsonVC
+import chatless.operation.BooleanVC
+import chatless.operation.StringVC
+import scala.Some
 
 
-class TopicsRouteSpec extends FunSpec with ServiceSpecBase with TopicApi {
+class TopicApiOperationSpec extends FunSpec with ServiceSpecBase with TopicApi {
   val apiInspector = topicApi { dbReq => complete { dbReq.asJson } }
 
   describe("the operation object returned when the topic api receives a") {

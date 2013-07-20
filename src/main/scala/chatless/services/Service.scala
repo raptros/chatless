@@ -15,8 +15,8 @@ import akka.pattern.AskableActorSelection
 import akka.util.Timeout
 import chatless.db._
 import shapeless.::
-import chatless.db.Operation
 import spray.httpx.encoding.NoEncoding
+import chatless.operation.Operation
 
 /** defines the chatless service */
 trait Service extends MeApi with TopicApi with UserApi {
