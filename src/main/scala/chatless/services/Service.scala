@@ -2,24 +2,15 @@ package chatless.services
 
 import spray.routing._
 import spray.http._
-import spray.httpx.unmarshalling.Unmarshaller
 import MediaTypes._
 
 import argonaut._
-import Argonaut._
 
-import scala.concurrent.duration._
 import spray.util.LoggingContext
-import akka.actor.ActorSelection
-import akka.pattern.AskableActorSelection
-import akka.util.Timeout
 import chatless.db._
-import shapeless.::
-import spray.httpx.encoding.NoEncoding
-import chatless.operation.Operation
 
 /** defines the chatless service */
-trait Service extends MeApi with TopicApi with UserApi {
+trait Service extends MeApi with TopicApi with UserApi with EventApi with TaggedApi {
   def completeStateError(err:StateError, code:StatusCode) = respondWithMediaType(`application/json`) {
     complete { code -> err.asJson.spaces2 }
   }
@@ -34,7 +25,7 @@ trait Service extends MeApi with TopicApi with UserApi {
     case (se:StateError) => log.warning(se.getMessage); handleStateError(se)
   }
 
-  val allApis:DOperation = meApi | userApi | topicApi
+  val allApis:DOperation = meApi | userApi | topicApi | eventApi | taggedApi
 
   val finishApis = allApis { dbReq =>
     onSuccess(dbActor ? dbReq) {

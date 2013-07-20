@@ -22,6 +22,7 @@ object OpRes {
       case "treqs" => (c --\ "tid").as[String] map { ResTopicReqs }
       case "msgs" => (c --\ "tid").as[String] map { ResMessages }
       case "events" => okResult { ResEvents }
+      case "tag" => (c --\ "tag").as[String] map { ResTagged }
       case _ => DecodeResult.fail("not a valid resource spec", c.history)
     }
   }
@@ -62,3 +63,6 @@ case object ResEvents extends OpRes {
   override def asJson:Json = ("res" := "events") ->: super.asJson
 }
 
+case class ResTagged(tag:String) extends OpRes {
+  override def asJson:Json = ("res" := "tag") ->: ("tag" := tag) ->: super.asJson
+}
