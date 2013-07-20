@@ -1,7 +1,6 @@
 package chatless.services
 
 import akka.actor.ActorSelection
-import chatless.db.{OpSpec, OpRes, Operation}
 import akka.util.Timeout
 
 import spray.routing.{RequestContext, HttpService, Directive1}
@@ -14,6 +13,7 @@ import akka.pattern.AskableActorSelection
 import scala.concurrent.Future
 import spray.routing.authentication._
 import chatless._
+import chatless.operation.{OpSpec, OpRes, Operation}
 
 trait ServiceBase extends HttpService {
   type DOperation = Directive1[Operation]

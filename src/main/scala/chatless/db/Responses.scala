@@ -3,6 +3,7 @@ package chatless.db
 import chatless.{UserId, TopicId, MessageId}
 import argonaut._
 import Argonaut._
+import chatless.operation.{OpSpec, OpRes}
 
 sealed abstract class StateError(msg:String) extends Throwable(msg) {
   def asJson:Json = ("msg" := msg) ->: jEmptyObject

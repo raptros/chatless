@@ -1,7 +1,6 @@
+package chatless.optests
+
 import chatless.db._
-import chatless.db.GetFields
-import chatless.db.ReplaceField
-import chatless.db.ResUser
 import chatless.services.MeApi
 import org.scalatest.FunSpec
 
@@ -9,8 +8,11 @@ import argonaut._
 import Argonaut._
 
 import chatless._
+import chatless.operation._
+import chatless.operation.ReplaceField
+import chatless.operation.GetFields
 
-class MeRoutesSpec extends FunSpec with ServiceSpecBase with MeApi {
+class MeApiOperationSpec extends FunSpec with ServiceSpecBase with MeApi {
   val apiInspector = meApi { dbReq:Operation => complete { dbReq.asJson } }
 
   describe("the operation object returned when the /me/ api receives a") {

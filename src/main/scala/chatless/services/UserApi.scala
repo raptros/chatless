@@ -3,13 +3,10 @@ package chatless.services
 import spray.routing._
 import HListDeserializer._
 
-
 import shapeless._
-import spray.httpx.unmarshalling.Deserializer._
 
-import chatless.db._
-import chatless._
-import shapeless.::
+import chatless.UserId
+import chatless.operation._
 
 trait UserApi extends ServiceBase with SpecDirectives {
   val user:Directive[UserId :: OpRes :: HNil] = (userAuth & pathPrefix("user" / Segment)) hmap {

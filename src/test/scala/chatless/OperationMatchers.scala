@@ -1,5 +1,7 @@
+package chatless
+
 import org.scalatest.matchers.{HavePropertyMatchResult, HavePropertyMatcher}
-import chatless.db.{OpSpec, OpRes, Operation}
+import chatless.operation.{OpSpec, OpRes, Operation}
 
 trait OperationMatchers {
 

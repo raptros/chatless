@@ -1,6 +1,6 @@
+package chatless.optests
+
 import chatless.db._
-import chatless.db.GetFields
-import chatless.db.ResUser
 import chatless.services.UserApi
 import org.scalatest.{FunSpec, FunSuite}
 import spray.routing.HttpService
@@ -8,8 +8,12 @@ import spray.testkit.ScalatestRouteTest
 import argonaut._
 import Argonaut._
 import chatless._
+import chatless.operation._
+import chatless.operation.StringVC
+import chatless.operation.ResUser
+import chatless.operation.GetFields
 
-class UserRoutesSpec extends FunSpec with ServiceSpecBase with UserApi {
+class UserApiOperationSpec extends FunSpec with ServiceSpecBase with UserApi {
   val apiInspector = userApi { dbReq:Operation => complete { dbReq.asJson } }
 
   describe("the operation object returned when the /me/ api receives a") {
