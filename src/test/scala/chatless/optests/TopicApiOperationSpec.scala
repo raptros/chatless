@@ -25,7 +25,7 @@ class TopicApiOperationSpec extends FunSpec with ServiceSpecBase with TopicApi {
     }
 
     describeResultOf(Get("/topic/2344/title")) {
-      operationTest(ResTopic("2344"), GetFields("title"))
+      operationTest(ResTopic("2344"), GetField("title"))
     }
 
     describeResultOf(Put("/topic/2344/title", "this is a topic")) {
@@ -33,7 +33,7 @@ class TopicApiOperationSpec extends FunSpec with ServiceSpecBase with TopicApi {
     }
 
     describeResultOf(Get("/topic/2344/public")) {
-      operationTest(ResTopic("2344"), GetFields("public"))
+      operationTest(ResTopic("2344"), GetField("public"))
     }
 
     describeResultOf(Put("/topic/2344/public", true)) {
@@ -45,7 +45,7 @@ class TopicApiOperationSpec extends FunSpec with ServiceSpecBase with TopicApi {
     }
 
     describeResultOf(Get("/topic/2344/info")) {
-      operationTest(ResTopic("2344"), GetFields("info"))
+      operationTest(ResTopic("2344"), GetField("info"))
     }
 
     describeResultOf(Put("/topic/2344/info", ("test" := 123) ->: jEmptyObject)) {
@@ -53,7 +53,7 @@ class TopicApiOperationSpec extends FunSpec with ServiceSpecBase with TopicApi {
     }
 
     describeResultOf(Get("/topic/2344/tags")) {
-      operationTest(ResTopic("2344"), GetFields("tags"))
+      operationTest(ResTopic("2344"), GetField("tags"))
     }
 
     describeResultOf(Get("/topic/2344/tags/i'll_do_yourm_other")) {
@@ -69,11 +69,11 @@ class TopicApiOperationSpec extends FunSpec with ServiceSpecBase with TopicApi {
     }
 
     describeResultOf(Get("/topic/2344/op")) {
-      operationTest(ResTopic("2344"), GetFields("op"))
+      operationTest(ResTopic("2344"), GetField("op"))
     }
 
     describeResultOf(Get("/topic/2344/sops")) {
-      operationTest(ResTopic("2344"), GetFields("sops"))
+      operationTest(ResTopic("2344"), GetField("sops"))
     }
 
     describeResultOf(Get("/topic/2344/sops/23423")) {
@@ -89,7 +89,7 @@ class TopicApiOperationSpec extends FunSpec with ServiceSpecBase with TopicApi {
     }
 
     describeResultOf(Get("/topic/2344/participating")) {
-      operationTest(ResTopic("2344"), GetFields("participating"))
+      operationTest(ResTopic("2344"), GetField("participating"))
     }
 
     describeResultOf(Get("/topic/2344/participating/23423")) {
@@ -107,7 +107,7 @@ class TopicApiOperationSpec extends FunSpec with ServiceSpecBase with TopicApi {
 
   describe("the operation object returned when the /topic/:id/requests sub-api receives a") {
     describeResultOf(Get("/topic/2344/requests")) {
-      operationTest(ResTopicReqs("2344"), GetFields("open"))
+      operationTest(ResTopicReqs("2344"), GetField("open"))
     }
 
     describeResultOf(Post("/topic/2344/requests", ("sender" := userId) ->: jEmptyObject)) {
@@ -119,7 +119,7 @@ class TopicApiOperationSpec extends FunSpec with ServiceSpecBase with TopicApi {
     }
 
     describeResultOf(Get("/topic/2344/requests/accepted/")) {
-      operationTest(ResTopicReqs("2344"), GetFields("accepted"))
+      operationTest(ResTopicReqs("2344"), GetField("accepted"))
     }
 
     describeResultOf(Get("/topic/2344/requests/accepted/3324"))  {
@@ -131,7 +131,7 @@ class TopicApiOperationSpec extends FunSpec with ServiceSpecBase with TopicApi {
     }
 
     describeResultOf(Get("/topic/2344/requests/rejected/")) {
-      operationTest(ResTopicReqs("2344"), GetFields("rejected"))
+      operationTest(ResTopicReqs("2344"), GetField("rejected"))
     }
 
     describeResultOf(Get("/topic/2344/requests/rejected/3324"))  {

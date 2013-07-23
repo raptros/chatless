@@ -20,7 +20,7 @@ import chatless.operation.StringVC
 
 trait SpecDirectives { this:ServiceBase =>
 
-  def fieldPathGet(field:String):Directive1[OpSpec] = path(field / PathEnd) & provide(GetFields(field).asInstanceOf[OpSpec])
+  def fieldPathGet(field:String):Directive1[OpSpec] = path(field / PathEnd) & provide(GetField(field).asInstanceOf[OpSpec])
 
   def fieldPathReplace[A:Unmarshaller](field:String)(vcCon:A => ValueContainer):Directive1[OpSpec] = path(field / PathEnd) & dEntity(as[A]) hflatMap {
     case v :: HNil => provide(ReplaceField(field, vcCon(v)))

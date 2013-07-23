@@ -11,7 +11,7 @@ import chatless._
 import chatless.operation._
 import chatless.operation.StringVC
 import chatless.operation.ResUser
-import chatless.operation.GetFields
+import chatless.operation.GetField
 
 class UserApiOperationSpec extends FunSpec with ServiceSpecBase with UserApi {
   val apiInspector = userApi { dbReq:Operation => complete { dbReq.asJson } }
@@ -19,15 +19,15 @@ class UserApiOperationSpec extends FunSpec with ServiceSpecBase with UserApi {
   describe("the operation object returned when the /me/ api receives a") {
     describeResultOf(Get("/user/555/")) { operationTest(ResUser("555"), GetAll) }
 
-    describeResultOf(Get("/user/555/nick")) { operationTest(ResUser("555"), GetFields("nick")) }
+    describeResultOf(Get("/user/555/nick")) { operationTest(ResUser("555"), GetField("nick")) }
 
-    describeResultOf(Get("/user/555/public")) { operationTest(ResUser("555"), GetFields("public")) }
+    describeResultOf(Get("/user/555/public")) { operationTest(ResUser("555"), GetField("public")) }
 
-    describeResultOf(Get("/user/555/info")) { operationTest(ResUser("555"), GetFields("info")) }
+    describeResultOf(Get("/user/555/info")) { operationTest(ResUser("555"), GetField("info")) }
 
     //following list
     describeResultOf(Get("/user/555/following")) {
-      operationTest(ResUser("555"), GetFields("following"))
+      operationTest(ResUser("555"), GetField("following"))
     }
 
     describeResultOf(Get("/user/555/following/3324")) {
@@ -36,7 +36,7 @@ class UserApiOperationSpec extends FunSpec with ServiceSpecBase with UserApi {
 
     //followers list
     describeResultOf(Get("/user/555/followers")) {
-      operationTest(ResUser("555"), GetFields("followers"))
+      operationTest(ResUser("555"), GetField("followers"))
     }
 
     describeResultOf(Get("/user/555/followers/3324")) {
@@ -45,7 +45,7 @@ class UserApiOperationSpec extends FunSpec with ServiceSpecBase with UserApi {
 
     //topics list
     describeResultOf(Get("/user/555/topics")) {
-      operationTest(ResUser("555"), GetFields("topics"))
+      operationTest(ResUser("555"), GetField("topics"))
     }
 
     describeResultOf(Get("/user/555/topics/3324")) {

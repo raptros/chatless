@@ -1,6 +1,9 @@
 package chatless.db
 
-import spray.routing._
+import chatless._
+import chatless.operation._
+import chatless.operation.ResTopic
+import chatless.operation.ResUser
 
 import spray.http._
 import MediaTypes._
@@ -8,10 +11,7 @@ import MediaTypes._
 import argonaut._
 import Argonaut._
 
-import shapeless._
-
 import scala.concurrent._
-import ExecutionContext.Implicits.global
 
 import com.mongodb.casbah.Imports._
 
@@ -19,17 +19,14 @@ import akka.actor.Actor
 import akka.actor.Props
 import akka.actor.Status
 import akka.event.Logging
-import chatless._
-import chatless.operation._
-import chatless.operation.ResTopic
-import chatless.operation.ResUser
+import com.mongodb.casbah
 
 
-class DbActor(val mc:MongoClient) extends Actor {
+class DbActor(val mc:MongoClient) extends Actor with MeOps {
   val db = mc("chatless")
 
   val topics = db("topics")
-  val users = db("users")
+  val users:MongoCollection = db("users")
   val events = db("events")
   val messages = db("messages")
 
@@ -46,15 +43,16 @@ class DbActor(val mc:MongoClient) extends Actor {
   }
 
   def handleOperation(op:Operation):Json = op match {
+    case Operation(cid, ResMe, spec) => handleMe(cid, spec)
     case Operation(cid, ResUser(ruid), spec) => handleUserOperation(cid, ruid, spec)
     case Operation(cid, ResTopic(rtid), spec) => jEmptyObject
   }
 
   def handleUserOperation(cid:UserId, ruid:UserId, spec:OpSpec):Json = spec match {
     case GetAll => getUser(cid, ruid)
-    case GetFields(fields @ _*) => {
+    case GetField(f) => {
       val user = getUser(cid, ruid)
-      (fields flatMap { user field _ } fold jEmptyObject) { _ deepmerge _ }
+      user field f getOrElse jEmptyObject
     }
     case _ => throw OperationNotSupported(cid, ResUser(ruid), spec)
   }
@@ -67,9 +65,9 @@ class DbActor(val mc:MongoClient) extends Actor {
 
   def handleTopicOperation(cid:UserId, rtid:TopicId, spec:OpSpec):Json = spec match {
     case GetAll => getTopic(cid, rtid)
-    case GetFields(fields @ _*) => {
+    case GetField(f) => {
       val topic = getTopic(cid, rtid)
-      (fields flatMap { topic field _ } fold jEmptyObject) { _ deepmerge _ }
+      topic field f getOrElse jEmptyObject
     }
     case _ => throw OperationNotSupported(cid, ResTopic(rtid), spec)
   }

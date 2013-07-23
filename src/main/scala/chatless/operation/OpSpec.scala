@@ -15,7 +15,7 @@ object OpSpec {
     (c --\ "op").as[String] flatMap {
       case "get" => (c --\ "spec").as[String] flatMap {
         case "all" => okResult(GetAll)
-        case "fields" => (c --\ "fields").as[List[String]] map { fields => GetFields(fields: _*) }
+        case "field" => (c --\ "field").as[String] map { GetField }
         case "contains" => jdecode2L { GetListContains } ("field", "value") decode c
         case "relative" => jdecode4L { GetRelative }  ("forward", "baseId", "inclusive", "count") decode c
       }
@@ -34,8 +34,8 @@ sealed abstract class GetSpec extends OpSpec {
   override def asJson = ("op" := "get") ->: super.asJson
 }
 
-case class GetFields(field:String*) extends GetSpec {
-  override def asJson = ("spec" := "fields") ->: ("fields" := field.toList) ->: super.asJson
+case class GetField(field:String) extends GetSpec {
+  override def asJson = ("spec" := "field") ->: ("field" := field) ->: super.asJson
 }
 
 case class GetListContains(field:String, value:ValueContainer) extends GetSpec {

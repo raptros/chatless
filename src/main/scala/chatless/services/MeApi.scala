@@ -60,7 +60,7 @@ trait MeApi extends ServiceBase with SpecDirectives {
 
   private val deleting:Directive[UserId :: OpRes :: OpSpec :: HNil] = delete & me & deletes
 
-  private val reqsGets:Directive1[OpSpec] = { path(PathEnd) & provide(GetFields("open")) } |
+  private val reqsGets:Directive1[OpSpec] = { path(PathEnd) & provide(GetField("open")) } |
     fieldPathGet("accepted") |
     listPathItemTest("accepted") |
     fieldPathGet("rejected") |

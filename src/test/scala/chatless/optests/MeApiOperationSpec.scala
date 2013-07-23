@@ -10,7 +10,7 @@ import Argonaut._
 import chatless._
 import chatless.operation._
 import chatless.operation.ReplaceField
-import chatless.operation.GetFields
+import chatless.operation.GetField
 
 class MeApiOperationSpec extends FunSpec with ServiceSpecBase with MeApi {
   val apiInspector = meApi { dbReq:Operation => complete { dbReq.asJson } }
@@ -18,15 +18,15 @@ class MeApiOperationSpec extends FunSpec with ServiceSpecBase with MeApi {
   describe("the operation object returned when the /me/ api receives a") {
     describeResultOf(Get("/me/")) { operationTest(ResMe, GetAll) }
 
-    describeResultOf(Get("/me/nick")) { operationTest(ResMe, GetFields("nick")) }
+    describeResultOf(Get("/me/nick")) { operationTest(ResMe, GetField("nick")) }
 
     describeResultOf(Put("/me/nick", "badger")) { operationTest(ResMe, ReplaceField("nick", StringVC("badger"))) }
 
-    describeResultOf(Get("/me/public")) { operationTest(ResMe, GetFields("public")) }
+    describeResultOf(Get("/me/public")) { operationTest(ResMe, GetField("public")) }
 
     describeResultOf(Put("/me/public", true)) { operationTest(ResMe, ReplaceField("public", BooleanVC(true))) }
 
-    describeResultOf(Get("/me/info")) { operationTest(ResMe, GetFields("info")) }
+    describeResultOf(Get("/me/info")) { operationTest(ResMe, GetField("info")) }
 
     describeResultOf(Put("/me/info", ("test" := 123) ->: jEmptyObject)) {
       operationTest(ResMe, ReplaceField("info", JsonVC(("test" := 123) ->: jEmptyObject)))
@@ -34,7 +34,7 @@ class MeApiOperationSpec extends FunSpec with ServiceSpecBase with MeApi {
 
     //following list
     describeResultOf(Get("/me/following")) {
-      operationTest(ResMe, GetFields("following"))
+      operationTest(ResMe, GetField("following"))
     }
 
     describeResultOf(Get("/me/following/3324")) {
@@ -51,7 +51,7 @@ class MeApiOperationSpec extends FunSpec with ServiceSpecBase with MeApi {
 
     //followers list
     describeResultOf(Get("/me/followers")) {
-      operationTest(ResMe, GetFields("followers"))
+      operationTest(ResMe, GetField("followers"))
     }
 
     describeResultOf(Get("/me/followers/3324")) {
@@ -69,7 +69,7 @@ class MeApiOperationSpec extends FunSpec with ServiceSpecBase with MeApi {
 
     //blocked list
     describeResultOf(Get("/me/blocked")) {
-      operationTest(ResMe, GetFields("blocked"))
+      operationTest(ResMe, GetField("blocked"))
     }
 
     describeResultOf(Get("/me/blocked/3324")) {
@@ -86,7 +86,7 @@ class MeApiOperationSpec extends FunSpec with ServiceSpecBase with MeApi {
 
     //topics list
     describeResultOf(Get("/me/topics")) {
-      operationTest(ResMe, GetFields("topics"))
+      operationTest(ResMe, GetField("topics"))
     }
 
     describeResultOf(Get("/me/topics/3324")) {
@@ -103,7 +103,7 @@ class MeApiOperationSpec extends FunSpec with ServiceSpecBase with MeApi {
 
     //tags list
     describeResultOf(Get("/me/tags")) {
-      operationTest(ResMe, GetFields("tags"))
+      operationTest(ResMe, GetField("tags"))
     }
 
     describeResultOf(Get("/me/tags/3324")) {
@@ -122,7 +122,7 @@ class MeApiOperationSpec extends FunSpec with ServiceSpecBase with MeApi {
 
   describe("the operation object returned when the /me/requests sub-api receives a") {
     describeResultOf(Get("/me/requests")) {
-      operationTest(ResMeReqs, GetFields("open"))
+      operationTest(ResMeReqs, GetField("open"))
     }
 
     describeResultOf(Get("/me/request/3324")) {
@@ -130,7 +130,7 @@ class MeApiOperationSpec extends FunSpec with ServiceSpecBase with MeApi {
     }
 
     describeResultOf(Get("/me/requests/accepted/")) {
-      operationTest(ResMeReqs, GetFields("accepted"))
+      operationTest(ResMeReqs, GetField("accepted"))
     }
 
     describeResultOf(Get("/me/requests/accepted/3324"))  {
@@ -142,7 +142,7 @@ class MeApiOperationSpec extends FunSpec with ServiceSpecBase with MeApi {
     }
 
     describeResultOf(Get("/me/requests/rejected/")) {
-      operationTest(ResMeReqs, GetFields("rejected"))
+      operationTest(ResMeReqs, GetField("rejected"))
     }
 
     describeResultOf(Get("/me/requests/rejected/3324"))  {

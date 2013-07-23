@@ -52,7 +52,7 @@ trait TopicApi extends ServiceBase with SpecDirectives {
       case cid :: ResTopic(tid) :: rid :: HNil => cid :: ResRequest(rid).asInstanceOf[OpRes] :: GetAll.asInstanceOf[OpSpec] :: HNil
     }
 
-    val reqsGets:Directive1[OpSpec] = { path(PathEnd) & provide(GetFields("open")) } |
+    val reqsGets:Directive1[OpSpec] = { path(PathEnd) & provide(GetField("open")) } |
       fieldPathGet("accepted") |
       listPathItemTest("accepted") |
       fieldPathGet("rejected") |

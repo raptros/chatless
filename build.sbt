@@ -13,7 +13,7 @@ scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
 libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-reflect" % "2.10.2",
   "org.mongodb" %% "casbah" % "2.6.2",
-  "org.scalaz" %% "scalaz-core" % "7.0.0",
+  "org.scalaz" %% "scalaz-core" % "7.0.2",
   "com.chuusai" %% "shapeless" % "1.2.4",
   "io.argonaut" %% "argonaut" % "6.0-RC3",
   "io.spray" % "spray-can" % "1.2-M8",

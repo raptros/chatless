@@ -22,7 +22,7 @@ import spray.routing.authentication.UserPass
 import chatless.operation.ResUser
 import scala.Some
 import chatless.operation.ResTopic
-import chatless.operation.GetFields
+import chatless.operation.GetField
 
 trait ServiceSpecBase extends
 ShouldMatchers
@@ -52,7 +52,7 @@ with OperationMatchers  { this:FunSpec =>
 
   override implicit def executionContext = actorRefFactory.dispatcher
 
-  val classList = List(classOf[ResUser], classOf[ResTopic], classOf[OpSpec], classOf[GetFields])
+  val classList = List(classOf[ResUser], classOf[ResTopic], classOf[OpSpec], classOf[GetField])
 
 
   val addCreds = addCredentials(BasicHttpCredentials(userId, password))
