@@ -19,6 +19,8 @@ trait Service extends MeApi with TopicApi with UserApi with EventApi with Tagged
     case e:TopicNotFoundError    => completeStateError(e, StatusCodes.NotFound)
     case e:OperationNotSupported => completeStateError(e, StatusCodes.MethodNotAllowed)
     case e:UnhandleableMessage   => completeStateError(e, StatusCodes.InternalServerError)
+    case e:AccessNotPermitted => completeStateError(e, StatusCodes.Forbidden)
+    case e:NonExistentField => completeStateError(e, StatusCodes.NotFound)
   }
 
   implicit def serviceHandler(implicit log:LoggingContext) = ExceptionHandler {
