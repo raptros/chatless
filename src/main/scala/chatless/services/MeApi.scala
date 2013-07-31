@@ -1,76 +1,70 @@
 package chatless.services
 
-import chatless._
-import chatless.operation._
+import argonaut._
+import Argonaut._
 
+import chatless._
+import chatless.op2._
+
+import spray.httpx.unmarshalling._
 import shapeless._
 
 import spray.routing._
 import HListDeserializer._
 
 import spray.httpx.unmarshalling.Deserializer._
+import spray.httpx.encoding.NoEncoding
+
+import spray.http._
+import MediaTypes._
+
+trait MeApi extends ServiceBase {
 
 
+  implicit val StringCodecJson = CodecJson.derived[String]
 
-trait MeApi extends ServiceBase with SpecDirectives {
-  val me:Directive[UserId :: OpRes :: HNil] = (userAuth & pathPrefix("me")) map { cid:UserId =>
-    cid :: ResMe.asInstanceOf[OpRes] :: HNil
-  }
-  private val gets:Directive1[OpSpec] = { path(PathEnd) & provide(GetAll) } |
-    fieldPathGet("nick") |
-    fieldPathGet("public") |
-    fieldPathGet("info") |
-    fieldPathGet("following") |
-    listPathItemTest("following") |
-    fieldPathGet("followers") |
-    listPathItemTest("followers") |
-    fieldPathGet("blocked") |
-    listPathItemTest("blocked") |
-    fieldPathGet("topics") |
-    listPathItemTest("topics") |
-    fieldPathGet("tags") |
-    listPathItemTest("tags")
 
-  private val puts:Directive1[OpSpec] = fieldPathReplace("nick") { StringVC.apply _ } |
-    fieldPathReplace("public") { BooleanVC.apply _ } |
-    fieldPathReplace("info") { JsonVC.apply _ } |
-    listPathItemAppend("following") |
-    listPathItemAppend("blocked") |
-    listPathItemAppend("topics") |
-    listPathItemAppend("tags")
+  def providePathWith[A:EncodeJson](lastSeg:String, a:A):Directive1[Json] = path(lastSeg / PathEnd) & provide(a.asJson)
 
-  private val deletes:Directive1[OpSpec] = listPathItemDelete("following") |
-    listPathItemDelete("followers") |
-    listPathItemDelete("blocked") |
-    listPathItemDelete("topics") |
-    listPathItemDelete("tags")
+  def completeJson(j:Json) = respondWithMediaType(`application/json`) { complete(j.nospaces) }
 
-  private val meReqs:Directive[UserId :: OpRes :: HNil] = (userAuth & pathPrefix("me" / "requests")) map { cid: UserId =>
-    cid :: ResMeReqs.asInstanceOf[OpRes] :: HNil
+  def getFieldsRoute(user:UserM):Route = {
+    ( providePathWith("uid", List(user.uid))
+    | providePathWith("nick", List(user.nick))
+    | providePathWith("public", List(user.public))
+    | providePathWith("following", user.following)
+    | providePathWith("following", user.following)
+    ) { completeJson }
   }
 
-  private val getReq:Directive[UserId :: OpRes :: OpSpec :: HNil] = (get & userAuth &
-    path("me" / "request" / Segment / PathEnd)) hmap {
-    case cid :: rid :: HNil => cid :: ResRequest(rid).asInstanceOf[OpRes] :: GetAll.asInstanceOf[OpSpec] :: HNil
+  val meApi2 = userAuth { cid =>
+    pathPrefix("me") {
+      get {
+        onSuccess(dbac.getUser(cid, cid)) { user:UserM =>
+          path(PathEnd) {
+            completeAsJson(user)
+          } ~ getFieldsRoute(user)
+        }
+      }
+    }
   }
-
-  private val getting:Directive[UserId :: OpRes :: OpSpec :: HNil] = get & me & gets
-
-  private val putting:Directive[UserId :: OpRes :: OpSpec :: HNil] = put & me & puts
-
-  private val deleting:Directive[UserId :: OpRes :: OpSpec :: HNil] = delete & me & deletes
-
-  private val reqsGets:Directive1[OpSpec] = { path(PathEnd) & provide(GetField("open")) } |
-    fieldPathGet("accepted") |
-    listPathItemTest("accepted") |
-    fieldPathGet("rejected") |
-    listPathItemTest("rejected")
-
-  private val reqsPuts:Directive1[OpSpec] = listPathItemAppend("accepted") | listPathItemAppend("rejected")
-
-  private val reqsGetting:Directive[UserId :: OpRes :: OpSpec :: HNil] = get & meReqs & reqsGets
-
-  private val reqsPutting:Directive[UserId :: OpRes :: OpSpec :: HNil] = put & meReqs & reqsPuts
-
-  val meApi:DOperation = (getting | putting | deleting | getReq | reqsGetting | reqsPutting) as { operation }
+  /*
+          get {
+          } ~ putReplacement(as[String]) { e:String =>
+            callDBDirective[Boolean](UpdateUser(cid, ReplaceField[String]("nick", e))) { a:Boolean =>
+              completeAsJson(a)
+            }
+          }
+        } ~ path("public" / PathEnd) {
+          get {
+            completeAsJson(List(user.public))
+          } ~ putReplacement(as[Boolean]) { e:Boolean =>
+            callDBDirective[Boolean](UpdateUser(cid, ReplaceField[Boolean]("public", e))) { a:Boolean =>
+              completeAsJson(a)
+            }
+          }
+        }
+      }
+    }
+  }*/
 }
