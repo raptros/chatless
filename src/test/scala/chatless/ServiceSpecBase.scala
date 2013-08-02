@@ -43,7 +43,7 @@ trait ServiceSpecBase extends ScalatestRouteTest { this:Suite =>
 
   def getUserAuth:ContextAuthenticator[UserId] = BasicAuth(upa, "")
 
-  val addCreds = addCredentials(BasicHttpCredentials(userId, password))
+  def addCreds = addCredentials(BasicHttpCredentials(userId, password))
 
   /** won't ever actually be called for*/
   def dbSel = system.actorSelection("../chatless-service-db")

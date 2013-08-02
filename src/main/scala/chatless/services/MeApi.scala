@@ -19,52 +19,39 @@ import spray.http._
 import MediaTypes._
 
 trait MeApi extends ServiceBase {
-
-
   implicit val StringCodecJson = CodecJson.derived[String]
 
+  def providePathWith[A](lastSeg:String, a:A):Directive1[A] = path(lastSeg / PathEnd) & provide(a)
 
-  def providePathWith[A:EncodeJson](lastSeg:String, a:A):Directive1[Json] = path(lastSeg / PathEnd) & provide(a.asJson)
+  def getFieldsRoute(user:UserM):Route = (
+    path("uid" / PathEnd) { completeString(user.uid) }
+    ~ path("nick" / PathEnd) { completeString(user.nick) }
+    ~ path("public" / PathEnd) { completeBoolean(user.public) }
+    ~ path("info" / PathEnd) { completeJson(user.info) }
+    ~ path("following" / PathEnd) { completeJson(user.following) }
+    ~ path("followers" / PathEnd) { completeJson(user.followers) }
+    ~ path("blocked" / PathEnd) { completeJson(user.blocked) }
+    ~ path("topics" / PathEnd) { completeJson(user.topics) }
+    ~ path("tags" / PathEnd) { completeJson(user.tags) }
+    )
 
-  def completeJson(j:Json) = respondWithMediaType(`application/json`) { complete(j.nospaces) }
+  def querySetsRoute(user:UserM):Route = (
+    (path("following" / Segment / PathEnd) map { s:String => user.following contains s })
+    | (path("followers" / Segment / PathEnd) map { s:String => user.followers contains s })
+    | (path("blocked" / Segment / PathEnd) map { s:String => user.blocked contains s })
+    | (path("topics" / Segment / PathEnd) map { s:String => user.topics contains s })
+    | (path("tags" / Segment / PathEnd) map { s:String => user.tags contains s })
+    ) { b:Boolean => completeBoolean(b) }
 
-  def getFieldsRoute(user:UserM):Route = {
-    ( providePathWith("uid", List(user.uid))
-    | providePathWith("nick", List(user.nick))
-    | providePathWith("public", List(user.public))
-    | providePathWith("following", user.following)
-    | providePathWith("following", user.following)
-    ) { completeJson }
-  }
-
-  val meApi2 = userAuth { cid =>
+  def meApi2 = userAuth { cid =>
     pathPrefix("me") {
       get {
         onSuccess(dbac.getUser(cid, cid)) { user:UserM =>
           path(PathEnd) {
             completeAsJson(user)
-          } ~ getFieldsRoute(user)
+          } ~ getFieldsRoute(user) ~ querySetsRoute(user)
         }
       }
     }
   }
-  /*
-          get {
-          } ~ putReplacement(as[String]) { e:String =>
-            callDBDirective[Boolean](UpdateUser(cid, ReplaceField[String]("nick", e))) { a:Boolean =>
-              completeAsJson(a)
-            }
-          }
-        } ~ path("public" / PathEnd) {
-          get {
-            completeAsJson(List(user.public))
-          } ~ putReplacement(as[Boolean]) { e:Boolean =>
-            callDBDirective[Boolean](UpdateUser(cid, ReplaceField[Boolean]("public", e))) { a:Boolean =>
-              completeAsJson(a)
-            }
-          }
-        }
-      }
-    }
-  }*/
 }

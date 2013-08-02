@@ -7,11 +7,11 @@ case class UserM(
     nick:String,
     public:Boolean,
     info:Json,
-    following:List[UserId],
-    followers:List[UserId],
-    blocked:List[UserId],
-    topics:List[TopicId],
-    tags:List[String])
+    following:Set[UserId],
+    followers:Set[UserId],
+    blocked:Set[UserId],
+    topics:Set[TopicId],
+    tags:Set[String])
   extends AccessModel {
 
 }

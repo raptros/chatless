@@ -2,26 +2,27 @@ package chatless.services
 
 import akka.actor.{ActorRef, ActorSelection}
 import akka.util.Timeout
+import akka.pattern.AskableActorSelection
 
-import spray.routing.{ExceptionHandler, RequestContext, HttpService, Directive1}
+import spray.routing._
+import spray.routing.authentication._
+import spray.util.LoggingContext
+import spray.http._
+import MediaTypes._
+import spray.httpx.encoding.NoEncoding
+import spray.httpx.unmarshalling.Unmarshaller
 
 import scala.reflect.runtime.universe._
 
-import spray.httpx.unmarshalling.Unmarshaller
 import argonaut._
 import Argonaut._
 
 import scala.concurrent.duration._
-import spray.httpx.encoding.NoEncoding
-import akka.pattern.AskableActorSelection
 import scala.concurrent.{ExecutionContext, Future}
-import spray.routing.authentication._
+
 import chatless._
 import chatless.operation.{OpSpec, OpRes, Operation}
 import chatless.db._
-import spray.http._
-import MediaTypes._
-import spray.util.LoggingContext
 import chatless.op2.{UserM}
 
 trait ServiceBase extends HttpService {
@@ -60,6 +61,9 @@ trait ServiceBase extends HttpService {
 
   implicit def serviceHandler(implicit log:LoggingContext) = ExceptionHandler {
     case (se:StateError) => log.warning(se.getMessage); handleStateError(se)
+    case (t:Throwable) => log.warning(t.getMessage); respondWithMediaType(`application/json`) {
+      complete { StatusCodes.InternalServerError -> ("failed".asJson -->>: jEmptyArray).nospaces }
+    }
   }
 
   def callDbActor(dbReq:Operation) = onSuccess(dbActor ? dbReq) {
@@ -69,8 +73,15 @@ trait ServiceBase extends HttpService {
 
   def completeAsJson[A:EncodeJson](a:A) = respondWithMediaType(`application/json`) { complete { a.asJson.nospaces } }
 
+  def respondBoolean(b:Boolean) = respondWithMediaType(`text/plain`) {
+    complete { b.toString }
+  }
+
 
   def getType[A:TypeTag](a:A) = typeOf[A]
 
+  def completeBoolean(b:Boolean):Route = respondWithMediaType(`text/plain`) { complete { b } }
+  def completeString(s:String):Route = respondWithMediaType(`text/plain`) { complete { s } }
+  def completeJson[A:EncodeJson](a:A):Route = respondWithMediaType(`application/json`) { complete { a.asJson.nospaces } }
 
 }
