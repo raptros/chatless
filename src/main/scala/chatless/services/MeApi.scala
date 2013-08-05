@@ -20,7 +20,6 @@ import MediaTypes._
 import scala.concurrent.Future
 
 trait MeApi extends ServiceBase {
-  implicit val StringCodecJson = CodecJson.derived[String]
 
   def getFieldsRoute(uid:UserId):Route =
     path("uid" / PathEnd) {

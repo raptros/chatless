@@ -27,7 +27,10 @@ import chatless.op2.{UserM}
 
 trait ServiceBase extends HttpService {
   type DOperation = Directive1[Operation]
+
   val operation:(UserId, OpRes, OpSpec) => Operation = Operation.apply _
+
+  implicit val StringCodecJson = CodecJson.derived[String]
 
   def putReplacement[A](um:Unmarshaller[A]):Directive1[A] = put & decodeRequest(NoEncoding) & entity(um)
 

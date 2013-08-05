@@ -7,35 +7,42 @@ import shapeless._
 
 import chatless.UserId
 import chatless.operation._
+import chatless.op2.UserM
 
-trait UserApi extends ServiceBase with SpecDirectives {
-  val user:Directive[UserId :: OpRes :: HNil] = (userAuth & pathPrefix("user" / Segment)) hmap {
-    case cid :: uid :: HNil => cid :: ResUser(uid).asInstanceOf[OpRes] :: HNil
+trait UserApi extends ServiceBase {
+
+  def protectedUserCompletions(cid:UserId, user:UserM):Route = authorize(user.public || (user.followers contains cid)) {
+    path("info" / PathEnd) {
+      completeJson(user.info)
+    } ~ path("following" / PathEnd) {
+      completeJson(user.following)
+    } ~ path("followers" / PathEnd) {
+      completeJson(user.followers)
+    } ~ path("topics" / PathEnd) {
+      completeJson(user.topics)
+    }
+  } ~ authorize(user.uid == cid) {
+    path("blocked" / PathEnd) {
+      completeJson(user.blocked)
+    } ~ path("tags" / PathEnd) {
+      completeJson(user.tags)
+    }
   }
 
-  private val gets:Directive1[OpSpec] = { path(PathEnd) & provide(GetAll) } |
-    fieldPathGet("nick") |
-    fieldPathGet("public") |
-    fieldPathGet("info") |
-    fieldPathGet("following") |
-    listPathItemTest("following") |
-    fieldPathGet("followers") |
-    listPathItemTest("followers") |
-    fieldPathGet("topics") |
-    listPathItemTest("topics")
+  def userCompletions(cid:UserId)(user:UserM):Route =
+    path(PathEnd) {
+      completeJson(user)
+    } ~ path("uid" / PathEnd) {
+      completeString(user.uid)
+    } ~ path("nick" / PathEnd) {
+      completeString(user.nick)
+    } ~ path("public" / PathEnd) {
+      completeBoolean(user.public)
+    } ~ protectedUserCompletions(cid, user)
 
-  private val getting:Directive[UserId :: OpRes :: OpSpec :: HNil] = get & user & gets
-
-  private val userReqs:Directive[UserId :: OpRes :: HNil] = user hmap {
-    case cid :: ResUser(uid) :: HNil => cid :: ResUserReqs(uid).asInstanceOf[OpRes] :: HNil
+  def userApi(cid:UserId) = get {
+    pathPrefix("user" / Segment) { uid:UserId =>
+      onSuccess(dbac.getUser(cid, uid)) { userCompletions(cid) }
+    }
   }
-
-  private val getReq:Directive[UserId :: OpRes :: OpSpec :: HNil] = (get & user & path("request" / Segment / PathEnd)) hmap {
-    case cid :: ResUser(uid) :: rid :: HNil => cid :: ResRequest(rid).asInstanceOf[OpRes] :: GetAll.asInstanceOf[OpSpec] :: HNil
-  }
-
-  private val reqsPosting:Directive[UserId :: OpRes :: OpSpec :: HNil] = userReqs & createJson
-
-  val userApi:DOperation = (getting | getReq | reqsPosting) as { operation }
-
 }
