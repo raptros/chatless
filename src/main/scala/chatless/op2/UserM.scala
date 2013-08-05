@@ -1,6 +1,6 @@
 package chatless.op2
 import chatless._
-import argonaut.{Json, CodecJson}
+import argonaut.{EncodeJson, Json, CodecJson}
 
 case class UserM(
     uid:UserId,
@@ -14,9 +14,11 @@ case class UserM(
     tags:Set[String])
   extends AccessModel {
 
+
 }
 
 object UserM {
   implicit def UserMCodecJ:CodecJson[UserM] = CodecJson.casecodec9(UserM.apply, UserM.unapply)(
     "uid", "nick", "public", "info", "following", "followers", "blocked", "topics", "tags")
 }
+

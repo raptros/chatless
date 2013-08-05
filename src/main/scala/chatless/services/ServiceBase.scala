@@ -35,11 +35,13 @@ trait ServiceBase extends HttpService {
 
   implicit val timeout = Timeout(5.seconds) // needed for `?` below
 
-  val dbac:DatabaseAccessor
+  def dbac:DatabaseAccessor
 
   def dEntity[A](um:Unmarshaller[A]):Directive1[A] = decodeRequest(NoEncoding) & entity(um)
 
   def userAuth:Directive1[UserId] = authenticate { getUserAuth }
+
+  def providePathWith[A](lastSeg:String, a:A):Directive1[A] = path(lastSeg / PathEnd) & provide(a)
 
   def getUserAuth:ContextAuthenticator[UserId]
 
@@ -84,4 +86,7 @@ trait ServiceBase extends HttpService {
   def completeString(s:String):Route = respondWithMediaType(`text/plain`) { complete { s } }
   def completeJson[A:EncodeJson](a:A):Route = respondWithMediaType(`application/json`) { complete { a.asJson.nospaces } }
 
+  def completeBoolean(b: => Future[Boolean]):Route = respondWithMediaType(`text/plain`) { complete { b } }
+  def completeString(s: => Future[String]):Route = respondWithMediaType(`text/plain`) { complete { s } }
+  def completeJson[A:EncodeJson](a: => Future[A]):Route = respondWithMediaType(`application/json`) { complete { a map { _.asJson.nospaces } } }
 }

@@ -6,7 +6,9 @@ version := "0.1-SNAPSHOT"
 
 scalaVersion := "2.10.2"
 
-resolvers += "spray repo" at "http://repo.spray.io"
+seq(Revolver.settings: _*)
+
+showCurrentGitBranch
 
 scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
 
@@ -21,9 +23,7 @@ libraryDependencies ++= Seq(
   "io.spray" % "spray-testkit" % "1.2-M8" % "test",
   "com.typesafe.akka" %% "akka-actor" % "2.2.0",
   "com.typesafe.akka" %% "akka-testkit" % "2.2.0" % "test",
-  "org.scalatest" % "scalatest_2.10" % "1.9.1" % "test"
+  "org.scalatest" % "scalatest_2.10" % "1.9.1" % "test",
+  "org.scalamock" %% "scalamock-scalatest-support" % "3.0.1" % "test"
 )
 
-showCurrentGitBranch
-
-seq(Revolver.settings: _*)

@@ -1,28 +1,13 @@
 package chatless
 
-import chatless.db._
-import chatless.services.ServiceBase
-import org.scalatest.matchers.ShouldMatchers
-import org.scalatest.{FunSpec, FunSuite, Suite, WordSpec}
-import scala.Some
+import org.scalatest.Suite
 import spray.http._
-import spray.httpx._
-import spray.httpx.unmarshalling._
-import spray.routing.Route
-import spray.routing.authentication.{UserPass, UserPassAuthenticator, BasicAuth, ContextAuthenticator}
+import spray.routing.authentication.{UserPassAuthenticator, BasicAuth, ContextAuthenticator}
 import spray.testkit.ScalatestRouteTest
 
-import argonaut._
-import Argonaut._
 
 import scala.concurrent._
-import chatless.operation._
-import spray.http.HttpRequest
 import spray.routing.authentication.UserPass
-import chatless.operation.ResUser
-import scala.Some
-import chatless.operation.ResTopic
-import chatless.operation.GetField
 
 trait ServiceSpecBase extends ScalatestRouteTest { this:Suite =>
 
@@ -47,7 +32,5 @@ trait ServiceSpecBase extends ScalatestRouteTest { this:Suite =>
 
   /** won't ever actually be called for*/
   def dbSel = system.actorSelection("../chatless-service-db")
-
-  def api:Route
 
 }
