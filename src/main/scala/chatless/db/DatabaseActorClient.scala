@@ -21,7 +21,7 @@ class DatabaseActorClient(actorSel:ActorSelection)(implicit context:ExecutionCon
     case _ => throw new Exception("wtf")
   }
 
-  def updateUser(cid:UserId, uid:UserId, spec:UpdateSpec):Future[Boolean] = (askable ?
+  def updateUser(cid:UserId, uid:UserId, spec: UpdateSpec with ForUsers):Future[Boolean] = (askable ?
     Operation(cid, ResUser(uid), spec)) map {
     case b:Boolean => b
     case se:StateError => throw se

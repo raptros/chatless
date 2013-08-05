@@ -37,7 +37,7 @@ class MeRoutesSpec
     val api = Directives.dynamic { route.meApi(userId) }
   }
 
-  class Fixture2 (val spec:UpdateSpec) {
+  class Fixture2 (val spec: UpdateSpec with ForUsers) {
     val dbac = mock[DatabaseAccessor]
     val route = new TestableRoute(dbac) with MeApi
     val api = Directives.dynamic { route.meApi(userId) }
@@ -200,7 +200,7 @@ class MeRoutesSpec
         }
       }
       "a delete to /me/following/:uid" in new Fixture2(UnfollowUser("user2")) {
-        Put("/me/following/user2") ~> api ~> check {
+        Delete("/me/following/user2") ~> api ~> check {
           entityAs[Boolean] should be (true)
         }
       }

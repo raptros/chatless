@@ -73,15 +73,33 @@ trait MeApi extends ServiceBase {
     }
   }
 
-  def addToSets(cid:UserId):Route = path("following" / Segment / PathEnd) { u:UserId =>
-    optionJsonEntity { oj =>
-      onSuccess(dbac.updateUser(cid, cid, FollowUser(u, oj))) { completeBoolean }
+  def addToSets(cid:UserId):Route =
+    path("following" / Segment / PathEnd) { u:UserId =>
+      optionJsonEntity { oj =>
+        onSuccess(dbac.updateUser(cid, cid, FollowUser(u, oj))) { completeBoolean }
+      }
+    } ~ path("blocked" / Segment / PathEnd) { u:UserId =>
+      onSuccess(dbac.updateUser(cid, cid, BlockUser(u))) { completeBoolean }
+    } ~ path("topics" / Segment / PathEnd) { t:TopicId =>
+      optionJsonEntity { oj =>
+        onSuccess(dbac.updateUser(cid, cid, JoinTopic(t, oj))) { completeBoolean }
+      }
+    } ~ path("tags" / Segment / PathEnd) { t:String =>
+      onSuccess(dbac.updateUser(cid, cid, AddTag(t))) { completeBoolean }
     }
-  }
 
-  def deleteFromSets(cid:UserId):Route = path("following" / Segment / PathEnd) { u:UserId =>
-    onSuccess(dbac.updateUser(cid, cid, UnfollowUser(u))) { completeBoolean }
-  }
+  def deleteFromSets(cid:UserId):Route =
+    path("following" / Segment / PathEnd) { u:UserId =>
+      onSuccess(dbac.updateUser(cid, cid, UnfollowUser(u))) { completeBoolean }
+    } ~ path("followers" / Segment / PathEnd) { u:UserId =>
+      onSuccess(dbac.updateUser(cid, cid, RemoveFollower(u))) { completeBoolean }
+    } ~ path("blocked" / Segment / PathEnd) { u:UserId =>
+      onSuccess(dbac.updateUser(cid, cid, UnblockUser(u))) { completeBoolean }
+    } ~ path("topics" / Segment / PathEnd) { t:TopicId =>
+      onSuccess(dbac.updateUser(cid, cid, LeaveTopic(t))) { completeBoolean }
+    } ~ path("tags" / Segment / PathEnd) { t:String =>
+      onSuccess(dbac.updateUser(cid, cid, RemoveTag(t))) { completeBoolean }
+    }
 
 
   def meApi(cid:UserId):Route = pathPrefix("me") {
