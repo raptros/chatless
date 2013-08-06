@@ -3,13 +3,16 @@ import chatless._
 import chatless.op2._
 import scala.concurrent.Future
 import argonaut.CodecJson
+import chatless.models.{MessageM, UserM, TopicM}
 
 trait DatabaseAccessor {
-  def getUser(cid:UserId, uid:UserId):Future[UserM]
+  def getUser(cid: UserId, uid: UserId): Future[UserM]
 
-  def updateUser(cid:UserId, uid:UserId, spec: UpdateSpec with ForUsers):Future[Boolean]
+  def updateUser(cid: UserId, uid: UserId, spec: UpdateSpec with ForUsers): Future[Boolean]
 
-  def getTopic(cid:UserId, tid:TopicId):Future[TopicM]
+  def getTopic(cid: UserId, tid: TopicId): Future[TopicM]
 
-  def updateTopic(cid:UserId, tid:TopicId, spec: UpdateSpec with ForTopics):Future[Boolean]
+  def updateTopic(cid: UserId, tid: TopicId, spec: UpdateSpec with ForTopics): Future[Boolean]
+
+  def getMessages(cid: UserId, tid: TopicId, spec: GetRelative): Future[List[MessageM]]
 }

@@ -18,6 +18,7 @@ import scalaz.syntax.std.option._
 
 import org.scalatest.matchers.ShouldMatchers
 import org.scalamock.scalatest.MockFactory
+import chatless.models.UserM
 
 class MeRoutesSpec
   extends WordSpec

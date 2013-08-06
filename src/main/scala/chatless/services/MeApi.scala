@@ -21,11 +21,21 @@ import scala.concurrent.Future
 
 import scalaz.std.function._
 import scalaz.syntax.semigroup._
+import chatless.models.UserM
 
 trait MeApi extends ServiceBase {
-  val ME_API_BASE="me"
+  val ME_API_BASE = "me"
 
-  def getFieldsRoute(cid:UserId):Route =
+  type CUU = UpdateSpec with ForUsers => Route
+
+  private def completeWithUserSetCheck(uid: UserId)(field: UserM => Set[String])(value: String): Route = completeBoolean {
+    dbac.getUser(uid, uid) map { field } map { _ contains value }
+  }
+
+  def completeUpdateUser(cid: UserId)(op: UpdateSpec with ForUsers): Route =
+    onSuccess(dbac.updateUser(cid, cid, op)) { completeBoolean }
+
+  def getFieldsRoute(cid: UserId): Route =
     path(PathEnd) {
       completeJson { dbac.getUser(cid, cid) }
     } ~ path(UserM.UID / PathEnd) {
@@ -48,67 +58,64 @@ trait MeApi extends ServiceBase {
       completeJson { dbac.getUser(cid, cid) map { _.tags } }
     }
 
-  private def getUserListContains(uid:UserId, field: UserM => Set[String])(value:String):Future[Boolean] = {
-    dbac.getUser(uid, uid) map { field } map { _ contains value }
+  def querySetsRoute(uid: UserId): Route = {
+    val completeCheck = completeWithUserSetCheck(uid) _
+    path(UserM.FOLLOWING / Segment / PathEnd) {
+      completeCheck { _.following }
+    } ~ path(UserM.FOLLOWERS / Segment / PathEnd) {
+      completeCheck { _.followers }
+    } ~ path(UserM.BLOCKED / Segment / PathEnd) {
+      completeCheck { _.blocked }
+    } ~ path(UserM.TOPICS / Segment / PathEnd) {
+      completeCheck { _.topics }
+    } ~ path(UserM.TAGS / Segment / PathEnd) {
+      completeCheck { _.tags }
+    }
   }
 
-  def querySetsRoute(uid:UserId):Route = (
-    (path(UserM.FOLLOWING / Segment / PathEnd) map { getUserListContains(uid, _.following) })
-    | (path(UserM.FOLLOWERS / Segment / PathEnd) map { getUserListContains(uid, _.followers) })
-    | (path(UserM.BLOCKED / Segment / PathEnd) map { getUserListContains(uid, _.blocked) })
-    | (path(UserM.TOPICS / Segment / PathEnd) map { getUserListContains(uid, _.topics) })
-    | (path(UserM.TAGS / Segment / PathEnd) map { getUserListContains(uid, _.tags) })
-    ) { b:Future[Boolean] => completeBoolean(b) }
-
-  def replaceFields(cid:UserId):Route = path(UserM.NICK / PathEnd) {
-    dEntity(as[String]) { v =>
-      onSuccess(dbac.updateUser(cid, cid, ReplaceNick(v))) { completeBoolean }
-    }
+  def replaceFields(cuu: CUU): Route = path(UserM.NICK / PathEnd) {
+    dEntity(as[String]) { v => cuu { ReplaceNick(v) } }
   } ~ path(UserM.PUBLIC / PathEnd) {
-    dEntity(as[Boolean]) { v =>
-      onSuccess(dbac.updateUser(cid, cid, SetPublic(v))) { completeBoolean }
-    }
+    dEntity(as[Boolean]) { v => cuu { SetPublic(v) } }
   } ~ path(UserM.INFO / PathEnd) {
-    dEntity(as[Json]) { v =>
-      onSuccess(dbac.updateUser(cid, cid, UpdateInfo(v))) { completeBoolean }
+    dEntity(as[Json]) { v => cuu { UpdateInfo(v) } }
+  }
+
+  def addToSets(cuu: CUU): Route =
+    path(UserM.FOLLOWING / Segment / PathEnd) { u: UserId =>
+      optionJsonEntity { oj => cuu { FollowUser(u, oj) } }
+    } ~ path(UserM.BLOCKED / Segment / PathEnd) { u: UserId =>
+      cuu { BlockUser(u) }
+    } ~ path(UserM.TOPICS / Segment / PathEnd) { t: TopicId =>
+      optionJsonEntity { oj => cuu { JoinTopic(t, oj) } }
+    } ~ path(UserM.TAGS / Segment / PathEnd) { t: String =>
+      cuu { AddTag(t) }
+    }
+
+  def deleteFromSets(cuu: CUU): Route =
+    path(UserM.FOLLOWING / Segment / PathEnd) { u: UserId =>
+      cuu { UnfollowUser(u) }
+    } ~ path(UserM.FOLLOWERS / Segment / PathEnd) { u: UserId =>
+      cuu { RemoveFollower(u) }
+    } ~ path(UserM.BLOCKED / Segment / PathEnd) { u: UserId =>
+      cuu { UnblockUser(u) }
+    } ~ path(UserM.TOPICS / Segment / PathEnd) { t: TopicId =>
+      cuu { LeaveTopic(t) }
+    } ~ path(UserM.TAGS / Segment / PathEnd) { t: String =>
+      cuu { RemoveTag(t) }
+    }
+
+  def updateUser(cid: UserId): Route = {
+    val cuu = completeUpdateUser(cid) _
+    put {
+      replaceFields(cuu) ~ addToSets(cuu)
+    } ~ delete {
+      deleteFromSets(cuu)
     }
   }
 
-  def addToSets(cid:UserId):Route =
-    path(UserM.FOLLOWING / Segment / PathEnd) { u:UserId =>
-      optionJsonEntity { oj =>
-        onSuccess(dbac.updateUser(cid, cid, FollowUser(u, oj))) { completeBoolean }
-      }
-    } ~ path(UserM.BLOCKED / Segment / PathEnd) { u:UserId =>
-      onSuccess(dbac.updateUser(cid, cid, BlockUser(u))) { completeBoolean }
-    } ~ path(UserM.TOPICS / Segment / PathEnd) { t:TopicId =>
-      optionJsonEntity { oj =>
-        onSuccess(dbac.updateUser(cid, cid, JoinTopic(t, oj))) { completeBoolean }
-      }
-    } ~ path(UserM.TAGS / Segment / PathEnd) { t:String =>
-      onSuccess(dbac.updateUser(cid, cid, AddTag(t))) { completeBoolean }
-    }
 
-  def deleteFromSets(cid:UserId):Route =
-    path(UserM.FOLLOWING / Segment / PathEnd) { u:UserId =>
-      onSuccess(dbac.updateUser(cid, cid, UnfollowUser(u))) { completeBoolean }
-    } ~ path(UserM.FOLLOWERS / Segment / PathEnd) { u:UserId =>
-      onSuccess(dbac.updateUser(cid, cid, RemoveFollower(u))) { completeBoolean }
-    } ~ path(UserM.BLOCKED / Segment / PathEnd) { u:UserId =>
-      onSuccess(dbac.updateUser(cid, cid, UnblockUser(u))) { completeBoolean }
-    } ~ path(UserM.TOPICS / Segment / PathEnd) { t:TopicId =>
-      onSuccess(dbac.updateUser(cid, cid, LeaveTopic(t))) { completeBoolean }
-    } ~ path(UserM.TAGS / Segment / PathEnd) { t:String =>
-      onSuccess(dbac.updateUser(cid, cid, RemoveTag(t))) { completeBoolean }
-    }
-
-
-  def meApi(cid:UserId):Route =
-    pathPrefix(ME_API_BASE) {
-      get {
-        getFieldsRoute(cid) ~ querySetsRoute(cid)
-      } ~ put {
-        replaceFields(cid) ~ addToSets(cid)
-      } ~ delete { deleteFromSets(cid) }
-    }
+  def meApi(cid: UserId): Route = pathPrefix(ME_API_BASE) {
+    get { getFieldsRoute(cid) ~ querySetsRoute(cid) } ~ updateUser(cid)
+  }
 }

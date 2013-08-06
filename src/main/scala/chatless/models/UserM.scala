@@ -1,4 +1,5 @@
-package chatless.op2
+package chatless.models
+
 import chatless._
 import argonaut.{EncodeJson, Json, CodecJson}
 

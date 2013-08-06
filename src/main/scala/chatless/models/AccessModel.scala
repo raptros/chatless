@@ -1,4 +1,4 @@
-package chatless.op2
+package chatless.models
 
 trait AccessModel {
 
