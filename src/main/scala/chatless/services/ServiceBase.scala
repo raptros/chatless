@@ -1,18 +1,14 @@
 package chatless.services
 
-import akka.actor.{ActorRef, ActorSelection}
 import akka.util.Timeout
-import akka.pattern.AskableActorSelection
 
 import spray.routing._
-import spray.routing.authentication._
 import spray.util.LoggingContext
 import spray.http._
 import MediaTypes._
 import spray.httpx.encoding.NoEncoding
 import spray.httpx.unmarshalling.Unmarshaller
 
-import scala.reflect.runtime.universe._
 
 import argonaut._
 import Argonaut._
@@ -20,7 +16,6 @@ import Argonaut._
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-import chatless._
 import chatless.db._
 
 trait ServiceBase extends HttpService {

@@ -9,7 +9,7 @@ import spray.testkit.ScalatestRouteTest
 import scala.concurrent._
 import spray.routing.authentication.UserPass
 
-trait ServiceSpecBase extends ScalatestRouteTest { this:Suite =>
+trait ServiceSpecBase extends ScalatestRouteTest { this: Suite =>
 
   def actorRefFactory = system
 
@@ -17,7 +17,7 @@ trait ServiceSpecBase extends ScalatestRouteTest { this:Suite =>
   val password = "hypermachinery"
 
   /**fake auth stuff for testing*/
-  val upa:UserPassAuthenticator[UserId] = { (oup:Option[UserPass]) =>
+  val upa: UserPassAuthenticator[UserId] = { (oup: Option[UserPass]) =>
     future {
       for {
         UserPass(uid, pass) <- oup
@@ -26,7 +26,7 @@ trait ServiceSpecBase extends ScalatestRouteTest { this:Suite =>
     }
   }
 
-  def getUserAuth:ContextAuthenticator[UserId] = BasicAuth(upa, "")
+  def getUserAuth: ContextAuthenticator[UserId] = BasicAuth(upa, "")
 
   def addCreds = addCredentials(BasicHttpCredentials(userId, password))
 

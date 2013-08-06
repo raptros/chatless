@@ -13,8 +13,8 @@ import spray.routing.authentication.BasicAuth
 import spray.http.BasicHttpCredentials
 import spray.routing.authentication.{UserPass, UserPassAuthenticator, BasicAuth, ContextAuthenticator}
 
-class TestableRoute(val dbac:DatabaseAccessor)(implicit val system:ActorSystem) extends HttpService with ServiceBase {
-  def getUserAuth:ContextAuthenticator[UserId] = BasicAuth(upa, "")
+class TestableRoute(val dbac: DatabaseAccessor)(implicit val system: ActorSystem) extends HttpService with ServiceBase {
+  def getUserAuth: ContextAuthenticator[UserId] = BasicAuth(upa, "")
 
   /** won't ever actually be called for*/
   def dbSel = system.actorSelection("../chatless-service-db")
@@ -24,7 +24,7 @@ class TestableRoute(val dbac:DatabaseAccessor)(implicit val system:ActorSystem) 
   val password = "hypermachinery"
 
   /**fake auth stuff for testing*/
-  val upa:UserPassAuthenticator[UserId] = { (oup:Option[UserPass]) =>
+  val upa: UserPassAuthenticator[UserId] = { (oup: Option[UserPass]) =>
     Future.successful {
       for {
         UserPass(uid, pass) <- oup
@@ -33,7 +33,7 @@ class TestableRoute(val dbac:DatabaseAccessor)(implicit val system:ActorSystem) 
     }
   }
 
-  implicit def executor:ExecutionContext = system.dispatcher
+  implicit def executor: ExecutionContext = system.dispatcher
 
-  implicit def actorRefFactory:ActorRefFactory = system
+  implicit def actorRefFactory: ActorRefFactory = system
 }

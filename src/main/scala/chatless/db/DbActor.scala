@@ -2,21 +2,13 @@ package chatless.db
 
 import chatless._
 
-import spray.http._
-import MediaTypes._
-
 import argonaut._
 import Argonaut._
-
-import scala.concurrent._
 
 import com.mongodb.casbah.Imports._
 
 import akka.actor.Actor
-import akka.actor.Props
 import akka.actor.Status
-import akka.event.Logging
-import com.mongodb.casbah
 import chatless.op2._
 
 
