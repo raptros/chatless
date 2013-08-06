@@ -21,18 +21,14 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
 import chatless._
-import chatless.operation.{OpSpec, OpRes, Operation}
 import chatless.db._
 import chatless.op2.{UserM}
 
 trait ServiceBase extends HttpService {
-  type DOperation = Directive1[Operation]
 
-  val operation:(UserId, OpRes, OpSpec) => Operation = Operation.apply _
-
-  implicit val StringCodecJson = CodecJson.derived[String]
-
-  def putReplacement[A](um:Unmarshaller[A]):Directive1[A] = put & decodeRequest(NoEncoding) & entity(um)
+  def optionJsonEntity:Directive1[Option[Json]] = extract { c =>
+    c.request.entity.toOption map { _.asString } flatMap { _.parseOption }
+  }
 
   implicit def executor:ExecutionContext
 
@@ -41,16 +37,6 @@ trait ServiceBase extends HttpService {
   def dbac:DatabaseAccessor
 
   def dEntity[A](um:Unmarshaller[A]):Directive1[A] = decodeRequest(NoEncoding) & entity(um)
-
-  def userAuth:Directive1[UserId] = authenticate { getUserAuth }
-
-  def providePathWith[A](lastSeg:String, a:A):Directive1[A] = path(lastSeg / PathEnd) & provide(a)
-
-  def getUserAuth:ContextAuthenticator[UserId]
-
-  def dbSel:ActorSelection
-
-  def dbActor = new AskableActorSelection(dbSel)
 
   def completeStateError(err:StateError, code:StatusCode) = respondWithMediaType(`application/json`) {
     complete { code -> err.asJson.spaces2 }
@@ -71,25 +57,28 @@ trait ServiceBase extends HttpService {
     }
   }
 
-  def callDbActor(dbReq:Operation) = onSuccess(dbActor ? dbReq) {
-    case (json:Json) => respondWithMediaType(`application/json`) { complete { json.nospaces } }
-    case _ => throw new Exception("wtf")
+
+  def completeString(s:String):Route = respondWithMediaType(`text/plain`) {
+    complete(s)
   }
 
-  def completeAsJson[A:EncodeJson](a:A) = respondWithMediaType(`application/json`) { complete { a.asJson.nospaces } }
-
-  def respondBoolean(b:Boolean) = respondWithMediaType(`text/plain`) {
-    complete { b.toString }
+  def completeString(s: => Future[String]):Route = respondWithMediaType(`text/plain`) {
+    complete(s)
   }
 
+  def completeBoolean(b:Boolean):Route = respondWithMediaType(`text/plain`) {
+    complete(b)
+  }
 
-  def getType[A:TypeTag](a:A) = typeOf[A]
+  def completeBoolean(b: => Future[Boolean]):Route = respondWithMediaType(`text/plain`) {
+    complete(b)
+  }
 
-  def completeBoolean(b:Boolean):Route = respondWithMediaType(`text/plain`) { complete { b } }
-  def completeString(s:String):Route = respondWithMediaType(`text/plain`) { complete { s } }
-  def completeJson[A:EncodeJson](a:A):Route = respondWithMediaType(`application/json`) { complete { a.asJson.nospaces } }
+  def completeJson[A:EncodeJson](a:A):Route = respondWithMediaType(`application/json`) {
+    complete(a.asJson.nospaces)
+  }
 
-  def completeBoolean(b: => Future[Boolean]):Route = respondWithMediaType(`text/plain`) { complete { b } }
-  def completeString(s: => Future[String]):Route = respondWithMediaType(`text/plain`) { complete { s } }
-  def completeJson[A:EncodeJson](a: => Future[A]):Route = respondWithMediaType(`application/json`) { complete { a map { _.asJson.nospaces } } }
+  def completeJson[A:EncodeJson](a: => Future[A]):Route = respondWithMediaType(`application/json`) {
+    complete(a map { _.asJson.nospaces })
+  }
 }

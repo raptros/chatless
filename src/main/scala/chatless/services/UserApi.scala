@@ -6,25 +6,28 @@ import HListDeserializer._
 import shapeless._
 
 import chatless.UserId
-import chatless.operation._
 import chatless.op2.UserM
 
+import scalaz.std.function._
+import scalaz.syntax.semigroup._
+
 trait UserApi extends ServiceBase {
+  val USER_API_BASE = "user"
 
   def protectedUserCompletions(cid:UserId, user:UserM):Route = authorize(user.public || (user.followers contains cid)) {
-    path("info" / PathEnd) {
+    path(UserM.INFO / PathEnd) {
       completeJson(user.info)
-    } ~ path("following" / PathEnd) {
+    } ~ path(UserM.FOLLOWING / PathEnd) {
       completeJson(user.following)
-    } ~ path("followers" / PathEnd) {
+    } ~ path(UserM.FOLLOWERS / PathEnd) {
       completeJson(user.followers)
-    } ~ path("topics" / PathEnd) {
+    } ~ path(UserM.TOPICS / PathEnd) {
       completeJson(user.topics)
     }
   } ~ authorize(user.uid == cid) {
-    path("blocked" / PathEnd) {
+    path(UserM.BLOCKED / PathEnd) {
       completeJson(user.blocked)
-    } ~ path("tags" / PathEnd) {
+    } ~ path(UserM.TAGS / PathEnd) {
       completeJson(user.tags)
     }
   }
@@ -32,17 +35,19 @@ trait UserApi extends ServiceBase {
   def userCompletions(cid:UserId)(user:UserM):Route =
     path(PathEnd) {
       completeJson(user)
-    } ~ path("uid" / PathEnd) {
+    } ~ path(UserM.UID / PathEnd) {
       completeString(user.uid)
-    } ~ path("nick" / PathEnd) {
+    } ~ path(UserM.NICK / PathEnd) {
       completeString(user.nick)
-    } ~ path("public" / PathEnd) {
+    } ~ path(UserM.PUBLIC / PathEnd) {
       completeBoolean(user.public)
     } ~ protectedUserCompletions(cid, user)
 
   def userApi(cid:UserId) = get {
-    pathPrefix("user" / Segment) { uid:UserId =>
-      onSuccess(dbac.getUser(cid, uid)) { userCompletions(cid) }
+    pathPrefix(USER_API_BASE / Segment) { uid:UserId =>
+      onSuccess(dbac.getUser(cid, uid)) {
+        userCompletions(cid)
+      }
     }
   }
 }

@@ -9,4 +9,7 @@ trait DatabaseAccessor {
 
   def updateUser(cid:UserId, uid:UserId, spec: UpdateSpec with ForUsers):Future[Boolean]
 
+  def getTopic(cid:UserId, tid:TopicId):Future[TopicM]
+
+  def updateTopic(cid:UserId, tid:TopicId, spec: UpdateSpec with ForTopics):Future[Boolean]
 }

@@ -4,7 +4,9 @@ import argonaut.Json
 
 sealed trait Specifier
 
-case object GetRes extends Specifier
+sealed trait GetSpec extends Specifier
+
+case object GetRes extends GetSpec
 
 sealed abstract class UpdateSpec extends Specifier
 
@@ -47,3 +49,14 @@ case class AddTag(tag:String) extends UpdateSpec with ForUsers with ForTopics
 
 /** applies to users and topics */
 case class RemoveTag(tag:String) extends UpdateSpec with ForUsers with ForTopics
+
+case class ChangeTitle(title:String) extends UpdateSpec with ForTopics
+
+case class InviteUser(uid:UserId, additional:Option[Json]=None) extends UpdateSpec with ForTopics
+
+case class KickUser(uid:UserId) extends UpdateSpec with ForTopics
+
+case class PromoteSop(uid:UserId) extends UpdateSpec with ForTopics
+
+case class DemoteSop(uid:UserId) extends UpdateSpec with ForTopics
+

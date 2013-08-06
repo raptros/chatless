@@ -19,27 +19,33 @@ import spray.http._
 import MediaTypes._
 import scala.concurrent.Future
 
-trait MeApi extends ServiceBase {
+import scalaz.std.function._
+import scalaz.syntax.semigroup._
 
-  def getFieldsRoute(uid:UserId):Route =
-    path("uid" / PathEnd) {
-      completeString { dbac.getUser(uid, uid) map { _.uid } }
-    } ~ path("nick" / PathEnd) {
-      completeString { dbac.getUser(uid, uid) map { _.nick } }
-    }~ path("public" / PathEnd) {
-      completeBoolean { dbac.getUser(uid, uid) map { _.public } }
-    } ~ path("info" / PathEnd) {
-      completeJson { dbac.getUser(uid, uid) map { _.info } }
-    } ~ path("following" / PathEnd) {
-      completeJson { dbac.getUser(uid, uid) map { _.following } }
-    } ~ path("followers" / PathEnd) {
-      completeJson { dbac.getUser(uid, uid) map { _.followers } }
-    } ~ path("blocked" / PathEnd) {
-      completeJson { dbac.getUser(uid, uid) map { _.blocked } }
-    } ~ path("topics" / PathEnd) {
-      completeJson { dbac.getUser(uid, uid) map { _.topics } }
-    } ~ path("tags" / PathEnd) {
-      completeJson { dbac.getUser(uid, uid) map { _.tags } }
+trait MeApi extends ServiceBase {
+  val ME_API_BASE="me"
+
+  def getFieldsRoute(cid:UserId):Route =
+    path(PathEnd) {
+      completeJson { dbac.getUser(cid, cid) }
+    } ~ path(UserM.UID / PathEnd) {
+      completeString { dbac.getUser(cid, cid) map { _.uid } }
+    } ~ path(UserM.NICK / PathEnd) {
+      completeString { dbac.getUser(cid, cid) map { _.nick } }
+    }~ path(UserM.PUBLIC / PathEnd) {
+      completeBoolean { dbac.getUser(cid, cid) map { _.public } }
+    } ~ path(UserM.INFO / PathEnd) {
+      completeJson { dbac.getUser(cid, cid) map { _.info } }
+    } ~ path(UserM.FOLLOWING / PathEnd) {
+      completeJson { dbac.getUser(cid, cid) map { _.following } }
+    } ~ path(UserM.FOLLOWERS / PathEnd) {
+      completeJson { dbac.getUser(cid, cid) map { _.followers } }
+    } ~ path(UserM.BLOCKED / PathEnd) {
+      completeJson { dbac.getUser(cid, cid) map { _.blocked } }
+    } ~ path(UserM.TOPICS / PathEnd) {
+      completeJson { dbac.getUser(cid, cid) map { _.topics } }
+    } ~ path(UserM.TAGS / PathEnd) {
+      completeJson { dbac.getUser(cid, cid) map { _.tags } }
     }
 
   private def getUserListContains(uid:UserId, field: UserM => Set[String])(value:String):Future[Boolean] = {
@@ -47,69 +53,62 @@ trait MeApi extends ServiceBase {
   }
 
   def querySetsRoute(uid:UserId):Route = (
-    (path("following" / Segment / PathEnd) map { getUserListContains(uid, _.following) })
-    | (path("followers" / Segment / PathEnd) map { getUserListContains(uid, _.followers) })
-    | (path("blocked" / Segment / PathEnd) map { getUserListContains(uid, _.blocked) })
-    | (path("topics" / Segment / PathEnd) map { getUserListContains(uid, _.topics) })
-    | (path("tags" / Segment / PathEnd) map { getUserListContains(uid, _.tags) })
+    (path(UserM.FOLLOWING / Segment / PathEnd) map { getUserListContains(uid, _.following) })
+    | (path(UserM.FOLLOWERS / Segment / PathEnd) map { getUserListContains(uid, _.followers) })
+    | (path(UserM.BLOCKED / Segment / PathEnd) map { getUserListContains(uid, _.blocked) })
+    | (path(UserM.TOPICS / Segment / PathEnd) map { getUserListContains(uid, _.topics) })
+    | (path(UserM.TAGS / Segment / PathEnd) map { getUserListContains(uid, _.tags) })
     ) { b:Future[Boolean] => completeBoolean(b) }
 
-  def optionJsonEntity:Directive1[Option[Json]] = extract { c =>
-    c.request.entity.toOption map { _.asString } flatMap { _.parseOption }
-  }
-
-  def replaceFields(cid:UserId):Route = path("nick" / PathEnd) {
+  def replaceFields(cid:UserId):Route = path(UserM.NICK / PathEnd) {
     dEntity(as[String]) { v =>
       onSuccess(dbac.updateUser(cid, cid, ReplaceNick(v))) { completeBoolean }
     }
-  } ~ path("public" / PathEnd) {
+  } ~ path(UserM.PUBLIC / PathEnd) {
     dEntity(as[Boolean]) { v =>
       onSuccess(dbac.updateUser(cid, cid, SetPublic(v))) { completeBoolean }
     }
-  } ~ path("info" / PathEnd) {
+  } ~ path(UserM.INFO / PathEnd) {
     dEntity(as[Json]) { v =>
       onSuccess(dbac.updateUser(cid, cid, UpdateInfo(v))) { completeBoolean }
     }
   }
 
   def addToSets(cid:UserId):Route =
-    path("following" / Segment / PathEnd) { u:UserId =>
+    path(UserM.FOLLOWING / Segment / PathEnd) { u:UserId =>
       optionJsonEntity { oj =>
         onSuccess(dbac.updateUser(cid, cid, FollowUser(u, oj))) { completeBoolean }
       }
-    } ~ path("blocked" / Segment / PathEnd) { u:UserId =>
+    } ~ path(UserM.BLOCKED / Segment / PathEnd) { u:UserId =>
       onSuccess(dbac.updateUser(cid, cid, BlockUser(u))) { completeBoolean }
-    } ~ path("topics" / Segment / PathEnd) { t:TopicId =>
+    } ~ path(UserM.TOPICS / Segment / PathEnd) { t:TopicId =>
       optionJsonEntity { oj =>
         onSuccess(dbac.updateUser(cid, cid, JoinTopic(t, oj))) { completeBoolean }
       }
-    } ~ path("tags" / Segment / PathEnd) { t:String =>
+    } ~ path(UserM.TAGS / Segment / PathEnd) { t:String =>
       onSuccess(dbac.updateUser(cid, cid, AddTag(t))) { completeBoolean }
     }
 
   def deleteFromSets(cid:UserId):Route =
-    path("following" / Segment / PathEnd) { u:UserId =>
+    path(UserM.FOLLOWING / Segment / PathEnd) { u:UserId =>
       onSuccess(dbac.updateUser(cid, cid, UnfollowUser(u))) { completeBoolean }
-    } ~ path("followers" / Segment / PathEnd) { u:UserId =>
+    } ~ path(UserM.FOLLOWERS / Segment / PathEnd) { u:UserId =>
       onSuccess(dbac.updateUser(cid, cid, RemoveFollower(u))) { completeBoolean }
-    } ~ path("blocked" / Segment / PathEnd) { u:UserId =>
+    } ~ path(UserM.BLOCKED / Segment / PathEnd) { u:UserId =>
       onSuccess(dbac.updateUser(cid, cid, UnblockUser(u))) { completeBoolean }
-    } ~ path("topics" / Segment / PathEnd) { t:TopicId =>
+    } ~ path(UserM.TOPICS / Segment / PathEnd) { t:TopicId =>
       onSuccess(dbac.updateUser(cid, cid, LeaveTopic(t))) { completeBoolean }
-    } ~ path("tags" / Segment / PathEnd) { t:String =>
+    } ~ path(UserM.TAGS / Segment / PathEnd) { t:String =>
       onSuccess(dbac.updateUser(cid, cid, RemoveTag(t))) { completeBoolean }
     }
 
 
-  def meApi(cid:UserId):Route = pathPrefix("me") {
-    get {
-      path(PathEnd) {
-        completeJson { dbac.getUser(cid, cid) }
-      } ~ getFieldsRoute(cid) ~ querySetsRoute(cid)
-    } ~ put {
-      replaceFields(cid) ~ addToSets(cid)
-    } ~ delete {
-      deleteFromSets(cid)
+  def meApi(cid:UserId):Route =
+    pathPrefix(ME_API_BASE) {
+      get {
+        getFieldsRoute(cid) ~ querySetsRoute(cid)
+      } ~ put {
+        replaceFields(cid) ~ addToSets(cid)
+      } ~ delete { deleteFromSets(cid) }
     }
-  }
 }

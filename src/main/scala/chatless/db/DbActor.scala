@@ -1,9 +1,6 @@
 package chatless.db
 
 import chatless._
-import chatless.operation._
-import chatless.operation.ResTopic
-import chatless.operation.ResUser
 
 import spray.http._
 import MediaTypes._
@@ -20,6 +17,12 @@ import akka.actor.Props
 import akka.actor.Status
 import akka.event.Logging
 import com.mongodb.casbah
+import chatless.op2._
+import chatless.db.OperationNotSupported
+import chatless.db.UnhandleableMessage
+import chatless.op2.ResTopic
+import chatless.op2.Operation
+import chatless.op2.ResUser
 
 
 class DbActor(val mc:MongoClient) extends Actor {
@@ -42,17 +45,16 @@ class DbActor(val mc:MongoClient) extends Actor {
     case x => sender ! Status.Failure(UnhandleableMessage(x))
   }
 
-  def handleOperation(op:Operation):Json = op match {
-    case Operation(cid, ResMe, spec) => handleUserOperation(cid, cid, spec)
-    case Operation(cid, ResUser(ruid), spec) => handleUserOperation(cid, ruid, spec)
-    case Operation(cid, ResTopic(rtid), spec) => jEmptyObject
+  def handleOperation(op:Operation):Any = op match {
+    case Operation(cid, ResUser(uid), spec) if (spec.isInstanceOf[ForUsers]) => handleUserOperation(cid, uid, spec)
+    case Operation(cid, ResTopic(tid), spec) if (spec.isInstanceOf[ForTopics]) => jEmptyObject
   }
 
-  def handleUserOperation(cid:UserId, ruid:UserId, spec:OpSpec):Json = spec match {
+  def handleUserOperation(cid:UserId, ruid:UserId, spec:Specifier):Json = spec match {
     case _ => throw OperationNotSupported(cid, ResUser(ruid), spec)
   }
 
-  def handleTopicOperation(cid:UserId, rtid:TopicId, spec:OpSpec):Json = spec match {
+  def handleTopicOperation(cid:UserId, rtid:TopicId, spec:Specifier):Json = spec match {
     case _ => throw OperationNotSupported(cid, ResTopic(rtid), spec)
   }
 

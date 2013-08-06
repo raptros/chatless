@@ -12,13 +12,22 @@ case class UserM(
     blocked:Set[UserId],
     topics:Set[TopicId],
     tags:Set[String])
-  extends AccessModel {
-
-
-}
+  extends AccessModel
 
 object UserM {
-  implicit def UserMCodecJ:CodecJson[UserM] = CodecJson.casecodec9(UserM.apply, UserM.unapply)(
-    "uid", "nick", "public", "info", "following", "followers", "blocked", "topics", "tags")
+  val UID = "uid"
+  val NICK = "nick"
+  val PUBLIC = "public"
+  val INFO = "info"
+  val FOLLOWING = "following"
+  val FOLLOWERS = "followers"
+  val BLOCKED = "blocked"
+  val TOPICS = "topics"
+  val TAGS = "tags"
+
+  implicit def UserMCodecJ:CodecJson[UserM] =
+    CodecJson.casecodec9(UserM.apply, UserM.unapply)(UID, NICK, PUBLIC, INFO, FOLLOWING, FOLLOWERS, BLOCKED, TOPICS, TAGS)
+
 }
+
 
