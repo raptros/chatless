@@ -29,6 +29,40 @@ object UserM {
   implicit def UserMCodecJ: CodecJson[UserM] =
     CodecJson.casecodec9(UserM.apply, UserM.unapply)(UID, NICK, PUBLIC, INFO, FOLLOWING, FOLLOWERS, BLOCKED, TOPICS, TAGS)
 
+  lazy val allFields =
+    (  UID
+    :: NICK
+    :: PUBLIC
+    :: INFO
+    :: FOLLOWING
+    :: FOLLOWERS
+    :: BLOCKED
+    :: TOPICS
+    :: TAGS
+    :: Nil
+    )
+
+  lazy val followerFields =
+    (  UID
+    :: NICK
+    :: PUBLIC
+    :: INFO
+    :: FOLLOWING
+    :: FOLLOWERS
+    :: Nil
+    )
+
+  lazy val publicFields =
+    (  UID
+    :: NICK
+    :: PUBLIC
+    :: Nil
+    )
+
+  lazy val callerOnlyFields = allFields diff followerFields
+
+  lazy val nonPublicFields = allFields diff publicFields
+
 }
 
 

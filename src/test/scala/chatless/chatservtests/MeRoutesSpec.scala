@@ -34,14 +34,14 @@ class MeRoutesSpec
   trait Fixture1 {
     val dbac = mock[DatabaseAccessor]
     (dbac.getUser _) expects(userId, userId) returning Future.successful(fakeUser1)
-    val route = new TestableRoute(dbac) with MeApi
-    val api = Directives.dynamic { route.meApi(userId) }
+    val route = new MeApi(dbac)
+    val api = Directives.dynamic { route(userId) }
   }
 
   class Fixture2 (val spec: UpdateSpec with ForUsers) {
     val dbac = mock[DatabaseAccessor]
-    val route = new TestableRoute(dbac) with MeApi
-    val api = Directives.dynamic { route.meApi(userId) }
+    val route = new MeApi(dbac)
+    val api = Directives.dynamic { route(userId) }
     (dbac.getUser _) expects(*, *) never()
     (dbac.updateUser _) expects(userId, userId, spec) once() returning Future.successful(true)
   }

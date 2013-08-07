@@ -5,6 +5,7 @@ import Argonaut._
 
 import chatless._
 import chatless.op2._
+import chatless.db._
 
 import spray.httpx.unmarshalling._
 import shapeless._
@@ -17,13 +18,16 @@ import spray.httpx.encoding.NoEncoding
 
 import spray.http._
 import MediaTypes._
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 import scalaz.std.function._
 import scalaz.syntax.semigroup._
 import chatless.models.UserM
+import akka.actor.ActorRefFactory
 
-trait MeApi extends ServiceBase {
+class MeApi(val dbac: DatabaseAccessor)(implicit val actorRefFactory: ActorRefFactory)
+  extends CallerRoute with ServiceBase {
+
   val ME_API_BASE = "me"
 
   type CUU = UpdateSpec with ForUsers => Route
@@ -114,8 +118,7 @@ trait MeApi extends ServiceBase {
     }
   }
 
-
-  def meApi(cid: UserId): Route = pathPrefix(ME_API_BASE) {
+  def apply(cid: UserId): Route = pathPrefix(ME_API_BASE) {
     get { getFieldsRoute(cid) ~ querySetsRoute(cid) } ~ updateUser(cid)
   }
 }

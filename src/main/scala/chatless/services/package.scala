@@ -13,6 +13,7 @@ package object services {
     def append(r1: Route, r2: => Route) = r1 ~ r2
   }
 
+
   implicit val StringCodecJson = CodecJson.derived[String]
 
 }

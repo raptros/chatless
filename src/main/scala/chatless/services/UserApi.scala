@@ -3,6 +3,9 @@ package chatless.services
 import spray.routing._
 import HListDeserializer._
 
+import argonaut._
+import Argonaut._
+
 import shapeless._
 
 import chatless.UserId
@@ -10,8 +13,13 @@ import chatless.UserId
 import scalaz.std.function._
 import scalaz.syntax.semigroup._
 import chatless.models.UserM
+import chatless.db.DatabaseAccessor
+import akka.actor.ActorRefFactory
+import scala.concurrent.ExecutionContext
 
-trait UserApi extends ServiceBase {
+class UserApi(val dbac: DatabaseAccessor)(implicit val actorRefFactory: ActorRefFactory)
+  extends CallerRoute with ServiceBase {
+
   val USER_API_BASE = "user"
 
   def protectedUserCompletions(cid: UserId, user: UserM): Route = authorize(user.public || (user.followers contains cid)) {
@@ -32,9 +40,16 @@ trait UserApi extends ServiceBase {
     }
   }
 
+  def selector(cid: UserId, user: UserM): List[String] = if (user.uid == cid)
+    UserM.allFields
+  else if (user.public || (user.followers contains cid))
+    UserM.followerFields
+  else
+    UserM.publicFields
+
   def userCompletions(cid: UserId)(user: UserM): Route =
     path(PathEnd) {
-      completeJson(user)
+      completeJson { filterJson(user.asJson, selector(cid, user)) }
     } ~ path(UserM.UID / PathEnd) {
       completeString(user.uid)
     } ~ path(UserM.NICK / PathEnd) {
@@ -43,7 +58,7 @@ trait UserApi extends ServiceBase {
       completeBoolean(user.public)
     } ~ protectedUserCompletions(cid, user)
 
-  def userApi(cid: UserId): Route = get {
+  def apply(cid: UserId): Route = get {
     pathPrefix(USER_API_BASE / Segment) { uid: UserId =>
       onSuccess(dbac.getUser(cid, uid)) {
         userCompletions(cid)

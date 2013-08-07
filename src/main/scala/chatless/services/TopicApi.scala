@@ -7,22 +7,43 @@ import shapeless._
 import chatless._
 import chatless.op2._
 import argonaut._
+import Argonaut._
 import chatless.models.TopicM
+import chatless.db.DatabaseAccessor
+import akka.actor.ActorRefFactory
+import scala.concurrent.ExecutionContext
 
 
-trait TopicApi extends ServiceBase {
+class TopicApi(val dbac: DatabaseAccessor)(implicit val actorRefFactory: ActorRefFactory)
+  extends CallerRoute with ServiceBase {
+
   val TOPIC_API_BASE = "topic"
+
+  def canRead(cid: UserId, topic: TopicM): Boolean =
+    (  topic.public
+    || (topic.op == cid)
+    || (topic.sops contains cid)
+    || (topic.participating contains cid)
+    )
+
+  def fieldsFor(cid: UserId, topic: TopicM): List[String] = {
+    import TopicM.{TID, TITLE, PUBLIC, INFO, OP, SOPS, PARTICIPATING, TAGS}
+    if (canRead(cid, topic))
+      TID :: TITLE :: PUBLIC :: INFO :: OP :: SOPS :: PARTICIPATING :: TAGS :: Nil
+    else
+      TID :: TITLE :: PUBLIC :: Nil
+  }
 
   def getTopicInfo(cid: UserId)(topic: TopicM) =
     path(PathEnd) {
-      completeJson(topic)
+      completeJson { filterJson(topic.asJson, fieldsFor(cid, topic)) }
     } ~ path(TopicM.TID / PathEnd) {
       completeString(topic.tid)
     } ~ path(TopicM.TITLE / PathEnd) {
       completeString(topic.title)
     } ~ path(TopicM.PUBLIC / PathEnd) {
       completeBoolean(topic.public)
-    } ~ authorize(topic.public || (topic.op == cid) || (topic.sops contains cid) || (topic.participating contains cid)) {
+    } ~ authorize(canRead(cid, topic)) {
       path(TopicM.INFO / PathEnd) {
         completeJson(topic.info)
       } ~ path(TopicM.OP / PathEnd) {
@@ -86,7 +107,7 @@ trait TopicApi extends ServiceBase {
     }
   }
 
-  def topicApi(cid: UserId) = pathPrefix(TOPIC_API_BASE / Segment) { tid: TopicId =>
+  def apply(cid: UserId):Route = pathPrefix(TOPIC_API_BASE / Segment) { tid: TopicId =>
     onSuccess(dbac.getTopic(cid, tid)) { topic: TopicM =>
       get {
         getTopicInfo(cid)(topic)

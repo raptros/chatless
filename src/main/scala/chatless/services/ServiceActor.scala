@@ -8,10 +8,14 @@ import spray.routing.RequestContext
 import scala.concurrent._
 import chatless._
 import chatless.db.DatabaseActorClient
+import akka.util.Timeout
+import scala.concurrent.duration._
 
 /** this is the actor for the chatless service. */
 class ServiceActor extends Actor with Service {
   def getUserAuth:ContextAuthenticator[UserId] = BasicAuth("", _.user)
+
+  implicit val timeout = Timeout(5.seconds) // needed for `?` below
 
   def dbSel = context.actorSelection("../chatless-service-db")
 
@@ -21,5 +25,4 @@ class ServiceActor extends Actor with Service {
 
   def receive = runRoute(chatlessApi)
 
-  implicit def executor:ExecutionContext = actorRefFactory.dispatcher
 }
