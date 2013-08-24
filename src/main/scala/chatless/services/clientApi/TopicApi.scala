@@ -1,6 +1,7 @@
-package chatless.services
+package chatless.services.clientApi
 
 import spray.routing._
+
 
 import shapeless._
 
@@ -12,21 +13,40 @@ import chatless.models.TopicM
 import chatless.db.DatabaseAccessor
 import akka.actor.ActorRefFactory
 import scala.concurrent.ExecutionContext
+import chatless.services._
+import chatless.op2.KickUser
+import chatless.op2.DemoteSop
+import chatless.op2.PromoteSop
+import chatless.op2.ChangeTitle
+import shapeless.::
+import chatless.op2.UpdateInfo
+import chatless.op2.InviteUser
+import chatless.op2.RemoveTag
+import chatless.op2.SetPublic
+import chatless.op2.AddTag
+import chatless.op2.KickUser
+import chatless.op2.DemoteSop
+import chatless.op2.PromoteSop
+import chatless.op2.ChangeTitle
+import shapeless.::
+import chatless.op2.UpdateInfo
+import chatless.op2.InviteUser
+import chatless.op2.RemoveTag
+import chatless.op2.SetPublic
+import chatless.op2.AddTag
+import spray.routing.PathMatchers.PathEnd
+import com.google.inject.Inject
 
+trait TopicApi extends ServiceBase {
 
-class TopicApi(val dbac: DatabaseAccessor)(implicit val actorRefFactory: ActorRefFactory)
-  extends CallerRoute with ServiceBase {
-
-  val TOPIC_API_BASE = "topic"
-
-  def canRead(cid: UserId, topic: TopicM): Boolean =
+  private def canRead(cid: UserId, topic: TopicM): Boolean =
     (  topic.public
     || (topic.op == cid)
     || (topic.sops contains cid)
     || (topic.participating contains cid)
     )
 
-  def fieldsFor(cid: UserId, topic: TopicM): List[String] = {
+  private def fieldsFor(cid: UserId, topic: TopicM): List[String] = {
     import TopicM.{TID, TITLE, PUBLIC, INFO, OP, SOPS, PARTICIPATING, TAGS}
     if (canRead(cid, topic))
       TID :: TITLE :: PUBLIC :: INFO :: OP :: SOPS :: PARTICIPATING :: TAGS :: Nil
@@ -34,7 +54,7 @@ class TopicApi(val dbac: DatabaseAccessor)(implicit val actorRefFactory: ActorRe
       TID :: TITLE :: PUBLIC :: Nil
   }
 
-  def getTopicInfo(cid: UserId)(topic: TopicM) =
+  private def getTopicInfo(cid: UserId)(topic: TopicM) = get {
     path(PathEnd) {
       completeJson { filterJson(topic.asJson, fieldsFor(cid, topic)) }
     } ~ path(TopicM.TID / PathEnd) {
@@ -56,11 +76,12 @@ class TopicApi(val dbac: DatabaseAccessor)(implicit val actorRefFactory: ActorRe
         completeJson(topic.tags)
       }
     }
+  }
 
-  def completeUpdateTopic(cid: UserId, topic: TopicM)(op: UpdateSpec with ForTopics): Route =
+  private def completeUpdateTopic(cid: UserId, topic: TopicM)(op: UpdateSpec with ForTopics): Route =
     onSuccess(dbac.updateTopic(cid, topic.tid, op)) { completeBoolean }
 
-  def sopLevelUpdates(cup: UpdateSpec with ForTopics => Route): Route =
+  private def sopLevelUpdates(cup: UpdateSpec with ForTopics => Route): Route =
     put {
       path(TopicM.TITLE / PathEnd) {
         dEntity(as[String]) { v: String => cup { ChangeTitle(v) } }
@@ -81,7 +102,7 @@ class TopicApi(val dbac: DatabaseAccessor)(implicit val actorRefFactory: ActorRe
       }
     }
 
-  def opLevelUpdates(cup: UpdateSpec with ForTopics => Route): Route =
+  private def opLevelUpdates(cup: UpdateSpec with ForTopics => Route): Route =
     put {
       path(TopicM.SOPS / Segment / PathEnd) { uid: UserId =>
         cup { PromoteSop(uid) }
@@ -92,7 +113,7 @@ class TopicApi(val dbac: DatabaseAccessor)(implicit val actorRefFactory: ActorRe
       }
     }
 
-  def update(cid: UserId, topic: TopicM): Route = {
+  private def update(cid: UserId, topic: TopicM): Route = {
     val cup = completeUpdateTopic(cid, topic) _
     authorize(topic.op == cid || (topic.sops contains cid)) {
       sopLevelUpdates(cup)
@@ -101,17 +122,9 @@ class TopicApi(val dbac: DatabaseAccessor)(implicit val actorRefFactory: ActorRe
     }
   }
 
-  def messageApi(cid: UserId, topic: TopicM): Route = {
-    authorize((topic.op == cid) || (topic.sops contains cid) || (topic.participating contains cid)) {
-      complete("")
-    }
-  }
-
-  def apply(cid: UserId):Route = pathPrefix(TOPIC_API_BASE / Segment) { tid: TopicId =>
+  val topicApi: CallerRoute = cid => pathPrefix(TOPIC_API_BASE / Segment) { tid: TopicId =>
     onSuccess(dbac.getTopic(cid, tid)) { topic: TopicM =>
-      get {
-        getTopicInfo(cid)(topic)
-      } ~ update(cid, topic) ~ messageApi(cid, topic)
+      getTopicInfo(cid)(topic) ~ update(cid, topic)
     }
   }
 }

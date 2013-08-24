@@ -1,4 +1,4 @@
-package chatless.services
+package chatless.services.clientApi
 
 import spray.routing._
 import HListDeserializer._
@@ -16,13 +16,15 @@ import chatless.models.UserM
 import chatless.db.DatabaseAccessor
 import akka.actor.ActorRefFactory
 import scala.concurrent.ExecutionContext
+import chatless.services._
+import spray.routing.PathMatchers.PathEnd
+import com.google.inject.Inject
 
-class UserApi(val dbac: DatabaseAccessor)(implicit val actorRefFactory: ActorRefFactory)
-  extends CallerRoute with ServiceBase {
+trait UserApi extends ServiceBase {
 
   val USER_API_BASE = "user"
 
-  def protectedUserCompletions(cid: UserId, user: UserM): Route = authorize(user.public || (user.followers contains cid)) {
+  private def protectedUserCompletions(cid: UserId, user: UserM): Route = authorize(user.public || (user.followers contains cid)) {
     path(UserM.INFO / PathEnd) {
       completeJson(user.info)
     } ~ path(UserM.FOLLOWING / PathEnd) {
@@ -40,16 +42,16 @@ class UserApi(val dbac: DatabaseAccessor)(implicit val actorRefFactory: ActorRef
     }
   }
 
-  def selector(cid: UserId, user: UserM): List[String] = if (user.uid == cid)
+  private def userFieldsSelector(cid: UserId, user: UserM): List[String] = if (user.uid == cid)
     UserM.allFields
   else if (user.public || (user.followers contains cid))
     UserM.followerFields
   else
     UserM.publicFields
 
-  def userCompletions(cid: UserId)(user: UserM): Route =
+  private def userCompletions(cid: UserId)(user: UserM): Route =
     path(PathEnd) {
-      completeJson { filterJson(user.asJson, selector(cid, user)) }
+      completeJson { filterJson(user.asJson, userFieldsSelector(cid, user)) }
     } ~ path(UserM.UID / PathEnd) {
       completeString(user.uid)
     } ~ path(UserM.NICK / PathEnd) {
@@ -58,7 +60,7 @@ class UserApi(val dbac: DatabaseAccessor)(implicit val actorRefFactory: ActorRef
       completeBoolean(user.public)
     } ~ protectedUserCompletions(cid, user)
 
-  def apply(cid: UserId): Route = get {
+  val userApi: CallerRoute = cid => get {
     pathPrefix(USER_API_BASE / Segment) { uid: UserId =>
       onSuccess(dbac.getUser(cid, uid)) {
         userCompletions(cid)

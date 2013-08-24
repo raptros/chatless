@@ -1,4 +1,4 @@
-package chatless.services
+package chatless.services.clientApi
 
 import argonaut._
 import Argonaut._
@@ -24,22 +24,46 @@ import scalaz.std.function._
 import scalaz.syntax.semigroup._
 import chatless.models.UserM
 import akka.actor.ActorRefFactory
+import chatless.services._
+import chatless.op2.ReplaceNick
+import chatless.op2.RemoveFollower
+import chatless.op2.UnfollowUser
+import chatless.op2.UnblockUser
+import chatless.op2.JoinTopic
+import chatless.op2.LeaveTopic
+import chatless.op2.UpdateInfo
+import chatless.op2.BlockUser
+import chatless.op2.RemoveTag
+import chatless.op2.FollowUser
+import chatless.op2.SetPublic
+import chatless.op2.AddTag
+import chatless.op2.ReplaceNick
+import chatless.op2.RemoveFollower
+import chatless.op2.UnfollowUser
+import chatless.op2.UnblockUser
+import chatless.op2.JoinTopic
+import chatless.op2.LeaveTopic
+import chatless.op2.UpdateInfo
+import chatless.op2.BlockUser
+import chatless.op2.RemoveTag
+import chatless.op2.FollowUser
+import chatless.op2.SetPublic
+import chatless.op2.AddTag
+import spray.routing.PathMatchers.PathEnd
+import com.google.inject.Inject
 
-class MeApi(val dbac: DatabaseAccessor)(implicit val actorRefFactory: ActorRefFactory)
-  extends CallerRoute with ServiceBase {
+trait MeApi extends ServiceBase {
 
-  val ME_API_BASE = "me"
-
-  type CUU = UpdateSpec with ForUsers => Route
+  private type CUU = UpdateSpec with ForUsers => Route
 
   private def completeWithUserSetCheck(uid: UserId)(field: UserM => Set[String])(value: String): Route = completeBoolean {
     dbac.getUser(uid, uid) map { field } map { _ contains value }
   }
 
-  def completeUpdateUser(cid: UserId)(op: UpdateSpec with ForUsers): Route =
+  private def completeUpdateUser(cid: UserId)(op: UpdateSpec with ForUsers): Route =
     onSuccess(dbac.updateUser(cid, cid, op)) { completeBoolean }
 
-  def getFieldsRoute(cid: UserId): Route =
+  private def getFieldsRoute(cid: UserId): Route =
     path(PathEnd) {
       completeJson { dbac.getUser(cid, cid) }
     } ~ path(UserM.UID / PathEnd) {
@@ -62,7 +86,7 @@ class MeApi(val dbac: DatabaseAccessor)(implicit val actorRefFactory: ActorRefFa
       completeJson { dbac.getUser(cid, cid) map { _.tags } }
     }
 
-  def querySetsRoute(uid: UserId): Route = {
+  private def querySetsRoute(uid: UserId): Route = {
     val completeCheck = completeWithUserSetCheck(uid) _
     path(UserM.FOLLOWING / Segment / PathEnd) {
       completeCheck { _.following }
@@ -77,7 +101,7 @@ class MeApi(val dbac: DatabaseAccessor)(implicit val actorRefFactory: ActorRefFa
     }
   }
 
-  def replaceFields(cuu: CUU): Route = path(UserM.NICK / PathEnd) {
+  private def replaceFields(cuu: CUU): Route = path(UserM.NICK / PathEnd) {
     dEntity(as[String]) { v => cuu { ReplaceNick(v) } }
   } ~ path(UserM.PUBLIC / PathEnd) {
     dEntity(as[Boolean]) { v => cuu { SetPublic(v) } }
@@ -85,7 +109,7 @@ class MeApi(val dbac: DatabaseAccessor)(implicit val actorRefFactory: ActorRefFa
     dEntity(as[Json]) { v => cuu { UpdateInfo(v) } }
   }
 
-  def addToSets(cuu: CUU): Route =
+  private def addToSets(cuu: CUU): Route =
     path(UserM.FOLLOWING / Segment / PathEnd) { u: UserId =>
       optionJsonEntity { oj => cuu { FollowUser(u, oj) } }
     } ~ path(UserM.BLOCKED / Segment / PathEnd) { u: UserId =>
@@ -96,7 +120,7 @@ class MeApi(val dbac: DatabaseAccessor)(implicit val actorRefFactory: ActorRefFa
       cuu { AddTag(t) }
     }
 
-  def deleteFromSets(cuu: CUU): Route =
+  private def deleteFromSets(cuu: CUU): Route =
     path(UserM.FOLLOWING / Segment / PathEnd) { u: UserId =>
       cuu { UnfollowUser(u) }
     } ~ path(UserM.FOLLOWERS / Segment / PathEnd) { u: UserId =>
@@ -109,7 +133,7 @@ class MeApi(val dbac: DatabaseAccessor)(implicit val actorRefFactory: ActorRefFa
       cuu { RemoveTag(t) }
     }
 
-  def updateUser(cid: UserId): Route = {
+  private def updateUser(cid: UserId): Route = {
     val cuu = completeUpdateUser(cid) _
     put {
       replaceFields(cuu) ~ addToSets(cuu)
@@ -118,7 +142,7 @@ class MeApi(val dbac: DatabaseAccessor)(implicit val actorRefFactory: ActorRefFa
     }
   }
 
-  def apply(cid: UserId): Route = pathPrefix(ME_API_BASE) {
+  val meApi: CallerRoute = cid => pathPrefix(ME_API_BASE) {
     get { getFieldsRoute(cid) ~ querySetsRoute(cid) } ~ updateUser(cid)
   }
 }

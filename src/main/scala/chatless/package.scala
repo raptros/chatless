@@ -1,3 +1,4 @@
+import org.joda.time.DateTime
 
 package object chatless {
   import spray.httpx.unmarshalling._
@@ -46,6 +47,13 @@ package object chatless {
     def apply(ent: HttpEntity): Deserialized[A] = BasicUnmarshallers.StringUnmarshaller(ent).right flatMap { dsd => fs(dsd) }
   }
 
+  implicit val JodaTimeCodecJson: CodecJson[DateTime] = CodecJson.apply(
+    dt => dt.toString().asJson,
+    c => c.as[String] map { DateTime.parse _ })
+
+
 //  implicit def jsonUnmarshaller: Unmarshaller(jdd)
+
+  type OptPair[+A, +B] = Option[(A, B)]
 
 }

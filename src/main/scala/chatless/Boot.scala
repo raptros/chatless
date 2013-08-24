@@ -1,19 +1,33 @@
 package chatless
 
-import akka.actor.{Deploy, ActorSystem, Props}
+import akka.actor.{ActorRef, Deploy, ActorSystem, Props}
 import akka.io.IO
 import spray.can.Http
-import chatless.db.DbActor
-import chatless.services.ServiceActor
+import chatless.db.{DatabaseAccessor, OperationHandlerActor}
+import chatless.db.handlers._
+import chatless.services.ClientApiActor
+
+import scala.concurrent.duration._
+
+import com.mongodb.casbah.Imports._
+import com.google.inject.{Injector, Guice}
+import chatless.wiring.ChatlessModule
+import chatless.wiring.actors.ActorInjector
 
 object Boot extends App {
  // we need an ActorSystem to host our application in
   implicit val system = ActorSystem("chatless-system")
 
-  // create and start our service actor
-  val service = system.actorOf(Props[ServiceActor], "chatless-service")
+  val injector: Injector = Guice.createInjector(new ChatlessModule(system))
 
-  val db = system.actorOf(Props(new DbActor), "chatless-service-db")
+  val actorProvider = ActorInjector.providerFor(injector)
+
+  import net.codingwell.scalaguice.InjectorExtensions._
+
+  val db = system.actorOf(actorProvider.props[OperationHandlerActor], "chatless-service-db")
+
+  // create and start our service actor
+  val service = system.actorOf(actorProvider.props[ClientApiActor], "chatless-service")
 
   // start a new HTTP server on port 8080 with our service actor as the handler
   IO(Http) ! Http.Bind(service, interface = "localhost", port = 8080)

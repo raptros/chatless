@@ -8,11 +8,11 @@ import org.scalatest.matchers.ShouldMatchers
 import org.scalamock.scalatest.MockFactory
 import chatless.models.UserM
 import chatless.db.DatabaseAccessor
-import scala.concurrent.Future
-import chatless.services.UserApi
+import scala.concurrent.{ExecutionContext, Future}
 import argonaut._
 import Argonaut._
 import spray.routing.{HttpService, Directives}
+import chatless.services.clientApi.UserApi
 
 class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTest with ShouldMatchers with MockFactory {
   import UserM.{allFields, callerOnlyFields, publicFields, nonPublicFields, followerFields}
@@ -67,12 +67,15 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
 
   def mkPath(uid: UserId, field: String) = s"/user/$uid/$field"
 
-  class Fixture(targetOther: UserM, count: Int) {
+  class Fixture(targetOther: UserM, count: Int) { self =>
     def mkGet(field: String = "") = Get(mkPath(targetOther.uid, field))
     val dbac = mock[DatabaseAccessor]
-    (dbac.getUser _) expects(userId, targetOther.uid) repeated count returning Future.successful(targetOther)
-    val route = new UserApi(dbac)
-    val api = Directives.dynamic { route(userId) }
+    (dbac.getUser(_: UserId, _: UserId)(_: ExecutionContext)) expects(userId, targetOther.uid, *) repeated count returning Future.successful(targetOther)
+    val userApi = new UserApi {
+      override val dbac = self.dbac
+      override val actorRefFactory = system
+    }
+    val api = Directives.dynamic { userApi.userApi(userId) }
   }
   
   "the /user/ api" when {

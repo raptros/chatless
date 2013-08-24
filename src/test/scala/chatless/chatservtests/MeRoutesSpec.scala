@@ -5,7 +5,6 @@ import org.scalatest.WordSpec
 import spray.testkit.ScalatestRouteTest
 import spray.routing._
 import spray.http.StatusCodes._
-import chatless.services.MeApi
 import chatless.db.{DatabaseAccessor, DatabaseActorClient}
 import scala.concurrent._
 import chatless._
@@ -19,6 +18,7 @@ import scalaz.syntax.std.option._
 import org.scalatest.matchers.ShouldMatchers
 import org.scalamock.scalatest.MockFactory
 import chatless.models.UserM
+import chatless.services.clientApi.MeApi
 
 class MeRoutesSpec
   extends WordSpec
@@ -30,20 +30,25 @@ class MeRoutesSpec
     Set("otherUser"), Set("otherUser"), Set("some-blocked"),
     Set("tid0"), Set("tag0"))
 
-
-  trait Fixture1 {
-    val dbac = mock[DatabaseAccessor]
-    (dbac.getUser _) expects(userId, userId) returning Future.successful(fakeUser1)
-    val route = new MeApi(dbac)
-    val api = Directives.dynamic { route(userId) }
+  def newApi(dbAccessor: DatabaseAccessor) = {
+    val me = new MeApi {
+      val dbac = dbAccessor
+      val actorRefFactory = system
+    }
+    Directives.dynamic { me.meApi(userId) }
   }
 
-  class Fixture2 (val spec: UpdateSpec with ForUsers) {
+  trait Fixture1 { self =>
     val dbac = mock[DatabaseAccessor]
-    val route = new MeApi(dbac)
-    val api = Directives.dynamic { route(userId) }
-    (dbac.getUser _) expects(*, *) never()
-    (dbac.updateUser _) expects(userId, userId, spec) once() returning Future.successful(true)
+    (dbac.getUser(_: UserId, _: UserId)(_: ExecutionContext)) expects(userId, userId, *) returning Future.successful(fakeUser1)
+    val api = newApi(dbac)
+  }
+
+  class Fixture2 (val spec: UpdateSpec with ForUsers) { self =>
+    val dbac = mock[DatabaseAccessor]
+    val api = newApi(dbac)
+    (dbac.getUser(_: UserId, _: UserId)(_: ExecutionContext)) expects(*, *, *) never()
+    (dbac.updateUser(_: UserId, _: UserId, _: UpdateSpec with ForUsers)(_: ExecutionContext)) expects(userId, userId, spec, *) once() returning Future.successful(true)
   }
 
   def itReceives = afterWord("it receives")

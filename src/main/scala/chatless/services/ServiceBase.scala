@@ -33,7 +33,6 @@ trait ServiceBase extends HttpService {
 
   implicit def executor: ExecutionContext = actorRefFactory.dispatcher
 
-
   def dbac: DatabaseAccessor
 
   def dEntity[A](um: Unmarshaller[A]): Directive1[A] = decodeRequest(NoEncoding) & entity(um)
@@ -62,4 +61,24 @@ trait ServiceBase extends HttpService {
   def completeJson[A: EncodeJson](a: => Future[A]): Route = respondWithMediaType(`application/json`) {
     complete(a map { _.asJson.nospaces })
   }
+
+  def completeStateError(err: StateError, code: StatusCode) = respondWithMediaType(`application/json`) {
+    complete { code -> err.asJson.spaces2 }
+  }
+
+  def handleStateError(se: StateError) = se match {
+    case e: TopicNotFoundError    => completeStateError(e, StatusCodes.NotFound)
+    case e: OperationNotSupported => completeStateError(e, StatusCodes.MethodNotAllowed)
+    case e: UnhandleableMessage   => completeStateError(e, StatusCodes.InternalServerError)
+    //    case e: AccessNotPermitted => completeStateError(e, StatusCodes.Forbidden)
+    //    case e: NonExistentField => completeStateError(e, StatusCodes.NotFound)
+  }
+
+  implicit def serviceHandler(implicit log: LoggingContext) = ExceptionHandler {
+    case (se: StateError) => log.warning(se.getMessage); handleStateError(se)
+    case (t: Throwable) => log.warning(t.getMessage); respondWithMediaType(`application/json`) {
+      complete { StatusCodes.InternalServerError -> ("failed".asJson -->>: jEmptyArray).nospaces }
+    }
+  }
+
 }
