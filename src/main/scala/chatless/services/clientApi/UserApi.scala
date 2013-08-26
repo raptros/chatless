@@ -1,69 +1,64 @@
 package chatless.services.clientApi
 
 import spray.routing._
-import HListDeserializer._
 
-import argonaut._
-import Argonaut._
-
-import shapeless._
 
 import chatless.UserId
 
-import scalaz.std.function._
-import scalaz.syntax.semigroup._
-import chatless.models.UserM
-import chatless.db.DatabaseAccessor
-import akka.actor.ActorRefFactory
-import scala.concurrent.ExecutionContext
 import chatless.services._
-import spray.routing.PathMatchers.PathEnd
-import com.google.inject.Inject
+import chatless.models.{User, UserDAO}
+import chatless.db.UserNotFoundError
 
 trait UserApi extends ServiceBase {
 
   val USER_API_BASE = "user"
 
-  private def protectedUserCompletions(cid: UserId, user: UserM): Route = authorize(user.public || (user.followers contains cid)) {
-    path(UserM.INFO / PathEnd) {
+  val userDao: UserDAO
+
+  private def protectedUserCompletions(cid: UserId, user: User): Route = authorize(user.public || (user.followers contains cid)) {
+    path(User.INFO / PathEnd) {
       completeJson(user.info)
-    } ~ path(UserM.FOLLOWING / PathEnd) {
+    } ~ path(User.FOLLOWING / PathEnd) {
       completeJson(user.following)
-    } ~ path(UserM.FOLLOWERS / PathEnd) {
+    } ~ path(User.FOLLOWERS / PathEnd) {
       completeJson(user.followers)
-    } ~ path(UserM.TOPICS / PathEnd) {
+    } ~ path(User.TOPICS / PathEnd) {
       completeJson(user.topics)
     }
   } ~ authorize(user.uid == cid) {
-    path(UserM.BLOCKED / PathEnd) {
+    path(User.BLOCKED / PathEnd) {
       completeJson(user.blocked)
-    } ~ path(UserM.TAGS / PathEnd) {
+    } ~ path(User.TAGS / PathEnd) {
       completeJson(user.tags)
     }
   }
 
-  private def userFieldsSelector(cid: UserId, user: UserM): List[String] = if (user.uid == cid)
-    UserM.allFields
-  else if (user.public || (user.followers contains cid))
-    UserM.followerFields
-  else
-    UserM.publicFields
+  private def userFieldsSelector(cid: UserId, user: User): List[String] =
+    if (user.uid == cid)
+      User.allFields
+    else if (user.public || (user.followers contains cid))
+      User.followerFields
+    else
+      User.publicFields
 
-  private def userCompletions(cid: UserId)(user: UserM): Route =
+
+  private def userCompletions(cid: UserId)(user: User): Route =
     path(PathEnd) {
       completeJson { filterJson(user.asJson, userFieldsSelector(cid, user)) }
-    } ~ path(UserM.UID / PathEnd) {
+    } ~ path(User.UID / PathEnd) {
       completeString(user.uid)
-    } ~ path(UserM.NICK / PathEnd) {
+    } ~ path(User.NICK / PathEnd) {
       completeString(user.nick)
-    } ~ path(UserM.PUBLIC / PathEnd) {
+    } ~ path(User.PUBLIC / PathEnd) {
       completeBoolean(user.public)
     } ~ protectedUserCompletions(cid, user)
 
   val userApi: CallerRoute = cid => get {
     pathPrefix(USER_API_BASE / Segment) { uid: UserId =>
-      onSuccess(dbac.getUser(cid, uid)) {
-        userCompletions(cid)
+      userCompletions(cid) {
+        userDao get cid getOrElse {
+          throw UserNotFoundError(cid)
+        }
       }
     }
   }

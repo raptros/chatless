@@ -6,6 +6,8 @@ import spray.routing.RouteConcatenation._
 import argonaut._
 import Argonaut._
 import org.joda.time.DateTime
+import chatless.db.StateError
+import spray.http.StatusCode
 
 package object services {
 
@@ -13,6 +15,16 @@ package object services {
 
   implicit def routeSemigroup: Semigroup[Route] = new Semigroup[Route] {
     def append(r1: Route, r2: => Route) = r1 ~ r2
+  }
+
+  implicit class StateErrorCompleter(se: StateError) {
+    import spray.routing.Directives
+    import spray.routing.directives.CompletionMagnet._
+    import spray.http.MediaTypes._
+
+    def complete(status: StatusCode) = Directives.respondWithMediaType(`text/plain`) {
+      Directives.complete { status -> se.getMessage }
+    }
   }
 
 
@@ -23,6 +35,6 @@ package object services {
   val EVENT_API_BASE = "events"
 
 
-  implicit val StringCodecJson = CodecJson.derived[String]
+//  implicit val StringCodecJson = CodecJson.derived[String]
 
 }

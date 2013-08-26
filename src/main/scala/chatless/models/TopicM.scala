@@ -11,19 +11,27 @@ case class TopicM(
     op: UserId,
     sops: Set[UserId],
     participating: Set[UserId],
-    tags: List[String])
+    tags: Set[String])
   extends AccessModel
 
 object TopicM {
-  val TID = "tid"
-  val TITLE = "title"
-  val PUBLIC = "public"
-  val INFO = "info"
-  val OP = "op"
-  val SOPS = "sops"
-  val PARTICIPATING = "participating"
-  val TAGS = "tags"
+  val TID = TypedField[TopicId]("name")
+  val TITLE = TypedField[String]("title")
+  val PUBLIC = TypedField[Boolean]("public")
+  val INFO = TypedField[Json]("info")
+  val OP = TypedField[UserId]("op")
+  val SOPS = TypedField[Set[UserId]]("sops")
+  val PARTICIPATING = TypedField[Set[UserId]]("participating")
+  val TAGS = TypedField[Set[String]]("tags")
 
   implicit def TopicMCodecJ: CodecJson[TopicM] =
-    CodecJson.casecodec8(TopicM.apply, TopicM.unapply)(TID, TITLE, PUBLIC, INFO, OP, SOPS, PARTICIPATING, TAGS)
+    CodecJson.casecodec8(TopicM.apply, TopicM.unapply)(
+      TID.name,
+      TITLE.name,
+      PUBLIC.name,
+      INFO.name,
+      OP.name,
+      SOPS.name,
+      PARTICIPATING.name,
+      TAGS.name)
 }

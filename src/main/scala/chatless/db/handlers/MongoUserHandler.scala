@@ -26,7 +26,7 @@ class MongoUserHandler @Inject() (val userDao: UserDAO)
   extends UserOpHandler {
 
   def apply(cid: UserId, uid: UserId, spec: Specifier with ForUsers) = spec match {
-    case GetRes => userDao get uid getOrElse { throw UserNotFoundError(uid, cid) }
+    case GetRes => userDao get uid valueOr { e => throw e }
     case ReplaceNick(nick) => ???
     case SetPublic(public) => ???
     case UpdateInfo(info) => ???

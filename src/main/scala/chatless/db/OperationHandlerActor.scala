@@ -27,7 +27,7 @@ class OperationHandlerActor @Inject() (
     } catch {
       case t: Throwable => sender ! Status.Failure(t)
     }
-    case x => sender ! Status.Failure(UnhandleableMessage(x))
+    case x => sender ! Status.Failure(UnhandleableMessageError(x))
   }
 
   def handleOperation(op: Operation): Any = op match {

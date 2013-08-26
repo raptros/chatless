@@ -9,7 +9,7 @@ import chatless._
 import chatless.op2._
 import argonaut._
 import Argonaut._
-import chatless.models.TopicM
+import chatless.models.{TypedField, TopicM}
 import chatless.db.DatabaseAccessor
 import akka.actor.ActorRefFactory
 import scala.concurrent.ExecutionContext
@@ -46,13 +46,20 @@ trait TopicApi extends ServiceBase {
     || (topic.participating contains cid)
     )
 
-  private def fieldsFor(cid: UserId, topic: TopicM): List[String] = {
-    import TopicM.{TID, TITLE, PUBLIC, INFO, OP, SOPS, PARTICIPATING, TAGS}
-    if (canRead(cid, topic))
-      TID :: TITLE :: PUBLIC :: INFO :: OP :: SOPS :: PARTICIPATING :: TAGS :: Nil
-    else
-      TID :: TITLE :: PUBLIC :: Nil
-  }
+  private val publicFields = (TopicM.TID :: TopicM.TITLE :: TopicM.PUBLIC :: Nil) map { _.name }
+  private val participantFields =
+    (TopicM.TID
+    :: TopicM.TITLE
+    :: TopicM.PUBLIC
+    :: TopicM.INFO
+    :: TopicM.OP
+    :: TopicM.SOPS
+    :: TopicM.PARTICIPATING
+    :: TopicM.TAGS
+    :: Nil) map { _.name }
+
+  private def fieldsFor(cid: UserId, topic: TopicM): List[String] =
+    if (canRead(cid, topic)) participantFields else publicFields
 
   private def getTopicInfo(cid: UserId)(topic: TopicM) = get {
     path(PathEnd) {

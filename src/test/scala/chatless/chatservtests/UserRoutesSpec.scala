@@ -6,59 +6,55 @@ import spray.http.StatusCodes
 import chatless._
 import org.scalatest.matchers.ShouldMatchers
 import org.scalamock.scalatest.MockFactory
-import chatless.models.UserM
-import chatless.db.DatabaseAccessor
-import scala.concurrent.{ExecutionContext, Future}
-import argonaut._
-import Argonaut._
+import chatless.models.{User, UserDAO}
 import spray.routing.{HttpService, Directives}
 import chatless.services.clientApi.UserApi
 
 class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTest with ShouldMatchers with MockFactory {
-  import UserM.{allFields, callerOnlyFields, publicFields, nonPublicFields, followerFields}
+  import User.{allFields, callerOnlyFields, publicFields, nonPublicFields, followerFields}
 
   val id1 = "00012"
   val id2 = "67000"
   val id3 = "33333"
 
-  val fakeCaller = UserM(
+  val fakeCaller = User(
     userId,
     "this user",
     true,
-    jEmptyObject,
+    Map.empty[String, Any],
     Set(id2),
     Set("otherUser"),
     Set("some-blocked"),
     Set("tid0"),
     Set("tag0"))
 
-  val otherUser1 = UserM(
+  val otherUser1 = User(
     id1,
     "a public user",
     true,
-    jEmptyObject,
+    Map.empty[String, Any],
     Set("otherUser"),
     Set(userId),
     Set("some-blocked"),
     Set("tid0"),
     Set("tag0"))
 
-  val otherUser2 = UserM(
+  val otherUser2 = User(
     id2,
     "a private user followed",
     false,
-    jEmptyObject,
+    Map.empty[String, Any],
     Set(otherUser1.uid),
     Set(fakeCaller.uid),
     Set.empty[UserId],
     Set(),
     Set())
 
-  val otherUser3 = UserM(
+  val otherUser3 = User(
     id3,
     "a private user not followed",
     false,
-    jEmptyObject,
+    Map.empty[String, Any],
     Set(otherUser1.uid),
     Set(),
     Set.empty[UserId],
@@ -67,12 +63,12 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
 
   def mkPath(uid: UserId, field: String) = s"/user/$uid/$field"
 
-  class Fixture(targetOther: UserM, count: Int) { self =>
+  class Fixture(targetOther: User, count: Int) { self =>
     def mkGet(field: String = "") = Get(mkPath(targetOther.uid, field))
-    val dbac = mock[DatabaseAccessor]
-    (dbac.getUser(_: UserId, _: UserId)(_: ExecutionContext)) expects(userId, targetOther.uid, *) repeated count returning Future.successful(targetOther)
+    val userDao = mock[UserDAO]
+    (userDao.get(_: UserId)) expects targetOther.uid repeated count returning Some(targetOther)
     val userApi = new UserApi {
-      override val dbac = self.dbac
+      val userDao = self.userDao
       override val actorRefFactory = system
     }
     val api = Directives.dynamic { userApi.userApi(userId) }
@@ -85,13 +81,13 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
           val oObj = entityAs[String].parseOption
           assert(oObj.nonEmpty)
           val objFields = oObj flatMap { _.objectFields } getOrElse Nil
-          allFields foreach { f =>
+          for (f <- allFields) {
             objFields should contain (f)
           }
         }
       }
       "return each field by request" in new Fixture(fakeCaller, allFields.length) {
-        allFields foreach { f =>
+        for (f <- allFields) {
           mkGet(f) ~> api ~> check {
             entity should not be ('isEmpty)
           }
@@ -104,7 +100,7 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
           val oObj = entityAs[String].parseOption
           assert(oObj.nonEmpty)
           val objFields = oObj flatMap { _.objectFields } getOrElse Nil
-          followerFields foreach { f =>
+          for (f <- followerFields) {
             objFields should contain (f)
           }
         }
@@ -114,20 +110,20 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
           val oObj = entityAs[String].parseOption
           assert(oObj.nonEmpty)
           val objFields = oObj flatMap { _.objectFields } getOrElse Nil
-          callerOnlyFields foreach { f =>
+          for (f <- callerOnlyFields) {
             objFields should not contain (f)
           }
         }
       }
       "return each field by request" in new Fixture(otherUser1, followerFields.length) {
-        followerFields foreach { f =>
+        for (f <- followerFields) {
           mkGet(f) ~> api ~> check {
             entity should not be ('isEmpty)
           }
         }
       }
       "not allow requests to the caller-only fields" in new Fixture(otherUser1, callerOnlyFields.size) {
-        callerOnlyFields foreach { f =>
+        for (f <- callerOnlyFields) {
           mkGet(f) ~> HttpService.sealRoute(api) ~> check {
             status === StatusCodes.Forbidden
           }
@@ -140,7 +136,7 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
           val oObj = entityAs[String].parseOption
           assert(oObj.nonEmpty)
           val objFields = oObj flatMap { _.objectFields } getOrElse Nil
-          followerFields foreach { f =>
+          for (f <- followerFields) {
             objFields should contain (f)
           }
         }
@@ -150,20 +146,20 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
           val oObj = entityAs[String].parseOption
           assert(oObj.nonEmpty)
           val objFields = oObj flatMap { _.objectFields } getOrElse Nil
-          callerOnlyFields foreach { f =>
+          for (f <- callerOnlyFields) {
             objFields should not contain (f)
           }
         }
       }
       "return each field by request" in new Fixture(otherUser2, followerFields.length) {
-        followerFields foreach { f =>
+        for (f <- followerFields) {
           mkGet(f) ~> api ~> check {
             entity should not be ('isEmpty)
           }
         }
       }
       "not allow requests to the caller-only fields" in new Fixture(otherUser2, callerOnlyFields.size) {
-        callerOnlyFields foreach { f =>
+        for (f <- callerOnlyFields) {
           mkGet(f) ~> HttpService.sealRoute(api) ~> check {
             status === StatusCodes.Forbidden
           }
@@ -176,7 +172,7 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
           val oObj = entityAs[String].parseOption
           assert(oObj.nonEmpty)
           val objFields = oObj flatMap { _.objectFields } getOrElse Nil
-          publicFields foreach { f =>
+          for (f <- publicFields) {
             objFields should contain (f)
           }
         }
@@ -186,20 +182,20 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
           val oObj = entityAs[String].parseOption
           assert(oObj.nonEmpty)
           val objFields = oObj flatMap { _.objectFields } getOrElse Nil
-          nonPublicFields foreach { f =>
+          for (f <- nonPublicFields) {
             objFields should not contain (f)
           }
         }
       }
       "return each publically visible field by request" in new Fixture(otherUser3, publicFields.length) {
-        publicFields foreach { f =>
+        for (f <- publicFields) {
           mkGet(f) ~> api ~> check {
             entity should not be ('isEmpty)
           }
         }
       }
       "not allow requests to the caller-only fields" in new Fixture(otherUser3, nonPublicFields.size) {
-        nonPublicFields foreach { f =>
+        for (f <- nonPublicFields) {
           mkGet(f) ~> HttpService.sealRoute(api) ~> check {
             status === StatusCodes.Forbidden
           }

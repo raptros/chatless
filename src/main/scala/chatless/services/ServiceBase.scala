@@ -1,6 +1,7 @@
 package chatless.services
 import chatless._
 
+
 import akka.util.Timeout
 
 import spray.routing._
@@ -12,28 +13,26 @@ import spray.httpx.marshalling.Marshaller._
 import spray.httpx.unmarshalling._
 
 
-import argonaut._
-import Argonaut._
-
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
+import org.json4s._
+import org.json4s.native.JsonMethods._
+
 import chatless.db._
+import chatless.models.TypedField
+import spray.httpx.Json4sSupport
 
-trait ServiceBase extends HttpService {
+trait ServiceBase extends HttpService with Json4sSupport {
+  implicit val formats = org.json4s.DefaultFormats ++ org.json4s.ext.JodaTimeSerializers.all
 
-  def optionJsonEntity: Directive1[Option[Json]] = extract { c =>
-    c.request.entity.toOption map { _.asString } flatMap { _.parseOption }
+
+    def optionJsonEntity: Directive1[] = extract { c =>
+    for {
+      ent <- c.request.entity.toOption map { _.asString }
+      js <- parse(ent)
+    } yield js.extract[Map[String, Any]]
   }
-
-  def filterJson(json: Json, fields:List[String]): Json = {
-    val mapped = fields map { f => f :=? (json -| f) }
-    (mapped :\ jEmptyObject) { _ ->?: _ }
-  }
-
-  implicit def executor: ExecutionContext = actorRefFactory.dispatcher
-
-  def dbac: DatabaseAccessor
 
   def dEntity[A](um: Unmarshaller[A]): Directive1[A] = decodeRequest(NoEncoding) & entity(um)
 
@@ -54,6 +53,16 @@ trait ServiceBase extends HttpService {
     complete { b }
   }
 
+  /*
+  def filterJson(json: Json, fields: List[String]): Json = {
+    val mapped = fields map { f => f :=? (json -| f) }
+    (mapped foldLeft  jEmptyObject) { _.->?:(_) }
+  }
+
+  implicit def executor: ExecutionContext = actorRefFactory.dispatcher
+
+  def dbac: DatabaseAccessor
+
   def completeJson[A: EncodeJson](a: A): Route = respondWithMediaType(`application/json`) {
     complete(a.asJson.nospaces)
   }
@@ -62,23 +71,19 @@ trait ServiceBase extends HttpService {
     complete(a map { _.asJson.nospaces })
   }
 
-  def completeStateError(err: StateError, code: StatusCode) = respondWithMediaType(`application/json`) {
-    complete { code -> err.asJson.spaces2 }
-  }
-
+*/
   def handleStateError(se: StateError) = se match {
-    case e: TopicNotFoundError    => completeStateError(e, StatusCodes.NotFound)
-    case e: OperationNotSupported => completeStateError(e, StatusCodes.MethodNotAllowed)
-    case e: UnhandleableMessage   => completeStateError(e, StatusCodes.InternalServerError)
-    //    case e: AccessNotPermitted => completeStateError(e, StatusCodes.Forbidden)
-    //    case e: NonExistentField => completeStateError(e, StatusCodes.NotFound)
+    case _: UnhandleableMessageError => se complete StatusCodes.InternalServerError
+    case _: UserNotFoundError => se complete StatusCodes.NotFound
+    case _: ModelExtractionError => se complete StatusCodes.InternalServerError
+    case _: TopicNotFoundError => se complete StatusCodes.NotFound
+    case _: OperationNotSupportedError => se complete StatusCodes.BadRequest
   }
 
   implicit def serviceHandler(implicit log: LoggingContext) = ExceptionHandler {
     case (se: StateError) => log.warning(se.getMessage); handleStateError(se)
-    case (t: Throwable) => log.warning(t.getMessage); respondWithMediaType(`application/json`) {
-      complete { StatusCodes.InternalServerError -> ("failed".asJson -->>: jEmptyArray).nospaces }
+    case (t: Throwable) => log.warning(t.getMessage); respondWithMediaType(`text/plain`) {
+      complete { StatusCodes.InternalServerError -> "failed"}
     }
   }
-
 }
