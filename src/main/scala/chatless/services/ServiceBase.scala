@@ -53,6 +53,10 @@ trait ServiceBase extends HttpService with Json4sSupport {
     complete { b }
   }
 
+  def resJson: Directive0 = respondWithMediaType(`application/json`)
+
+  def resText: Directive0 = respondWithMediaType(`text/plain`)
+
   /*
   def filterJson(json: Json, fields: List[String]): Json = {
     val mapped = fields map { f => f :=? (json -| f) }

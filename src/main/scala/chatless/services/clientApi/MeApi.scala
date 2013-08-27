@@ -7,6 +7,8 @@ import chatless._
 import chatless.op2._
 import chatless.db._
 
+import scalaz.syntax.id._
+
 import spray.httpx.unmarshalling._
 import shapeless._
 
@@ -58,35 +60,40 @@ trait MeApi extends ServiceBase {
 
   private type CUU = UpdateSpec with ForUsers => Route
 
-  private def completeWithUserSetCheck(uid: UserId)(field: User => Set[String])(value: String): Route = complete {
-    userDao.get(uid) map { field } map { _ contains value }
+  def getUser(cid: UserId): Directive1[User] = provide((userDao get cid) getOrElse { throw UserNotFoundError(cid) })
+
+  private def completeWithUserSetCheck(uid: UserId)(field: User => Set[String])(value: String): Route = getCaller(uid) { user: User =>
+    complete {
+      field(user) contains value
+    }
   }
 
   private def completeUpdateUser(cid: UserId)(op: UpdateSpec with ForUsers): Route = complete {
   }
 
-  private def getFieldsRoute(cid: UserId): Route =
+  private def getFieldsRoute(cid: UserId): Route = getUser(cid) { user: User =>
     path(PathEnd) {
-      complete { userDao get cid getOrElse { throw UserNotFoundError(cid) } }
+      complete { user }
     } ~ path(User.UID / PathEnd) {
-      completeString { dbac.getUser(cid, cid) map { _.uid } }
+      completeString { user.uid }
     } ~ path(User.NICK / PathEnd) {
-      completeString { dbac.getUser(cid, cid) map { _.nick } }
+      completeString { user.nick }
     }~ path(User.PUBLIC / PathEnd) {
-      completeBoolean { dbac.getUser(cid, cid) map { _.public } }
+      completeBoolean { user.public }
     } ~ path(User.INFO / PathEnd) {
-      completeJson { dbac.getUser(cid, cid) map { _.info } }
+      completeJson { user.info }
     } ~ path(User.FOLLOWING / PathEnd) {
-      completeJson { dbac.getUser(cid, cid) map { _.following } }
+      completeJson { user.following }
     } ~ path(User.FOLLOWERS / PathEnd) {
-      completeJson { dbac.getUser(cid, cid) map { _.followers } }
+      completeJson { user.followers }
     } ~ path(User.BLOCKED / PathEnd) {
-      completeJson { dbac.getUser(cid, cid) map { _.blocked } }
+      completeJson { user.blocked }
     } ~ path(User.TOPICS / PathEnd) {
-      completeJson { dbac.getUser(cid, cid) map { _.topics } }
+      completeJson { user.topics }
     } ~ path(User.TAGS / PathEnd) {
-      completeJson { dbac.getUser(cid, cid) map { _.tags } }
+      completeJson { user.tags }
     }
+  }
 
   private def querySetsRoute(uid: UserId): Route = {
     val completeCheck = completeWithUserSetCheck(uid) _
