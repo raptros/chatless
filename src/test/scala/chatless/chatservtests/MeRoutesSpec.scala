@@ -4,21 +4,16 @@ import org.scalatest.WordSpec
 
 import spray.testkit.ScalatestRouteTest
 import spray.routing._
-import spray.http.StatusCodes._
-import chatless.db.{DatabaseAccessor, DatabaseActorClient}
-import scala.concurrent._
 import chatless._
 import chatless.op2._
-import spray.http.BasicHttpCredentials
-import spray.routing.authentication.{UserPass, UserPassAuthenticator, BasicAuth, ContextAuthenticator}
-import argonaut._
-import Argonaut._
 import scalaz.syntax.std.option._
 
 import org.scalatest.matchers.ShouldMatchers
 import org.scalamock.scalatest.MockFactory
-import chatless.models.UserM
+import chatless.models.{User, UserDAO}
 import chatless.services.clientApi.MeApi
+import org.json4s._
+import org.json4s.native.JsonMethods._
 
 class MeRoutesSpec
   extends WordSpec
@@ -26,29 +21,29 @@ class MeRoutesSpec
   with ServiceSpecBase
   with ShouldMatchers
   with MockFactory {
-  val fakeUser1 = UserM(userId, "this user", true, jEmptyObject,
+  val fakeUser1 = User(userId, "this user", true, Map.empty[String, Any],
     Set("otherUser"), Set("otherUser"), Set("some-blocked"),
     Set("tid0"), Set("tag0"))
 
-  def newApi(dbAccessor: DatabaseAccessor) = {
+  def newApi(dao: UserDAO) = {
     val me = new MeApi {
-      val dbac = dbAccessor
+      val userDao = dao
       val actorRefFactory = system
     }
     Directives.dynamic { me.meApi(userId) }
   }
 
   trait Fixture1 { self =>
-    val dbac = mock[DatabaseAccessor]
-    (dbac.getUser(_: UserId, _: UserId)(_: ExecutionContext)) expects(userId, userId, *) returning Future.successful(fakeUser1)
-    val api = newApi(dbac)
+    val userDao = mock[UserDAO]
+    (userDao.get(_: UserId)) expects userId returning Some(fakeUser1)
+    val api = newApi(userDao)
   }
 
   class Fixture2 (val spec: UpdateSpec with ForUsers) { self =>
-    val dbac = mock[DatabaseAccessor]
-    val api = newApi(dbac)
-    (dbac.getUser(_: UserId, _: UserId)(_: ExecutionContext)) expects(*, *, *) never()
-    (dbac.updateUser(_: UserId, _: UserId, _: UpdateSpec with ForUsers)(_: ExecutionContext)) expects(userId, userId, spec, *) once() returning Future.successful(true)
+    val dao = mock[UserDAO]
+    val api = newApi(dao)
+    (dao.get(_: UserId)) expects * never()
+    //(dao.updateUser(_: UserId, _: UserId, _: UpdateSpec with ForUsers)) expects(userId, userId, spec, *) once() returning Future.successful(true)
   }
 
   def itReceives = afterWord("it receives")
@@ -58,7 +53,7 @@ class MeRoutesSpec
     "provide the correct user object, deserialzable from json" when itReceives {
       "a get to its base" in new Fixture1 {
         Get("/me") ~>  api ~> check {
-          val res = entityAs[String].decodeOption[UserM]
+          val res = parse(entityAs[String]).extract[User]
           res should be (fakeUser1.some)
         }
       }
@@ -84,37 +79,37 @@ class MeRoutesSpec
       }
       "a get for the info field" in new Fixture1 {
         Get("/me/info") ~>  api ~> check {
-          val res = entityAs[String].parseOption.get
+          val res = entityAs[JValue].extract[Map[String, Any]]
           res should equal (fakeUser1.info)
         }
       }
       "a get for the following field" in new Fixture1 {
         Get("/me/following") ~>  api ~> check {
-          val res = entityAs[String].decodeOption[Set[UserId]].get
+          val res = entityAs[JValue].extract[List[String]]
           res should equal (fakeUser1.following)
         }
       }
       "a get for the followers field" in new Fixture1 {
         Get("/me/followers") ~>  api ~> check {
-          val res = entityAs[String].decodeOption[Set[UserId]].get
+          val res = entityAs[JValue].extract[List[String]]
           res should equal (fakeUser1.followers)
         }
       }
       "a get for the blocked field " in new Fixture1 {
         Get("/me/blocked") ~>  api ~> check {
-          val res = entityAs[String].decodeOption[Set[UserId]].get
+          val res = entityAs[JValue].extract[List[String]]
           res should equal (fakeUser1.blocked)
         }
       }
       "a get for the topics field" in new Fixture1 {
         Get("/me/topics") ~>  api ~> check {
-          val res = entityAs[String].decodeOption[Set[TopicId]].get
+          val res = entityAs[JValue].extract[List[String]]
           res should equal (fakeUser1.topics)
         }
       }
       "a get for the tags field " in new Fixture1 {
         Get("/me/tags") ~>  api ~> check {
-          val res = entityAs[String].decodeOption[Set[TopicId]].get
+          val res = entityAs[JValue].extract[List[String]]
           res should equal (fakeUser1.tags)
         }
       }

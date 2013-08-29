@@ -9,6 +9,9 @@ import org.scalamock.scalatest.MockFactory
 import chatless.models.{User, UserDAO}
 import spray.routing.{HttpService, Directives}
 import chatless.services.clientApi.UserApi
+import org.json4s._
+import org.json4s.native.JsonMethods._
+import shapeless._
 
 class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTest with ShouldMatchers with MockFactory {
   import User.{allFields, callerOnlyFields, publicFields, nonPublicFields, followerFields}
@@ -16,6 +19,13 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
   val id1 = "00012"
   val id2 = "67000"
   val id3 = "33333"
+
+  def extractJObj(oj: Option[JValue]): Option[JObject] = oj flatMap {
+    case jo: JObject => Some(jo)
+    case _ => None
+  }
+
+  def getFields(oj: Option[JObject]): Set[String] = oj map { _.values.keys.toSet } getOrElse Set.empty[String]
 
   val fakeCaller = User(
     userId,
@@ -78,9 +88,9 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
     "the requested user is the caller" should {
       "return every field for the object" in new Fixture(fakeCaller, 1) {
         mkGet() ~> api ~> check {
-          val oObj = entityAs[String].parseOption
+          val oObj = extractJObj(parseOpt(entityAs[String]))
           assert(oObj.nonEmpty)
-          val objFields = oObj flatMap { _.objectFields } getOrElse Nil
+          val objFields = getFields(oObj)
           for (f <- allFields) {
             objFields should contain (f)
           }
@@ -97,9 +107,9 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
     "the requested user is public" should {
       "return every follower-visible field for the object" in new Fixture(otherUser1, 1) {
         mkGet() ~> api ~> check {
-          val oObj = entityAs[String].parseOption
+          val oObj = extractJObj(parseOpt(entityAs[String]))
           assert(oObj.nonEmpty)
-          val objFields = oObj flatMap { _.objectFields } getOrElse Nil
+          val objFields = getFields(oObj)
           for (f <- followerFields) {
             objFields should contain (f)
           }
@@ -107,9 +117,9 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
       }
       "not return any non-follower-visible fields in the object" in new Fixture(otherUser1, 1) {
         mkGet() ~> api ~> check {
-          val oObj = entityAs[String].parseOption
+          val oObj = extractJObj(parseOpt(entityAs[String]))
           assert(oObj.nonEmpty)
-          val objFields = oObj flatMap { _.objectFields } getOrElse Nil
+          val objFields = getFields(oObj)
           for (f <- callerOnlyFields) {
             objFields should not contain (f)
           }
@@ -133,9 +143,9 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
     "the requested user is followed by the caller" should {
       "return every follower-visible field for the object" in new Fixture(otherUser2, 1) {
         mkGet() ~> api ~> check {
-          val oObj = entityAs[String].parseOption
+          val oObj = extractJObj(parseOpt(entityAs[String]))
           assert(oObj.nonEmpty)
-          val objFields = oObj flatMap { _.objectFields } getOrElse Nil
+          val objFields = getFields(oObj)
           for (f <- followerFields) {
             objFields should contain (f)
           }
@@ -143,9 +153,9 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
       }
       "not return any non-follower-visible fields in the object" in new Fixture(otherUser2, 1) {
         mkGet() ~> api ~> check {
-          val oObj = entityAs[String].parseOption
+          val oObj = extractJObj(parseOpt(entityAs[String]))
           assert(oObj.nonEmpty)
-          val objFields = oObj flatMap { _.objectFields } getOrElse Nil
+          val objFields = getFields(oObj)
           for (f <- callerOnlyFields) {
             objFields should not contain (f)
           }
@@ -169,9 +179,9 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
     "the requested user is not public and not followed" should {
       "return every publically visible field for the object" in new Fixture(otherUser3, 1) {
         mkGet() ~> api ~> check {
-          val oObj = entityAs[String].parseOption
+          val oObj = extractJObj(parseOpt(entityAs[String]))
           assert(oObj.nonEmpty)
-          val objFields = oObj flatMap { _.objectFields } getOrElse Nil
+          val objFields = getFields(oObj)
           for (f <- publicFields) {
             objFields should contain (f)
           }
@@ -179,9 +189,9 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
       }
       "not return any non-publically-visible fields in the object" in new Fixture(otherUser3, 1) {
         mkGet() ~> api ~> check {
-          val oObj = entityAs[String].parseOption
+          val oObj = extractJObj(parseOpt(entityAs[String]))
           assert(oObj.nonEmpty)
-          val objFields = oObj flatMap { _.objectFields } getOrElse Nil
+          val objFields = getFields(oObj)
           for (f <- nonPublicFields) {
             objFields should not contain (f)
           }

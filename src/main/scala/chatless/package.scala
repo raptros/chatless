@@ -26,17 +26,15 @@ package object chatless {
     }
   }
 
-  import argonaut._
-  import Argonaut._
-
   //  implicit def deserializeStringAsJson: Deserializer[String, Json] =
   import scalaz.\/._
   import scalaz.syntax.id._
 
-  implicit def marshallJson: Marshaller[Json] = Marshaller.delegate(`application/json`) { json: Json => json.nospaces }
-
+//  implicit def marshallJson: Marshaller[Json] = Marshaller.delegate(`application/json`) { json: Json => json.nospaces }
+//
   implicit def marshallBoolean: Marshaller[Boolean] = Marshaller.delegate(`text/plain`) { bool: Boolean => bool.toString }
 
+  /*
   implicit def jsonFromString: Deserializer[String, Json] = new Deserializer[String, Json] {
     val fail: String => Deserialized[Json] = e => MalformedContent(e).left[Json].toEither
     val success: Json => Deserialized[Json] = j => j.right[DeserializationError].toEither
@@ -50,7 +48,7 @@ package object chatless {
   implicit val JodaTimeCodecJson: CodecJson[DateTime] = CodecJson.apply(
     dt => dt.toString().asJson,
     c => c.as[String] map { DateTime.parse _ })
-
+    */
 
 //  implicit def jsonUnmarshaller: Unmarshaller(jdd)
 

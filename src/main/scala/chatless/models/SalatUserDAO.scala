@@ -18,5 +18,5 @@ class SalatUserDAO @Inject() (
   def get(uid: UserId): Option[User] = findOne(MongoDBObject("uid" -> uid))
 
 
-  def getAsFields(uid: UserId, )
+//  def getAsFields(uid: UserId, )
 }

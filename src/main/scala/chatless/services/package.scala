@@ -3,8 +3,6 @@ package chatless
 import scalaz.Semigroup
 import spray.routing.Route
 import spray.routing.RouteConcatenation._
-import argonaut._
-import Argonaut._
 import org.joda.time.DateTime
 import chatless.db.StateError
 import spray.http.StatusCode

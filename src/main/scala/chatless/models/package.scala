@@ -16,6 +16,7 @@ package object models {
   trait UserDAO extends DAO {
     type ID = UserId
     type Model = User
+    def get(id: UserId): Option[User]
   }
 
   trait TopicDAO extends DAO {

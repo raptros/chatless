@@ -5,15 +5,12 @@ import net.codingwell.scalaguice.ScalaModule
 import com.google.inject.name.{Named, Names}
 import com.mongodb.casbah.{MongoCollection, MongoDB, MongoClient}
 
-import chatless.db.handlers._
-import chatless.db.daos.{MongoTopicDAO, TopicDAO, UserDAO, MongoUserDAO}
 import chatless.wiring.params._
 import akka.util.Timeout
 import scala.concurrent.ExecutionContext
-import chatless.db.{DatabaseActorClient, DatabaseAccessor}
 import akka.actor.{ActorRefFactory, Props, ActorSelection, ActorSystem}
-import chatless.services.ClientApiActor
 import scala.concurrent.duration._
+import chatless.models.{SalatUserDAO, UserDAO}
 
 class ChatlessModule(val system: ActorSystem) extends AbstractModule with ScalaModule {
 
@@ -33,19 +30,12 @@ class ChatlessModule(val system: ActorSystem) extends AbstractModule with ScalaM
     bind[MongoCollection].annotatedWith[UserCollection] toInstance userCollection
     bind[MongoCollection].annotatedWith[TopicCollection] toInstance topicCollection
 
-    bind[UserDAO].to[MongoUserDAO].in[Singleton]
-    bind[UserOpHandler].to[MongoUserHandler]
-
     bind[ActorRefFactory] toInstance system
-
-    bind[TopicDAO].to[MongoTopicDAO].in[Singleton]
-    bind[TopicOpHandler].to[MongoTopicHandler]
 
     val dbSel = system.actorSelection("/chatless-service-db")
     bind[ActorSelection].annotatedWith[DbActorSelection] toInstance dbSel
 
-    bind[DatabaseAccessor].to[DatabaseActorClient].in[Singleton]
-
+    bind[UserDAO].to[SalatUserDAO].asEagerSingleton()
 
   }
 

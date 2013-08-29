@@ -6,7 +6,6 @@ import chatless.UserId
 import spray.routing._
 
 import shapeless._
-import chatless.db.DatabaseAccessor
 import akka.actor.ActorRefFactory
 import chatless.services._
 import chatless.op2.GetBefore
@@ -24,6 +23,7 @@ import com.google.inject.Inject
 
 trait EventApi extends ServiceBase {
 
+  /*
   private type GR = GetRelative with ForEvents
 
   private val getCount:Directive1[Int] = (path(PathEnd) & provide(1)) | path(IntNumber / PathEnd)
@@ -38,11 +38,14 @@ trait EventApi extends ServiceBase {
       | ((pathPrefix("from" / Segment) & getCount) as conRel { GetFrom })
       | ((pathPrefix("after" / Segment) & getCount) as conRel { GetAfter })
       )
+  */
 
   val eventApi: CallerRoute = cid => pathPrefix(EVENT_API_BASE) {
     get {
-      paths { gr: GR =>
-        completeJson { dbac.getEvents(cid, gr) }
+      resJson {
+        complete {
+          "no"
+        }
       }
     }
   }

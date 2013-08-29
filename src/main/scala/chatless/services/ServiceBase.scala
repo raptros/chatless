@@ -1,57 +1,37 @@
 package chatless.services
-import chatless._
 
-
-import akka.util.Timeout
 
 import spray.routing._
 import spray.util.LoggingContext
 import spray.http._
 import MediaTypes._
 import spray.httpx.encoding.NoEncoding
-import spray.httpx.marshalling.Marshaller._
 import spray.httpx.unmarshalling._
 
 
-import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 import org.json4s._
 import org.json4s.native.JsonMethods._
+import org.json4s.JsonDSL._
 
 import chatless.db._
-import chatless.models.TypedField
 import spray.httpx.Json4sSupport
 
 trait ServiceBase extends HttpService with Json4sSupport {
-  implicit val formats = org.json4s.DefaultFormats ++ org.json4s.ext.JodaTimeSerializers.all
+  implicit val json4sFormats = org.json4s.DefaultFormats ++ org.json4s.ext.JodaTimeSerializers.all
 
 
-    def optionJsonEntity: Directive1[] = extract { c =>
-    for {
-      ent <- c.request.entity.toOption map { _.asString }
-      js <- parse(ent)
-    } yield js.extract[Map[String, Any]]
+    def optionJsonEntity: Directive1[Option[Map[String, Any]]] = extract { c: RequestContext =>
+      for {
+        ent <- c.request.entity.toOption map { _.asString }
+        js <- parseOpt(ent)
+        m <- js.extractOpt[Map[String, Any]]
+      } yield m
   }
 
   def dEntity[A](um: Unmarshaller[A]): Directive1[A] = decodeRequest(NoEncoding) & entity(um)
 
-
-  def completeString(s: String): Route = respondWithMediaType(`text/plain`) {
-    complete { s }
-  }
-
-  def completeString(s: => Future[String]): Route = respondWithMediaType(`text/plain`) {
-    complete { s }
-  }
-
-  def completeBoolean(b: Boolean): Route = respondWithMediaType(`text/plain`) {
-    complete { b }
-  }
-
-  def completeBoolean(b: => Future[Boolean]): Route = respondWithMediaType(`text/plain`) {
-    complete { b }
-  }
 
   def resJson: Directive0 = respondWithMediaType(`application/json`)
 
@@ -65,8 +45,6 @@ trait ServiceBase extends HttpService with Json4sSupport {
 
   implicit def executor: ExecutionContext = actorRefFactory.dispatcher
 
-  def dbac: DatabaseAccessor
-
   def completeJson[A: EncodeJson](a: A): Route = respondWithMediaType(`application/json`) {
     complete(a.asJson.nospaces)
   }
@@ -76,6 +54,8 @@ trait ServiceBase extends HttpService with Json4sSupport {
   }
 
 */
+  def mkRes(v: Any): JValue = "r" -> v
+
   def handleStateError(se: StateError) = se match {
     case _: UnhandleableMessageError => se complete StatusCodes.InternalServerError
     case _: UserNotFoundError => se complete StatusCodes.NotFound

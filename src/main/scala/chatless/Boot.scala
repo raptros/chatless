@@ -3,8 +3,6 @@ package chatless
 import akka.actor.{ActorRef, Deploy, ActorSystem, Props}
 import akka.io.IO
 import spray.can.Http
-import chatless.db.{DatabaseAccessor, OperationHandlerActor}
-import chatless.db.handlers._
 import chatless.services.ClientApiActor
 
 import scala.concurrent.duration._
@@ -23,8 +21,6 @@ object Boot extends App {
   val actorProvider = ActorInjector.providerFor(injector)
 
   import net.codingwell.scalaguice.InjectorExtensions._
-
-  val db = system.actorOf(actorProvider.props[OperationHandlerActor], "chatless-service-db")
 
   // create and start our service actor
   val service = system.actorOf(actorProvider.props[ClientApiActor], "chatless-service")

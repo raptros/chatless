@@ -5,7 +5,6 @@ import akka.actor.{Props, Actor, IndirectActorProducer}
 import chatless.services.ClientApiActor
 import scala.reflect.runtime.universe._
 import scala.reflect.ClassTag
-import chatless.db.OperationHandlerActor
 
 class ActorInjector(val injector: Injector, val actorClass: Class[_ <: Actor]) extends IndirectActorProducer {
   def produce() = injector.getInstance(actorClass)
