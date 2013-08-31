@@ -80,11 +80,15 @@ trait MeApi extends ServiceBase {
   private val replaceFields: CallerRoute = cid => put {
     path(User.NICK / PathEnd) {
       dEntity(as[String]) { v =>
-        complete("no")
+        complete {
+          "no"
+        }
       }
     } ~ path(User.PUBLIC / PathEnd) {
       dEntity(as[Boolean]) { v =>
-        complete("no")
+        complete {
+          "no"
+        }
       }
     } ~ path(User.INFO / PathEnd) {
       optionJsonEntity {
@@ -97,30 +101,48 @@ trait MeApi extends ServiceBase {
   private val addToSets: CallerRoute = cid => put {
     path(User.FOLLOWING / Segment / PathEnd) { u: UserId =>
       optionJsonEntity { oj =>
-        complete { "whatever" }
+        complete {
+          "whatever"
+        }
       }
     } ~ path(User.BLOCKED / Segment / PathEnd) { u: UserId =>
-      complete { "whatever" }
+      complete {
+        "whatever"
+      }
     } ~ path(User.TOPICS / Segment / PathEnd) { t: TopicId =>
       optionJsonEntity { m: Option[Map[String, Any]] =>
-        complete { "whatever" }
+        complete {
+          "whatever"
+        }
       }
     } ~ path(User.TAGS / Segment / PathEnd) { t: String =>
-      complete { "whatever" }
+      complete {
+        "whatever"
+      }
     }
   }
 
   private val deleteFromSets: CallerRoute = cid => delete {
     path(User.FOLLOWING / Segment / PathEnd) { u: UserId =>
-      complete { "whatever" }
+      complete {
+        "whatever"
+      }
     } ~ path(User.FOLLOWERS / Segment / PathEnd) { u: UserId =>
-      complete { "whatever" }
+      complete {
+        "whatever"
+      }
     } ~ path(User.BLOCKED / Segment / PathEnd) { u: UserId =>
-      complete { "whatever" }
+      complete {
+        "whatever"
+      }
     } ~ path(User.TOPICS / Segment / PathEnd) { t: TopicId =>
-      complete { "whatever" }
+      complete {
+        "whatever"
+      }
     } ~ path(User.TAGS / Segment / PathEnd) { t: String =>
-      complete { "whatever" }
+      complete {
+        "whatever"
+      }
     }
    }
 

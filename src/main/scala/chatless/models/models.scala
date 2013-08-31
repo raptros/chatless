@@ -24,7 +24,22 @@ case class User(
     blocked: Set[UserId],
     topics: Set[TopicId],
     tags: Set[String])
-  extends BaseModel
+  extends BaseModel {
+  import User._
+
+  def getFields(fields: Set[String]): Map[String, Any] = {
+    (UID -> uid) ::
+    (NICK -> nick) ::
+    (PUBLIC -> public) ::
+    (INFO -> info) ::
+    (FOLLOWING -> following) ::
+    (FOLLOWERS -> followers) ::
+    (BLOCKED -> blocked) ::
+    (TOPICS -> topics) ::
+    (TAGS -> tags) ::
+    Nil
+  }.toMap filterKeys { fields.contains }
+}
 
 object User {
   val UID = "uid"
@@ -91,7 +106,21 @@ case class Topic(
     sops: Set[UserId],
     participating: Set[UserId],
     tags: Set[String])
-  extends BaseModel
+  extends BaseModel {
+  import Topic._
+
+  def getFields(fields: Set[String]): Map[String, Any] = {
+    (TID -> tid) ::
+    (TITLE -> title) ::
+    (PUBLIC -> public) ::
+    (INFO -> info) ::
+    (OP -> op) ::
+    (SOPS -> sops) ::
+    (PARTICIPATING -> participating) ::
+    (TAGS -> tags) ::
+    Nil
+  }.toMap filterKeys { fields.contains }
+}
 
 object Topic {
   val TID = "name"

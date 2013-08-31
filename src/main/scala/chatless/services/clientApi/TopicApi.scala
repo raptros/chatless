@@ -19,15 +19,16 @@ trait TopicApi extends ServiceBase {
     || (topic.participating contains cid)
     )
 
-  private def fieldsFor(cid: UserId, topic: Topic): Map[String, Any] =  {
-    (Topic.TID -> topic.tid) :: (Topic.TITLE -> topic.title) :: (Topic.PUBLIC -> topic.public) :: {
+  private def fieldsFor(cid: UserId, topic: Topic): Set[String] = {
+    import Topic._
+    TID :: TITLE :: PUBLIC :: {
       if (canRead(cid, topic))
-        (Topic.INFO -> topic.info) :: (Topic.OP -> topic.op) :: (Topic.SOPS -> topic.sops) ::
-          (Topic.PARTICIPATING -> topic.participating) :: (Topic.TAGS -> topic.tags) :: Nil
+        INFO :: OP :: SOPS :: PARTICIPATING :: TAGS :: Nil
       else Nil
     }
-  }.toMap
+  }.toSet
 
+  /*
   private def getTopicInfo(cid: UserId, topic: Topic) = get {
     val topicMapped = fieldsFor(cid, topic)
     val topicSets = for {
@@ -35,14 +36,46 @@ trait TopicApi extends ServiceBase {
       cV <- v.cast[Set[String]]
     } yield k -> cV
 
-    resJson {
-      path(PathEnd) {
-        complete { topicMapped }
-      } ~ path(topicMapped / PathEnd) { f: Any =>
-        complete { mkRes(f) }
-      } ~ path(topicSets / Segment / PathEnd) { (set: Set[String], v: String) =>
-        complete { mkRes {set contains v} }
+    path(PathEnd) {
+      resJson { complete { topicMapped } }
+    } ~ path(topicMapped / PathEnd) { f: Any =>
+      complete { f }
+    } ~ path(topicSets / Segment / PathEnd) { (set: Set[String], v: String) =>
+      complete { set contains v }
+    }
+  }*/
+
+  private def infoRoute(cid: UserId, tid: TopicId) = get {
+    val topic = topicDao get tid getOrElse { throw TopicNotFoundError(tid) }
+    path(PathEnd) {
+      resJson {
+        complete {
+          topic getFields fieldsFor(cid, topic)
+        }
       }
+    } ~ resText {
+      path(Topic.TID) {
+        complete(topic.tid / PathEnd)
+      } ~ path(Topic.TITLE / PathEnd) {
+        complete(topic.title)
+      } ~ path(Topic.PUBLIC / PathEnd) {
+        complete(topic.public)
+      }
+    } ~ authorize(canRead(cid, topic)) {
+      path(Topic.INFO / PathEnd) {
+        resJson { complete { topic.info } }
+      } ~ path(Topic.OP / PathEnd)  {
+        resText { complete { topic.op } }
+      } ~ path(Topic.SOPS / PathEnd) {
+        resJson { complete { topic.sops } }
+      } ~ path(Topic.PARTICIPATING / PathEnd) {
+        resJson { complete { topic.participating } }
+      } ~ path(Topic.TAGS / PathEnd) {
+        resJson { complete { topic.tags } }
+      } ~ setCompletion(
+        Topic.SOPS -> topic.sops,
+        Topic.PARTICIPATING -> topic.participating,
+        Topic.TAGS -> topic.tags)
     }
   }
 
@@ -88,7 +121,7 @@ trait TopicApi extends ServiceBase {
   }*/
 
   val topicApi: CallerRoute = cid => pathPrefix(TOPIC_API_BASE / Segment) { tid: TopicId =>
-    val topic = topicDao get tid getOrElse { throw TopicNotFoundError(tid) }
-    getTopicInfo(cid, topic) /*~ update(cid, topic)*/
+    infoRoute(cid, tid) /*~ update(cid, topic)*/
   }
+
 }

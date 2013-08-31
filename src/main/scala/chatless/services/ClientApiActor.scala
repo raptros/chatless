@@ -15,9 +15,12 @@ import scalaz._
 import scalaz.std.function._
 import scalaz.syntax.semigroup._
 import chatless.models.UserDAO
+import chatless.models.TopicDAO
 
 /** this is the actor for the chatless service. */
-class ClientApiActor @Inject() (val userDao: UserDAO)
+class ClientApiActor @Inject() (
+    val userDao: UserDAO,
+    val topicDao: TopicDAO)
   extends HttpServiceActor
   with AllApis {
 

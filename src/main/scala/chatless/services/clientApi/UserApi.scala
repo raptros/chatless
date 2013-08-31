@@ -3,8 +3,7 @@ package chatless.services.clientApi
 import spray.routing._
 
 
-import chatless.UserId
-
+import chatless._
 import chatless.services._
 import chatless.models.{User, UserDAO}
 import chatless.db.UserNotFoundError
@@ -12,31 +11,15 @@ import shapeless._
 import Typeable._
 import org.json4s._
 
-trait UserApi extends ServiceBase with UserMethods {
+trait UserApi extends ServiceBase {
 
   val USER_API_BASE = "user"
 
+  val userDao: UserDAO
 
-  private def protectedUserCompletions(cid: UserId, user: User): Route =
-    authorize(user.public || (user.followers contains cid)) {
-      path(User.INFO / PathEnd) {
-        resJson { complete { user.info } }
-      } ~ path(User.FOLLOWING / PathEnd) {
-        resJson { complete { user.following } }
-      } ~ path(User.FOLLOWERS / PathEnd) {
-        resJson { complete { user.followers } }
-      } ~ path(User.TOPICS / PathEnd) {
-        resJson { complete { user.topics } }
-      }
-    } ~ authorize(user.uid == cid) {
-      path(User.BLOCKED / PathEnd) {
-        resJson { complete { user.blocked } }
-      } ~ path(User.TAGS / PathEnd) {
-        resJson { complete { user.tags } }
-      }
-    }
+//  private def protectedUserCompletions(cid: UserId, user: User): Route =
 
-  private def userFieldsSelector(cid: UserId, user: User): Set[String] =
+  private def userFieldsSelector(cid: UserId, user: => User): Set[String] =
     if (user.uid == cid)
       User.allFields
     else if (user.public || (user.followers contains cid))
@@ -44,33 +27,61 @@ trait UserApi extends ServiceBase with UserMethods {
     else
       User.publicFields
 
-  def userJsonFields(user: User, fields: Set[String]): JValue
 
 
-  private def userCompletions(cid: UserId)(user: User): Route = {
-    val fields = userFieldsSelector(cid, user)
-    val filteredUser = mapUser(user) filterKeys { fields.contains }
-    val setFields = for {
-      (k, v) <- filteredUser
-      vC <- v.cast[Set[String]]
-    } yield k -> vC
+  private def followerRoutes(user: User): Route =
+    resJson {
+      path(User.INFO / PathEnd) {
+        complete { user.info }
+      } ~ path(User.FOLLOWING / PathEnd) {
+        complete { user.following }
+      } ~ path(User.FOLLOWERS / PathEnd) {
+        complete { user.followers }
+      } ~ path(User.TOPICS / PathEnd) {
+        complete { user.topics }
+      }
+    } ~ setCompletion(
+      User.FOLLOWING -> user.following,
+      User.FOLLOWERS -> user.followers,
+      User.TOPICS -> user.topics)
 
+  private def callerRoutes(user: User): Route =
+    path(User.BLOCKED / PathEnd) {
+      complete { user.blocked }
+    } ~ path(User.TAGS / PathEnd) {
+      complete { user.tags }
+    } ~ setCompletion(
+      User.BLOCKED -> user.blocked,
+      User.TAGS -> user.tags)
+
+  private def publicRoutes(user: User)(fields: => Set[String]): Route =
     path(PathEnd) {
-      resJson { complete { filteredUser } }
-    } ~
-
-    path(filteredUser / PathEnd) { f: Any =>
-      complete { mkRes(f) }
-    } ~ path(setFields / Segment / PathEnd) { (set, id) =>
-      resText { complete { mkRes(set contains id) } }
+      resJson {
+        complete { user getFields fields }
+      }
+    } ~ resText {
+      path(User.NICK / PathEnd) {
+        complete(user.nick)
+      } ~ path(User.PUBLIC / PathEnd) {
+        complete(user.public)
+      }
     }
-  }
+
+  private def userGets(cid: UserId)(user: User): Route =
+    publicRoutes(user) {
+      userFieldsSelector(cid, user)
+    } ~ authorize(user.public || (user.followers contains cid)) {
+      followerRoutes(user)
+    } ~ authorize(user.uid == cid) {
+      callerRoutes(user)
+    }
+
 
   val userApi: CallerRoute = cid => get {
     pathPrefix(USER_API_BASE / Segment) { uid: UserId =>
-      userCompletions(cid) {
-        userDao get cid getOrElse {
-          throw UserNotFoundError(cid)
+      userGets(cid) {
+        userDao get uid getOrElse {
+          throw UserNotFoundError(uid)
         }
       }
     }

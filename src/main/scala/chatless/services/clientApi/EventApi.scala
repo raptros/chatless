@@ -30,7 +30,7 @@ trait EventApi extends ServiceBase {
 
   private def conRel[L <: HList](cr: HListDeserializer[L, GR]):HListDeserializer[L, GR] = cr
 
-  private val paths: Directive1[GR] =
+  private val pathMap: Directive1[GR] =
     ( (path(PathEnd) & provide(GetLast().asInstanceOf[GR]))
       | ((pathPrefix("last") & getCount) as conRel { GetLast })
       | ((pathPrefix("at" / Segment) & getCount) as conRel { GetAt })

@@ -1,6 +1,7 @@
 package chatless.services
 
 
+import chatless._
 import spray.routing._
 import spray.util.LoggingContext
 import spray.http._
@@ -37,24 +38,14 @@ trait ServiceBase extends HttpService with Json4sSupport {
 
   def resText: Directive0 = respondWithMediaType(`text/plain`)
 
-  /*
-  def filterJson(json: Json, fields: List[String]): Json = {
-    val mapped = fields map { f => f :=? (json -| f) }
-    (mapped foldLeft  jEmptyObject) { _.->?:(_) }
+  def setCompletion(pathMap: Map[String, Set[String]]): Route = {
+    path(pathMap / Segment/ PathEnd) { (set: Set[String], v: String) =>
+      resText { complete { set contains v } }
+    }
   }
 
-  implicit def executor: ExecutionContext = actorRefFactory.dispatcher
+  def setCompletion(pathPairs: (String, Set[String])*): Route = setCompletion(pathPairs.toMap)
 
-  def completeJson[A: EncodeJson](a: A): Route = respondWithMediaType(`application/json`) {
-    complete(a.asJson.nospaces)
-  }
-
-  def completeJson[A: EncodeJson](a: => Future[A]): Route = respondWithMediaType(`application/json`) {
-    complete(a map { _.asJson.nospaces })
-  }
-
-*/
-  def mkRes(v: Any): JValue = "r" -> v
 
   def handleStateError(se: StateError) = se match {
     case _: UnhandleableMessageError => se complete StatusCodes.InternalServerError

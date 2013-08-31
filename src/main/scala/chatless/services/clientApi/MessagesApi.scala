@@ -18,7 +18,7 @@ trait MessagesApi extends ServiceBase {
  // private def conRel[L <: HList](cr: HListDeserializer[L, GR]):HListDeserializer[L, GR] = cr
 
   /*
-  private val paths: Directive1[GR] =
+  private val pathMap: Directive1[GR] =
     ( (path(PathEnd) & provide(GetFirst().asInstanceOf[GR]))
     | ((pathPrefix("first") & getCount) as conRel { GetFirst })
     | ((pathPrefix("last") & getCount) as conRel { GetLast })
@@ -29,7 +29,7 @@ trait MessagesApi extends ServiceBase {
     )
 */
   /*
-  private def relRoute(cid: UserId, topic: Topic) = paths { gr: GR =>
+  private def relRoute(cid: UserId, topic: Topic) = pathMap { gr: GR =>
     resJson {
       complete {
         "no"
