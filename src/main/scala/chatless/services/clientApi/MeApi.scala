@@ -1,7 +1,6 @@
 package chatless.services.clientApi
 
 import chatless._
-import chatless.op2._
 import chatless.db._
 
 import scalaz.syntax.id._
@@ -27,6 +26,9 @@ import com.google.inject.Inject
 import scala.Some
 import chatless.responses.{BoolR, StringR, UserNotFoundError}
 
+import org.json4s._
+import org.json4s.JsonDSL._
+
 trait MeApi extends ServiceBase {
 
   val userDao: UserDAO
@@ -37,33 +39,53 @@ trait MeApi extends ServiceBase {
 
   private def completeWithUserSetCheck(uid: UserId)(field: User => Set[String])(value: String): Route =
     complete {
-      BoolR {
+      Map("contains" -> {
         uid |> { getUser andThen field andThen { _ contains value} }
-      }
+      })
     }
 
 
   private val getFieldsRoute: CallerRoute = cid => get {
     path(PathEnd) {
-      complete { getUser(cid) }
+      complete { 
+        getUser(cid)
+      }
     } ~ path(User.UID / PathEnd) {
-      complete { StringR(getUser(cid).uid) }
+      complete { 
+        Map(User.UID -> getUser(cid).uid)
+      }
     } ~ path(User.NICK / PathEnd) {
-      complete { StringR(getUser(cid).nick) }
+      complete { 
+        Map(User.NICK -> getUser(cid).nick)
+      }
     }~ path(User.PUBLIC / PathEnd) {
-      complete { BoolR(getUser(cid).public) }
+      complete {
+        Map(User.PUBLIC -> getUser(cid).public)
+      }
     } ~ path(User.INFO / PathEnd) {
-      complete { getUser(cid).info }
+      complete {
+        Map(User.INFO -> getUser(cid).info)
+      }
     } ~ path(User.FOLLOWING / PathEnd) {
-      complete { getUser(cid).following }
+      complete {
+        Map(User.FOLLOWING -> getUser(cid).following)
+      }
     } ~ path(User.FOLLOWERS / PathEnd) {
-      complete { getUser(cid).followers }
+      complete {
+        Map(User.FOLLOWERS -> getUser(cid).followers)
+      }
     } ~ path(User.BLOCKED / PathEnd) {
-      complete { getUser(cid).blocked }
+      complete {
+        Map(User.BLOCKED -> getUser(cid).blocked)
+      }
     } ~ path(User.TOPICS / PathEnd) {
-      complete { getUser(cid).topics }
+      complete {
+        Map(User.TOPICS -> getUser(cid).topics)
+      }
     } ~ path(User.TAGS / PathEnd) {
-      complete { getUser(cid).tags }
+      complete {
+        Map(User.TAGS -> getUser(cid).tags)
+      }
     }
   }
 
@@ -97,8 +119,12 @@ trait MeApi extends ServiceBase {
       }
     } ~ path(User.INFO / PathEnd) {
       optionJsonEntity {
-        case Some(m) => complete { StringR("no") }
-        case None => complete { 400 -> "need a json object here" }
+        case Some(m) => complete {
+          StringR("no") 
+        }
+        case None => complete {
+          400 -> "need a json object here" 
+        }
       }
     }
   }
@@ -149,7 +175,7 @@ trait MeApi extends ServiceBase {
         "whatever"
       }
     }
-   }
+  }
 
 
   private val cr: CallerRoute = getFieldsRoute |+| querySetsRoute |+| addToSets |+| deleteFromSets

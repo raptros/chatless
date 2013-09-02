@@ -25,10 +25,8 @@ class MeRoutesSpec
   with ScalatestRouteTest
   with ServiceSpecBase
   with ShouldMatchers
-  with Json4sSupport
   with MockFactory {
 
-  implicit val json4sFormats = DefaultFormats
 
   val fakeUser1 = User(userId, "this user", true, ("contact?" -> true),
     Set("otherUser"), Set("otherUser"), Set("some-blocked"),
@@ -70,117 +68,106 @@ class MeRoutesSpec
     "produce the correct value" when itReceives {
       "a get for the uid field" in new Fixture1 {
         Get("/me/uid") ~> api ~> check {
-          val res = entityAs[JObject].extract[StringR]
-          println(res)
-          res.v should be (userId)
+          val res = (entityAs[JObject] \ User.UID).extract[String]
+          res should be (userId)
         }
       }
       "a get for the nick field" in new Fixture1 {
         Get("/me/nick") ~> api ~> check {
-          val res = entityAs[JObject].extract[StringR]
-          assert(res.v === "this user")
+          val res = (entityAs[JObject] \ User.NICK).extract[String]
+          assert(res === "this user")
         }
       }
       "a get for the public field" in new Fixture1 {
         Get("/me/public") ~> api ~> check {
-          val res = entityAs[JObject].extract[BoolR]
-          assert(res.v === fakeUser1.public)
+          val res = (entityAs[JObject] \ User.PUBLIC).extract[Boolean]
+          assert(res === fakeUser1.public)
         }
       }
       "a get for the info field" in new Fixture1 {
         Get("/me/info") ~>  api ~> check {
-          val res = entityAs[JObject]
+          val res = (entityAs[JObject] \ User.INFO).extract[JObject]
           res should equal (fakeUser1.info)
         }
       }
       "a get for the following field" in new Fixture1 {
         Get("/me/following") ~>  api ~> check {
-          val res = entityAs[JValue].extract[Set[String]]
+          val res = (entityAs[JObject] \ User.FOLLOWING).extract[Set[String]]
           res should equal (fakeUser1.following)
         }
       }
       "a get for the followers field" in new Fixture1 {
         Get("/me/followers") ~>  api ~> check {
-          val res = entityAs[JValue].extract[Set[String]]
+          val res = (entityAs[JObject] \ User.FOLLOWERS).extract[Set[String]]
           res should equal (fakeUser1.followers)
         }
       }
       "a get for the blocked field " in new Fixture1 {
         Get("/me/blocked") ~>  api ~> check {
-          val res = entityAs[JValue].extract[Set[String]]
+          val res = (entityAs[JObject] \ User.BLOCKED).extract[Set[String]]
           res should equal (fakeUser1.blocked)
         }
       }
       "a get for the topics field" in new Fixture1 {
         Get("/me/topics") ~>  api ~> check {
-          val res = entityAs[JValue].extract[Set[String]]
+          val res = (entityAs[JObject] \ User.TOPICS).extract[Set[String]]
           res should equal (fakeUser1.topics)
         }
       }
       "a get for the tags field " in new Fixture1 {
         Get("/me/tags") ~>  api ~> check {
-          val res = entityAs[JValue].extract[Set[String]]
+          val res = (entityAs[JObject] \ User.TAGS).extract[Set[String]]
           res should equal (fakeUser1.tags)
         }
       }
       "a query: following contains a user that is followed" in new Fixture1 {
         Get("/me/following/otherUser") ~>  api ~> check {
-          val res = entityAs[JValue].extract[BoolR]
-          res.v should be (true)
+          assertContains(entityAs[JObject])
         }
       }
       "a query: following contains a user that is not followed" in new Fixture1 {
         Get("/me/following/fakeUser") ~>  api ~> check {
-          val res = entityAs[JValue].extract[BoolR]
-          res.v should be (false)
+          assertNotContains(entityAs[JObject])
         }
       }
       "a query: followers contains a user that is following" in new Fixture1 {
         Get("/me/followers/otherUser") ~>  api ~> check {
-          val res = entityAs[JValue].extract[BoolR]
-          res.v should be (true)
+          assertContains(entityAs[JObject])
         }
       }
       "a query: followers contains a user that is not following" in new Fixture1 {
         Get("/me/followers/fakeUser") ~>  api ~> check {
-          val res = entityAs[JValue].extract[BoolR]
-          res.v should be (false)
+          assertNotContains(entityAs[JObject])
         }
       }
       "a query: blocked contains a user that is blocked" in new Fixture1 {
         Get("/me/blocked/some-blocked") ~>  api ~> check {
-          val res = entityAs[JValue].extract[BoolR]
-          res.v should be (true)
+          assertContains(entityAs[JObject])
         }
       }
       "a query: blocked contains a user that is not blocked" in new Fixture1 {
         Get("/me/blocked/fakeUser") ~>  api ~> check {
-          val res = entityAs[JValue].extract[BoolR]
-          res.v should be (false)
+          assertNotContains(entityAs[JObject])
         }
       }
       "a query: topics contains a topic that user does participate in" in new Fixture1 {
         Get("/me/topics/tid0") ~>  api ~> check {
-          val res = entityAs[JValue].extract[BoolR]
-          res.v should be (true)
+          assertContains(entityAs[JObject])
         }
       }
       "a query: topics contains a topic that user does not participate in" in new Fixture1 {
         Get("/me/topics/fakeTopic") ~>  api ~> check {
-          val res = entityAs[JValue].extract[BoolR]
-          res.v should be (false)
+          assertNotContains(entityAs[JObject])
         }
       }
       "a query: tags contains a tracked tag" in new Fixture1 {
         Get("/me/tags/tag0") ~>  api ~> check {
-          val res = entityAs[JValue].extract[BoolR]
-          res.v should be (true)
+          assertContains(entityAs[JObject])
         }
       }
       "a query: tags contains an untracked tagged" in new Fixture1 {
         Get("/me/tags/fakeTag") ~>  api ~> check {
-          val res = entityAs[JValue].extract[BoolR]
-          res.v should be (false)
+          assertNotContains(entityAs[JObject])
         }
       }
     }

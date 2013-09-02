@@ -40,5 +40,6 @@ object Topic {
 
   val publicFields = TID :: TITLE :: PUBLIC :: Nil
   val participantFields = TID :: TITLE :: PUBLIC :: INFO :: OP :: SOPS :: PARTICIPATING :: TAGS :: Nil
+
 }
 

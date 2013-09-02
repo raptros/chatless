@@ -40,34 +40,6 @@ object User {
   val BLOCKED = "blocked"
   val TOPICS = "topics"
   val TAGS = "tags"
-  //
-  //
-  val uidGet = { u: User => u.uid }
-  val nickGet = { u: User => u.nick }
-  val publicGet = { u: User => u.public }
-  val infoGet = { u: User => u.info }
-  val followingGet = { u: User => u.following }
-  val followersGet = { u: User => u.followers }
-  val blockedGet = { u: User => u.blocked }
-  val topicsGet = { u: User => u.topics }
-  val tagsGet = { u: User => u.tags }
-
-  val uid = UID -> uidGet
-  val nick = NICK -> nickGet
-  val public = PUBLIC -> publicGet
-  val info = INFO -> infoGet
-  val following = FOLLOWING -> followingGet
-  val followers = FOLLOWERS -> followersGet
-  val blocked = BLOCKED -> blockedGet
-  val topics = TOPICS -> topicsGet
-  val tags = TAGS -> tagsGet
-
-  lazy val allFieldsMap = Map(uid, nick, public, info, following, followers, blocked, topics, tags)
-
-  //  lazy val stringFieldsMap = Map
-  //
-  //  lazy val setFieldsMap = Map(following, followers, blocked, topics, tags)
-
 
   lazy val allFields = {
     UID :: NICK :: PUBLIC :: INFO :: FOLLOWING :: FOLLOWERS :: BLOCKED :: TOPICS :: TAGS :: Nil

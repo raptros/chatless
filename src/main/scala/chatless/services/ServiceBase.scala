@@ -36,8 +36,8 @@ trait ServiceBase extends HttpService with Json4sSupport {
   def resText: Directive0 = respondWithMediaType(`text/plain`)
 
   def setCompletion(pathMap: Map[String, Set[String]]): Route = {
-    path(pathMap / Segment/ PathEnd) { (set: Set[String], v: String) =>
-      resText { complete { BoolR { set contains v } } }
+    path(pathMap / Segment / PathEnd) { (set: Set[String], v: String) =>
+      resText { complete { Map("contains" -> (set contains v)) } }
     }
   }
 

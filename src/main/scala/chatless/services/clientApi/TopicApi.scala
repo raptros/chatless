@@ -4,8 +4,10 @@ package chatless.services.clientApi
 import chatless._
 import chatless.model.Topic
 import chatless.services._
-import chatless.responses.TopicNotFoundError
+import chatless.responses.{BoolR, StringR, TopicNotFoundError}
 import chatless.db.TopicDAO
+import org.json4s._
+import org.json4s.JsonDSL._
 
 trait TopicApi extends ServiceBase {
 
@@ -44,27 +46,25 @@ trait TopicApi extends ServiceBase {
     }
   }*/
 
+  private def getTopic(tid: TopicId) = topicDao get tid getOrElse { throw TopicNotFoundError(tid) }
+
   private def infoRoute(cid: UserId, tid: TopicId) = get {
     val topic = topicDao get tid getOrElse { throw TopicNotFoundError(tid) }
     path(PathEnd) {
-      resJson {
-        complete {
-          topic getFields fieldsFor(cid, topic)
-        }
+      complete {
+        topic getFields fieldsFor(cid, topic)
       }
-    } ~ resText {
-      path(Topic.TID) {
-        complete(topic.tid / PathEnd)
-      } ~ path(Topic.TITLE / PathEnd) {
-        complete(topic.title)
-      } ~ path(Topic.PUBLIC / PathEnd) {
-        complete(topic.public)
-      }
+    } ~ path(Topic.TID / PathEnd) {
+      complete { Topic.TID -> topic.tid }
+    } ~ path(Topic.TITLE / PathEnd) {
+      complete { Topic.TITLE -> topic.title }
+    } ~ path(Topic.PUBLIC / PathEnd) {
+      complete { Topic.PUBLIC -> topic.public }
     } ~ authorize(canRead(cid, topic)) {
       path(Topic.INFO / PathEnd) {
-        resJson { complete { topic.info } }
+        complete { topic.info }
       } ~ path(Topic.OP / PathEnd)  {
-        resText { complete { topic.op } }
+        complete { StringR(topic.op) }
       } ~ path(Topic.SOPS / PathEnd) {
         resJson { complete { topic.sops } }
       } ~ path(Topic.PARTICIPATING / PathEnd) {
@@ -120,7 +120,9 @@ trait TopicApi extends ServiceBase {
   }*/
 
   val topicApi: CallerRoute = cid => pathPrefix(TOPIC_API_BASE / Segment) { tid: TopicId =>
-    infoRoute(cid, tid) /*~ update(cid, topic)*/
+    resJson {
+      infoRoute(cid, tid) /*~ update(cid, topic)*/
+    }
   }
 
 }
