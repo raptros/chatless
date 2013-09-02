@@ -2,11 +2,10 @@ package chatless.services.clientApi
 
 
 import chatless._
-import chatless.models.{Topic, TopicDAO}
+import chatless.model.Topic
 import chatless.services._
-import shapeless._
-import Typeable._
-import chatless.db.TopicNotFoundError
+import chatless.responses.TopicNotFoundError
+import chatless.db.TopicDAO
 
 trait TopicApi extends ServiceBase {
 

@@ -5,11 +5,9 @@ import spray.routing._
 
 import chatless._
 import chatless.services._
-import chatless.models.{User, UserDAO, BoolR, StringR}
-import chatless.db.UserNotFoundError
-import shapeless._
-import Typeable._
-import org.json4s._
+import chatless.model._
+import chatless.responses.{BoolR, StringR, UserNotFoundError}
+import chatless.db.UserDAO
 
 trait UserApi extends ServiceBase {
 

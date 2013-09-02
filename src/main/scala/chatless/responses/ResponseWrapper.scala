@@ -1,4 +1,4 @@
-package chatless.models
+package chatless.responses
 
 abstract class ResponseWrapper[A : Manifest]{
   val v: A

@@ -4,8 +4,8 @@ import scalaz.Semigroup
 import spray.routing.Route
 import spray.routing.RouteConcatenation._
 import org.joda.time.DateTime
-import chatless.db.StateError
 import spray.http.StatusCode
+import chatless.responses.StateError
 
 package object services {
 

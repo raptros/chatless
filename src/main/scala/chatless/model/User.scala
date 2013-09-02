@@ -1,22 +1,7 @@
-package chatless.models
+package chatless.model
 
 import chatless._
-
-import com.novus.salat.annotations._
-
-import org.joda.time.DateTime
-import org.bson.types.ObjectId
 import org.json4s._
-
-
-
-
-
-@Salat
-trait BaseModel {
-//  @Persist @Key("_id") val id: ObjectId
-}
-
 
 case class User(
     uid: UserId,
@@ -55,8 +40,8 @@ object User {
   val BLOCKED = "blocked"
   val TOPICS = "topics"
   val TAGS = "tags"
-//
-//
+  //
+  //
   val uidGet = { u: User => u.uid }
   val nickGet = { u: User => u.nick }
   val publicGet = { u: User => u.public }
@@ -79,9 +64,9 @@ object User {
 
   lazy val allFieldsMap = Map(uid, nick, public, info, following, followers, blocked, topics, tags)
 
-//  lazy val stringFieldsMap = Map
-//
-//  lazy val setFieldsMap = Map(following, followers, blocked, topics, tags)
+  //  lazy val stringFieldsMap = Map
+  //
+  //  lazy val setFieldsMap = Map(following, followers, blocked, topics, tags)
 
 
   lazy val allFields = {
@@ -101,66 +86,3 @@ object User {
   lazy val nonPublicFields = allFields diff publicFields
 }
 
-case class Topic(
-    tid: TopicId,
-    title: String,
-    public: Boolean,
-    info: JObject,
-    op: UserId,
-    sops: Set[UserId],
-    participating: Set[UserId],
-    tags: Set[String])
-  extends BaseModel {
-  import Topic._
-
-  def getFields(fields: Set[String]): Map[String, Any] = {
-    (TID -> tid) ::
-    (TITLE -> title) ::
-    (PUBLIC -> public) ::
-    (INFO -> info) ::
-    (OP -> op) ::
-    (SOPS -> sops) ::
-    (PARTICIPATING -> participating) ::
-    (TAGS -> tags) ::
-    Nil
-  }.toMap filterKeys { fields.contains }
-}
-
-object Topic {
-  val TID = "name"
-  val TITLE = "title"
-  val PUBLIC = "public"
-  val INFO = "info"
-  val OP = "op"
-  val SOPS = "sops"
-  val PARTICIPATING = "participating"
-  val TAGS = "tags"
-
-  val publicFields = TID :: TITLE :: PUBLIC :: Nil
-  val participantFields = TID :: TITLE :: PUBLIC :: INFO :: OP :: SOPS :: PARTICIPATING :: TAGS :: Nil
-}
-
-case class Event(eid: EventId)
-  extends BaseModel
-
-object Event {
-  val EID = "eid"
-
-}
-
-case class Message(
-    mid: MessageId,
-    tid: TopicId,
-    uid: UserId,
-    timestamp: DateTime,
-    body: Map[String, Any])
-  extends BaseModel
-
-
-object Message {
-  val MID = "mid"
-  val TID = "tid"
-  val UID = "uid"
-  val BODY = "body"
-  val TIMESTAMP = "timestamp"
-}

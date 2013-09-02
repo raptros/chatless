@@ -1,7 +1,6 @@
 package chatless.services
 
 
-import chatless._
 import spray.routing._
 import spray.util.LoggingContext
 import spray.http._
@@ -10,15 +9,12 @@ import spray.httpx.encoding.NoEncoding
 import spray.httpx.unmarshalling._
 
 
-import scala.concurrent.Future
-
 import org.json4s._
 import org.json4s.native.JsonMethods._
-import org.json4s.JsonDSL._
 
-import chatless.db._
 import spray.httpx.Json4sSupport
-import chatless.models.BoolR
+
+import chatless.responses._
 
 trait ServiceBase extends HttpService with Json4sSupport {
   implicit val json4sFormats = org.json4s.DefaultFormats ++ org.json4s.ext.JodaTimeSerializers.all

@@ -6,12 +6,12 @@ import spray.http.StatusCodes
 import chatless._
 import org.scalatest.matchers.ShouldMatchers
 import org.scalamock.scalatest.MockFactory
-import chatless.models.{User, UserDAO}
+import chatless.model.User
+import chatless.db.UserDAO
 import spray.routing.{HttpService, Directives}
 import chatless.services.clientApi.UserApi
 import org.json4s._
 import org.json4s.native.JsonMethods._
-import shapeless._
 
 class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTest with ShouldMatchers with MockFactory {
   import User.{allFields, callerOnlyFields, publicFields, nonPublicFields, followerFields}

@@ -10,13 +10,15 @@ import scalaz.syntax.std.option._
 
 import org.scalatest.matchers.ShouldMatchers
 import org.scalamock.scalatest.MockFactory
-import chatless.models.{User, UserDAO, ResponseWrapper, StringR, BoolR}
+import chatless.db.UserDAO
+import chatless.model.{User}
 import chatless.services.clientApi.MeApi
 import org.json4s._
 import org.json4s.JsonDSL._
 import org.json4s.native.JsonMethods._
 import spray.httpx.Json4sSupport
 import spray.httpx.unmarshalling.BasicUnmarshallers._
+import chatless.responses.{BoolR, StringR}
 
 class MeRoutesSpec
   extends WordSpec

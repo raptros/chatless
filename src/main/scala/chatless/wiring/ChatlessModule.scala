@@ -10,7 +10,7 @@ import akka.util.Timeout
 import scala.concurrent.ExecutionContext
 import akka.actor.{ActorRefFactory, Props, ActorSelection, ActorSystem}
 import scala.concurrent.duration._
-import chatless.models.{SalatUserDAO, UserDAO}
+import chatless.db._
 
 class ChatlessModule(val system: ActorSystem) extends AbstractModule with ScalaModule {
 

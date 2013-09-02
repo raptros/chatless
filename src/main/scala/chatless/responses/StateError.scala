@@ -1,4 +1,4 @@
-package chatless.db
+package chatless.responses
 
 import chatless.{UserId, TopicId, MessageId}
 import chatless.op2.{Operation, Specifier}

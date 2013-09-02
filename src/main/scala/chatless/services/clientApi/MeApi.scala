@@ -21,9 +21,11 @@ import scala.concurrent.{ExecutionContext, Future}
 
 import scalaz.std.function._
 import scalaz.syntax.semigroup._
-import chatless.models.{User, UserDAO, ResponseWrapper, BoolR, StringR}
+import chatless.model._
 import chatless.services._
 import com.google.inject.Inject
+import scala.Some
+import chatless.responses.{BoolR, StringR, UserNotFoundError}
 
 trait MeApi extends ServiceBase {
 

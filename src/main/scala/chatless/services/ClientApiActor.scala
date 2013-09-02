@@ -1,21 +1,15 @@
 package chatless.services
 
-import akka.actor.Actor
 import spray.routing.authentication._
 
-import com.mongodb.casbah.Imports._
-import spray.routing.{HttpServiceActor, HttpService, RequestContext}
+import spray.routing.HttpServiceActor
 import scala.concurrent._
 import chatless._
-import akka.util.Timeout
-import scala.concurrent.duration._
 import com.google.inject.Inject
 import chatless.services.clientApi._
-import scalaz._
-import scalaz.std.function._
 import scalaz.syntax.semigroup._
-import chatless.models.UserDAO
-import chatless.models.TopicDAO
+import chatless.db.{TopicDAO, UserDAO}
+import scalaz.std.function._
 
 /** this is the actor for the chatless service. */
 class ClientApiActor @Inject() (
