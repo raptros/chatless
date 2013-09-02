@@ -31,7 +31,7 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
     userId,
     "this user",
     true,
-    Map.empty[String, Any],
+    JObject(),
     Set(id2),
     Set("otherUser"),
     Set("some-blocked"),
@@ -42,7 +42,7 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
     id1,
     "a public user",
     true,
-    Map.empty[String, Any],
+    JObject(),
     Set("otherUser"),
     Set(userId),
     Set("some-blocked"),
@@ -53,7 +53,7 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
     id2,
     "a private user followed",
     false,
-    Map.empty[String, Any],
+    JObject(),
     Set(otherUser1.uid),
     Set(fakeCaller.uid),
     Set.empty[UserId],
@@ -64,7 +64,7 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
     id3,
     "a private user not followed",
     false,
-    Map.empty[String, Any],
+    JObject(),
     Set(otherUser1.uid),
     Set(),
     Set.empty[UserId],
@@ -96,8 +96,8 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
           }
         }
       }
-      "return each field by request" in new Fixture(fakeCaller, allFields.size) {
-        for (f <- allFields) {
+      for (f <- allFields) {
+        s"return field $f by request" in new Fixture(fakeCaller, 1) {
           mkGet(f) ~> api ~> check {
             entity should not be ('isEmpty)
           }
@@ -125,8 +125,8 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
           }
         }
       }
-      "return each field by request" in new Fixture(otherUser1, followerFields.size) {
-        for (f <- followerFields) {
+      for (f <- followerFields) {
+        s"return follower-visible field $f by request" in new Fixture(otherUser1, 1) {
           mkGet(f) ~> api ~> check {
             entity should not be ('isEmpty)
           }
@@ -161,8 +161,8 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
           }
         }
       }
-      "return each field by request" in new Fixture(otherUser2, followerFields.size) {
         for (f <- followerFields) {
+          s"return follower visible field $f by request" in new Fixture(otherUser2, 1) {
           mkGet(f) ~> api ~> check {
             entity should not be ('isEmpty)
           }
@@ -197,8 +197,8 @@ class UserRoutesSpec extends WordSpec with ServiceSpecBase with ScalatestRouteTe
           }
         }
       }
-      "return each publically visible field by request" in new Fixture(otherUser3, publicFields.size) {
-        for (f <- publicFields) {
+      for (f <- publicFields) {
+        s"return publically visible field $f by request" in new Fixture(otherUser3, 1) {
           mkGet(f) ~> api ~> check {
             entity should not be ('isEmpty)
           }

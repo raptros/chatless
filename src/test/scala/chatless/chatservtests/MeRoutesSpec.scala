@@ -10,11 +10,13 @@ import scalaz.syntax.std.option._
 
 import org.scalatest.matchers.ShouldMatchers
 import org.scalamock.scalatest.MockFactory
-import chatless.models.{User, UserDAO}
+import chatless.models.{User, UserDAO, ResponseWrapper, StringR, BoolR}
 import chatless.services.clientApi.MeApi
 import org.json4s._
+import org.json4s.JsonDSL._
 import org.json4s.native.JsonMethods._
 import spray.httpx.Json4sSupport
+import spray.httpx.unmarshalling.BasicUnmarshallers._
 
 class MeRoutesSpec
   extends WordSpec
@@ -26,7 +28,7 @@ class MeRoutesSpec
 
   implicit val json4sFormats = DefaultFormats
 
-  val fakeUser1 = User(userId, "this user", true, Map.empty[String, Any],
+  val fakeUser1 = User(userId, "this user", true, ("contact?" -> true),
     Set("otherUser"), Set("otherUser"), Set("some-blocked"),
     Set("tid0"), Set("tag0"))
 
@@ -58,124 +60,125 @@ class MeRoutesSpec
     "provide the correct user object, deserialzable from json" when itReceives {
       "a get to its base" in new Fixture1 {
         Get("/me") ~>  api ~> check {
-          val res = parse(entityAs[String]).extract[User]
-          res should be (fakeUser1.some)
+          val res = entityAs[JObject].extract[User]
+          res should be (fakeUser1)
         }
       }
     }
     "produce the correct value" when itReceives {
       "a get for the uid field" in new Fixture1 {
         Get("/me/uid") ~> api ~> check {
-          val res = entityAs[String]
-          assert(res === userId)
+          val res = entityAs[JObject].extract[StringR]
+          println(res)
+          res.v should be (userId)
         }
       }
       "a get for the nick field" in new Fixture1 {
         Get("/me/nick") ~> api ~> check {
-          val res = entityAs[String]
-          assert(res === "this user")
+          val res = entityAs[JObject].extract[StringR]
+          assert(res.v === "this user")
         }
       }
       "a get for the public field" in new Fixture1 {
         Get("/me/public") ~> api ~> check {
-          val res = entityAs[Boolean]
-          assert(res === fakeUser1.public)
+          val res = entityAs[JObject].extract[BoolR]
+          assert(res.v === fakeUser1.public)
         }
       }
       "a get for the info field" in new Fixture1 {
         Get("/me/info") ~>  api ~> check {
-          val res = entityAs[JValue].extract[Map[String, Any]]
+          val res = entityAs[JObject]
           res should equal (fakeUser1.info)
         }
       }
       "a get for the following field" in new Fixture1 {
         Get("/me/following") ~>  api ~> check {
-          val res = entityAs[JValue].extract[List[String]]
+          val res = entityAs[JValue].extract[Set[String]]
           res should equal (fakeUser1.following)
         }
       }
       "a get for the followers field" in new Fixture1 {
         Get("/me/followers") ~>  api ~> check {
-          val res = entityAs[JValue].extract[List[String]]
+          val res = entityAs[JValue].extract[Set[String]]
           res should equal (fakeUser1.followers)
         }
       }
       "a get for the blocked field " in new Fixture1 {
         Get("/me/blocked") ~>  api ~> check {
-          val res = entityAs[JValue].extract[List[String]]
+          val res = entityAs[JValue].extract[Set[String]]
           res should equal (fakeUser1.blocked)
         }
       }
       "a get for the topics field" in new Fixture1 {
         Get("/me/topics") ~>  api ~> check {
-          val res = entityAs[JValue].extract[List[String]]
+          val res = entityAs[JValue].extract[Set[String]]
           res should equal (fakeUser1.topics)
         }
       }
       "a get for the tags field " in new Fixture1 {
         Get("/me/tags") ~>  api ~> check {
-          val res = entityAs[JValue].extract[List[String]]
+          val res = entityAs[JValue].extract[Set[String]]
           res should equal (fakeUser1.tags)
         }
       }
       "a query: following contains a user that is followed" in new Fixture1 {
         Get("/me/following/otherUser") ~>  api ~> check {
-          val res = entityAs[Boolean]
-          res should be (true)
+          val res = entityAs[JValue].extract[BoolR]
+          res.v should be (true)
         }
       }
       "a query: following contains a user that is not followed" in new Fixture1 {
         Get("/me/following/fakeUser") ~>  api ~> check {
-          val res = entityAs[Boolean]
-          res should be (false)
+          val res = entityAs[JValue].extract[BoolR]
+          res.v should be (false)
         }
       }
       "a query: followers contains a user that is following" in new Fixture1 {
         Get("/me/followers/otherUser") ~>  api ~> check {
-          val res = entityAs[Boolean]
-          res should be (true)
+          val res = entityAs[JValue].extract[BoolR]
+          res.v should be (true)
         }
       }
       "a query: followers contains a user that is not following" in new Fixture1 {
         Get("/me/followers/fakeUser") ~>  api ~> check {
-          val res = entityAs[Boolean]
-          res should be (false)
+          val res = entityAs[JValue].extract[BoolR]
+          res.v should be (false)
         }
       }
       "a query: blocked contains a user that is blocked" in new Fixture1 {
         Get("/me/blocked/some-blocked") ~>  api ~> check {
-          val res = entityAs[Boolean]
-          res should be (true)
+          val res = entityAs[JValue].extract[BoolR]
+          res.v should be (true)
         }
       }
       "a query: blocked contains a user that is not blocked" in new Fixture1 {
         Get("/me/blocked/fakeUser") ~>  api ~> check {
-          val res = entityAs[Boolean]
-          res should be (false)
+          val res = entityAs[JValue].extract[BoolR]
+          res.v should be (false)
         }
       }
       "a query: topics contains a topic that user does participate in" in new Fixture1 {
         Get("/me/topics/tid0") ~>  api ~> check {
-          val res = entityAs[Boolean]
-          res should be (true)
+          val res = entityAs[JValue].extract[BoolR]
+          res.v should be (true)
         }
       }
       "a query: topics contains a topic that user does not participate in" in new Fixture1 {
         Get("/me/topics/fakeTopic") ~>  api ~> check {
-          val res = entityAs[Boolean]
-          res should be (false)
+          val res = entityAs[JValue].extract[BoolR]
+          res.v should be (false)
         }
       }
       "a query: tags contains a tracked tag" in new Fixture1 {
         Get("/me/tags/tag0") ~>  api ~> check {
-          val res = entityAs[Boolean]
-          res should be (true)
+          val res = entityAs[JValue].extract[BoolR]
+          res.v should be (true)
         }
       }
       "a query: tags contains an untracked tagged" in new Fixture1 {
         Get("/me/tags/fakeTag") ~>  api ~> check {
-          val res = entityAs[Boolean]
-          res should be (false)
+          val res = entityAs[JValue].extract[BoolR]
+          res.v should be (false)
         }
       }
     }

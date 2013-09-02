@@ -5,7 +5,7 @@ import spray.routing._
 
 import chatless._
 import chatless.services._
-import chatless.models.{User, UserDAO}
+import chatless.models.{User, UserDAO, BoolR, StringR}
 import chatless.db.UserNotFoundError
 import shapeless._
 import Typeable._
@@ -30,16 +30,14 @@ trait UserApi extends ServiceBase {
 
 
   private def followerRoutes(user: User): Route =
-    resJson {
-      path(User.INFO / PathEnd) {
-        complete { user.info }
-      } ~ path(User.FOLLOWING / PathEnd) {
-        complete { user.following }
-      } ~ path(User.FOLLOWERS / PathEnd) {
-        complete { user.followers }
-      } ~ path(User.TOPICS / PathEnd) {
-        complete { user.topics }
-      }
+    path(User.INFO / PathEnd) {
+      complete { user.info }
+    } ~ path(User.FOLLOWING / PathEnd) {
+      complete { user.following }
+    } ~ path(User.FOLLOWERS / PathEnd) {
+      complete { user.followers }
+    } ~ path(User.TOPICS / PathEnd) {
+      complete { user.topics }
     } ~ setCompletion(
       User.FOLLOWING -> user.following,
       User.FOLLOWERS -> user.followers,
@@ -56,15 +54,13 @@ trait UserApi extends ServiceBase {
 
   private def publicRoutes(user: User)(fields: => Set[String]): Route =
     path(PathEnd) {
-      resJson {
-        complete { user getFields fields }
-      }
-    } ~ resText {
-      path(User.NICK / PathEnd) {
-        complete(user.nick)
-      } ~ path(User.PUBLIC / PathEnd) {
-        complete(user.public)
-      }
+      complete { user getFields fields }
+    } ~ path(User.UID / PathEnd) {
+      complete(StringR(user.uid))
+    } ~ path(User.NICK / PathEnd) {
+      complete(StringR(user.nick))
+    } ~ path(User.PUBLIC / PathEnd) {
+      complete(BoolR(user.public))
     }
 
   private def userGets(cid: UserId)(user: User): Route =
@@ -78,10 +74,12 @@ trait UserApi extends ServiceBase {
 
 
   val userApi: CallerRoute = cid => get {
-    pathPrefix(USER_API_BASE / Segment) { uid: UserId =>
-      userGets(cid) {
-        userDao get uid getOrElse {
-          throw UserNotFoundError(uid)
+    resJson {
+      pathPrefix(USER_API_BASE / Segment) { uid: UserId =>
+        userGets(cid) {
+          userDao get uid getOrElse {
+            throw UserNotFoundError(uid)
+          }
         }
       }
     }

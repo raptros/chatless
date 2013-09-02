@@ -6,6 +6,10 @@ import com.novus.salat.annotations._
 
 import org.joda.time.DateTime
 import org.bson.types.ObjectId
+import org.json4s._
+
+
+
 
 
 @Salat
@@ -18,7 +22,7 @@ case class User(
     uid: UserId,
     nick: String,
     public: Boolean,
-    info: Map[String, Any],
+    info: JObject,
     following: Set[UserId],
     followers: Set[UserId],
     blocked: Set[UserId],
@@ -101,7 +105,7 @@ case class Topic(
     tid: TopicId,
     title: String,
     public: Boolean,
-    info: Map[String, Any],
+    info: JObject,
     op: UserId,
     sops: Set[UserId],
     participating: Set[UserId],

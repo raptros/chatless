@@ -21,7 +21,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 import scalaz.std.function._
 import scalaz.syntax.semigroup._
-import chatless.models.{User, UserDAO}
+import chatless.models.{User, UserDAO, ResponseWrapper, BoolR, StringR}
 import chatless.services._
 import com.google.inject.Inject
 
@@ -29,36 +29,39 @@ trait MeApi extends ServiceBase {
 
   val userDao: UserDAO
 
-  def getUser(cid: UserId): Directive1[User] = provide((userDao get cid) getOrElse { throw UserNotFoundError(cid) })
+//  def getUser(cid: UserId): Directive1[User] = provide((userDao get cid) getOrElse { throw UserNotFoundError(cid) })
+
+  private val getUser = (uid: UserId) => userDao get uid getOrElse { throw UserNotFoundError(uid) }
 
   private def completeWithUserSetCheck(uid: UserId)(field: User => Set[String])(value: String): Route =
-    getUser(uid) { user: User =>
-      complete { field(user) contains value  }
+    complete {
+      BoolR {
+        uid |> { getUser andThen field andThen { _ contains value} }
+      }
     }
 
+
   private val getFieldsRoute: CallerRoute = cid => get {
-    getUser(cid) { user: User =>
-      path(PathEnd) {
-        resJson { complete { user } }
-      } ~ path(User.UID / PathEnd) {
-        resText { complete { user.uid } }
-      } ~ path(User.NICK / PathEnd) {
-        resText { complete { user.nick } }
-      }~ path(User.PUBLIC / PathEnd) {
-        resText { complete { user.public } }
-      } ~ path(User.INFO / PathEnd) {
-        resJson { complete { user.info } }
-      } ~ path(User.FOLLOWING / PathEnd) {
-        resJson { complete { user.following } }
-      } ~ path(User.FOLLOWERS / PathEnd) {
-        resJson { complete { user.followers } }
-      } ~ path(User.BLOCKED / PathEnd) {
-        resJson { complete { user.blocked } }
-      } ~ path(User.TOPICS / PathEnd) {
-        resJson { complete { user.topics } }
-      } ~ path(User.TAGS / PathEnd) {
-        resJson { complete { user.tags } }
-      }
+    path(PathEnd) {
+      complete { getUser(cid) }
+    } ~ path(User.UID / PathEnd) {
+      complete { StringR(getUser(cid).uid) }
+    } ~ path(User.NICK / PathEnd) {
+      complete { StringR(getUser(cid).nick) }
+    }~ path(User.PUBLIC / PathEnd) {
+      complete { BoolR(getUser(cid).public) }
+    } ~ path(User.INFO / PathEnd) {
+      complete { getUser(cid).info }
+    } ~ path(User.FOLLOWING / PathEnd) {
+      complete { getUser(cid).following }
+    } ~ path(User.FOLLOWERS / PathEnd) {
+      complete { getUser(cid).followers }
+    } ~ path(User.BLOCKED / PathEnd) {
+      complete { getUser(cid).blocked }
+    } ~ path(User.TOPICS / PathEnd) {
+      complete { getUser(cid).topics }
+    } ~ path(User.TAGS / PathEnd) {
+      complete { getUser(cid).tags }
     }
   }
 
@@ -92,7 +95,7 @@ trait MeApi extends ServiceBase {
       }
     } ~ path(User.INFO / PathEnd) {
       optionJsonEntity {
-        case Some(m) => complete { "no" }
+        case Some(m) => complete { StringR("no") }
         case None => complete { 400 -> "need a json object here" }
       }
     }
@@ -102,7 +105,7 @@ trait MeApi extends ServiceBase {
     path(User.FOLLOWING / Segment / PathEnd) { u: UserId =>
       optionJsonEntity { oj =>
         complete {
-          "whatever"
+          StringR("whatever")
         }
       }
     } ~ path(User.BLOCKED / Segment / PathEnd) { u: UserId =>
@@ -149,7 +152,9 @@ trait MeApi extends ServiceBase {
 
   private val cr: CallerRoute = getFieldsRoute |+| querySetsRoute |+| addToSets |+| deleteFromSets
 
-  val meApi: CallerRoute = cid => pathPrefix(ME_API_BASE) {
-    getFieldsRoute(cid) ~ querySetsRoute(cid) ~ replaceFields(cid) ~ addToSets(cid) ~ deleteFromSets(cid)
+  val meApi: CallerRoute = cid => resJson {
+    pathPrefix(ME_API_BASE) {
+      getFieldsRoute(cid) ~ querySetsRoute(cid) ~ replaceFields(cid) ~ addToSets(cid) ~ deleteFromSets(cid)
+    }
   }
 }

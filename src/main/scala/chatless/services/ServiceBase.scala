@@ -18,6 +18,7 @@ import org.json4s.JsonDSL._
 
 import chatless.db._
 import spray.httpx.Json4sSupport
+import chatless.models.BoolR
 
 trait ServiceBase extends HttpService with Json4sSupport {
   implicit val json4sFormats = org.json4s.DefaultFormats ++ org.json4s.ext.JodaTimeSerializers.all
@@ -40,7 +41,7 @@ trait ServiceBase extends HttpService with Json4sSupport {
 
   def setCompletion(pathMap: Map[String, Set[String]]): Route = {
     path(pathMap / Segment/ PathEnd) { (set: Set[String], v: String) =>
-      resText { complete { set contains v } }
+      resText { complete { BoolR { set contains v } } }
     }
   }
 
