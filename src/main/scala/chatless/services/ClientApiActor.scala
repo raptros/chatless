@@ -33,7 +33,9 @@ class ClientApiActor @Inject() (
 
   def getUserAuth: ContextAuthenticator[UserId] = BasicAuth("", _.user)
 
-  val chatlessApi = path(PathEnd) {
+  val chatlessApi = provide("id2") {
+    callerRouteApi
+  } ~ path(PathEnd) {
     get {
       complete("yo")
     }

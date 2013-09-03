@@ -13,9 +13,11 @@ trait UserDAO extends DAO {
   type ID = UserId
   type Model = User
   def get(id: UserId): Option[User]
+  RegisterNumericConversions()
 }
 
 trait TopicDAO extends DAO {
   type ID = TopicId
   type Model = Topic
+  RegisterNumericConversions()
 }

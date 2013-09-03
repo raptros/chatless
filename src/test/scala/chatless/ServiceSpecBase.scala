@@ -12,10 +12,11 @@ import spray.routing.authentication.UserPass
 import org.json4s._
 import org.json4s.JsonDSL._
 import spray.httpx.Json4sSupport
+import chatless.model.InfoSerializer
 
 trait ServiceSpecBase extends ScalatestRouteTest with Json4sSupport { this: Suite =>
 
-  implicit val json4sFormats = DefaultFormats
+  implicit val json4sFormats = DefaultFormats + (new InfoSerializer)
 
   def actorRefFactory = system
 

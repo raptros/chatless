@@ -38,9 +38,9 @@ class TopicRoutesSpec
   }
 
   class GetterFixture(val topic: Topic, val times: Int = 1) extends Fixture {
-    val tid = topic.tid
+    val tid = topic.id
     val topicDao = mock[TopicDAO]
-    (topicDao.get(_: TopicId)) expects topic.tid repeated times returning Some(topic)
+    (topicDao.get(_: TopicId)) expects topic.id repeated times returning Some(topic)
   }
 
   val topic1 = Topic("topic1", "topic 1", true, JObject(), "topic1op", Set.empty[String], Set("topic1op", userId), Set.empty[String])

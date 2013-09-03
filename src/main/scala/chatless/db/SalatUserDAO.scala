@@ -14,11 +14,11 @@ import chatless.model.User
 
 class SalatUserDAO @Inject() (
     @UserCollection collection: MongoCollection)
-  extends SalatDAO[User, ObjectId](collection)
+  extends SalatDAO[User, String](collection)
   with UserDAO {
 
-  def get(uid: UserId): Option[User] = findOne(MongoDBObject("uid" -> uid))
+  def get(id: UserId): Option[User] = findOneById(id)
 
 
-//  def getAsFields(uid: UserId, )
+//  def getAsFields(id: UserId, )
 }

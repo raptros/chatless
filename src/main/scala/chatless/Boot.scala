@@ -4,7 +4,6 @@ import akka.actor.{ActorRef, Deploy, ActorSystem, Props}
 import akka.io.IO
 import spray.can.Http
 import chatless.services.ClientApiActor
-
 import scala.concurrent.duration._
 
 import com.mongodb.casbah.Imports._
@@ -26,5 +25,5 @@ object Boot extends App {
   val service = system.actorOf(actorProvider.props[ClientApiActor], "chatless-service")
 
   // start a new HTTP server on port 8080 with our service actor as the handler
-  IO(Http) ! Http.Bind(service, interface = "localhost", port = 8080)
+  IO(Http) ! Http.Bind(service, interface = "localhost", port = 5775)
 }

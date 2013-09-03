@@ -13,7 +13,7 @@ seq(Revolver.settings: _*)
 
 sprayVersion := "1.2-20130822"
 
-json4sVersion := "3.2.2"
+json4sVersion := "3.2.5"
 
 showCurrentGitBranch
 
@@ -31,7 +31,7 @@ libraryDependencies ++= Seq(
   "org.scalaz" %% "scalaz-core" % "7.0.2",
   "com.chuusai" %% "shapeless" % "1.2.4",
   "io.spray" % "spray-can" % sprayVersion.value,
-  "com.novus" %% "salat" % "1.9.2",
+  "com.novus" %% "salat" % "1.9.3-SNAPSHOT",
   "org.json4s" %% "json4s-native" % json4sVersion.value,
   "org.json4s" %% "json4s-ext" % json4sVersion.value,
   "io.spray" % "spray-routing" % sprayVersion.value,

@@ -11,7 +11,7 @@ import scalaz.syntax.std.option._
 import org.scalatest.matchers.ShouldMatchers
 import org.scalamock.scalatest.MockFactory
 import chatless.db.UserDAO
-import chatless.model.{User}
+import chatless.model.{User, Info}
 import chatless.services.clientApi.MeApi
 import org.json4s._
 import org.json4s.JsonDSL._
@@ -28,7 +28,7 @@ class MeRoutesSpec
   with MockFactory {
 
 
-  val fakeUser1 = User(userId, "this user", true, ("contact?" -> true),
+  val fakeUser1 = User(userId, "this user", true, new Info(Map("contact?" -> true)),
     Set("otherUser"), Set("otherUser"), Set("some-blocked"),
     Set("tid0"), Set("tag0"))
 
@@ -60,15 +60,16 @@ class MeRoutesSpec
     "provide the correct user object, deserialzable from json" when itReceives {
       "a get to its base" in new Fixture1 {
         Get("/me") ~>  api ~> check {
-          val res = entityAs[JObject].extract[User]
-          res should be (fakeUser1)
+          val res = entityAs[JObject]
+          println(res)
+          res.extract[User] should be (fakeUser1)
         }
       }
     }
     "produce the correct value" when itReceives {
-      "a get for the uid field" in new Fixture1 {
-        Get("/me/uid") ~> api ~> check {
-          val res = (entityAs[JObject] \ User.UID).extract[String]
+      "a get for the id field" in new Fixture1 {
+        Get("/me/id") ~> api ~> check {
+          val res = (entityAs[JObject] \ User.ID).extract[String]
           res should be (userId)
         }
       }
@@ -86,7 +87,7 @@ class MeRoutesSpec
       }
       "a get for the info field" in new Fixture1 {
         Get("/me/info") ~>  api ~> check {
-          val res = (entityAs[JObject] \ User.INFO).extract[JObject]
+          val res = (entityAs[JObject] \ User.INFO).extract[Info]
           res should equal (fakeUser1.info)
         }
       }
@@ -188,47 +189,47 @@ class MeRoutesSpec
           entityAs[Boolean] should be (true)
         }
       }
-      "a put to /me/following/:uid" in new Fixture2(FollowUser("user2")) {
+      "a put to /me/following/:id" in new Fixture2(FollowUser("user2")) {
         Put("/me/following/user2") ~> api ~> check {
           entityAs[Boolean] should be (true)
         }
       }
-      "a put to /me/following/:uid with a payload" in new Fixture2(FollowUser("user2", Some(("place" := "testing") ->: jEmptyObject))) {
+      "a put to /me/following/:id with a payload" in new Fixture2(FollowUser("user2", Some(("place" := "testing") ->: jEmptyObject))) {
         Put("/me/following/user2", spec.asInstanceOf[FollowUser].additional.get.nospaces) ~> api ~> check {
           entityAs[Boolean] should be (true)
         }
       }
-      "a delete to /me/following/:uid" in new Fixture2(UnfollowUser("user2")) {
+      "a delete to /me/following/:id" in new Fixture2(UnfollowUser("user2")) {
         Delete("/me/following/user2") ~> api ~> check {
           entityAs[Boolean] should be (true)
         }
       }
-      "a delete to /me/followers/:uid" in new Fixture2(RemoveFollower("user2")) {
+      "a delete to /me/followers/:id" in new Fixture2(RemoveFollower("user2")) {
         Delete("/me/followers/user2") ~> api ~> check {
           entityAs[Boolean] should be (true)
         }
       }
-      "a put to /me/blocked/:uid" in new Fixture2(BlockUser("someuser2")) {
+      "a put to /me/blocked/:id" in new Fixture2(BlockUser("someuser2")) {
         Put("/me/blocked/someuser2") ~> api ~> check {
           entityAs[Boolean] should be (true)
         }
       }
-      "a delete to /me/blocked/:uid" in new Fixture2(UnblockUser("someuser2")) {
+      "a delete to /me/blocked/:id" in new Fixture2(UnblockUser("someuser2")) {
         Delete("/me/blocked/someuser2") ~> api ~> check {
           entityAs[Boolean] should be (true)
         }
       }
-      "a put to /me/topics/:tid" in new Fixture2(JoinTopic("topic2")) {
+      "a put to /me/topics/:id" in new Fixture2(JoinTopic("topic2")) {
         Put("/me/topics/topic2") ~> api ~> check {
           entityAs[Boolean] should be (true)
         }
       }
-      "a put to /me/topics/:tid with a payload" in new Fixture2(JoinTopic("topic2", Some(("place" := "testing") ->: jEmptyObject))) {
+      "a put to /me/topics/:id with a payload" in new Fixture2(JoinTopic("topic2", Some(("place" := "testing") ->: jEmptyObject))) {
         Put("/me/topics/topic2", spec.asInstanceOf[JoinTopic].additional.get.nospaces) ~> api ~> check {
           entityAs[Boolean] should be (true)
         }
       }
-      "a delete to /me/topics/:tid" in new Fixture2(LeaveTopic("topic2")) {
+      "a delete to /me/topics/:id" in new Fixture2(LeaveTopic("topic2")) {
         Delete("/me/topics/topic2") ~> api ~> check {
           entityAs[Boolean] should be (true)
         }

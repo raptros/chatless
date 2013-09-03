@@ -28,6 +28,7 @@ package object services {
 
   val ME_API_BASE = "me"
   val TOPIC_API_BASE = "topic"
+  val USER_API_BASE = "user"
   val MESSAGE_API_BASE = "message"
   val TAGGED_API_BASE = "tagged"
   val EVENT_API_BASE = "events"

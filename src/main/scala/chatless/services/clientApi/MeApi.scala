@@ -50,9 +50,9 @@ trait MeApi extends ServiceBase {
       complete { 
         getUser(cid)
       }
-    } ~ path(User.UID / PathEnd) {
+    } ~ path(User.ID / PathEnd) {
       complete { 
-        Map(User.UID -> getUser(cid).uid)
+        Map(User.ID -> getUser(cid).id)
       }
     } ~ path(User.NICK / PathEnd) {
       complete { 

@@ -20,31 +20,8 @@ trait TopicApi extends ServiceBase {
     || (topic.participating contains cid)
     )
 
-  private def fieldsFor(cid: UserId, topic: Topic): Set[String] = {
-    import Topic._
-    TID :: TITLE :: PUBLIC :: {
-      if (canRead(cid, topic))
-        INFO :: OP :: SOPS :: PARTICIPATING :: TAGS :: Nil
-      else Nil
-    }
-  }.toSet
-
-  /*
-  private def getTopicInfo(cid: UserId, topic: Topic) = get {
-    val topicMapped = fieldsFor(cid, topic)
-    val topicSets = for {
-      (k, v)  <- topicMapped
-      cV <- v.cast[Set[String]]
-    } yield k -> cV
-
-    path(PathEnd) {
-      resJson { complete { topicMapped } }
-    } ~ path(topicMapped / PathEnd) { f: Any =>
-      complete { f }
-    } ~ path(topicSets / Segment / PathEnd) { (set: Set[String], v: String) =>
-      complete { set contains v }
-    }
-  }*/
+  private def fieldsFor(cid: UserId, topic: Topic): Set[String] = if (canRead(cid, topic))
+    Topic.participantFields else Topic.publicFields
 
   private def getTopic(tid: TopicId) = topicDao get tid getOrElse { throw TopicNotFoundError(tid) }
 
@@ -54,8 +31,8 @@ trait TopicApi extends ServiceBase {
       complete {
         topic getFields fieldsFor(cid, topic)
       }
-    } ~ path(Topic.TID / PathEnd) {
-      complete { Topic.TID -> topic.tid }
+    } ~ path(Topic.ID / PathEnd) {
+      complete { Topic.ID -> topic.id }
     } ~ path(Topic.TITLE / PathEnd) {
       complete { Topic.TITLE -> topic.title }
     } ~ path(Topic.PUBLIC / PathEnd) {
@@ -101,12 +78,12 @@ trait TopicApi extends ServiceBase {
 
   private def opLevelUpdates(cup: UpdateSpec with ForTopics => Route): Route =
     put {
-      path(Topic.SOPS / Segment / PathEnd) { uid: UserId =>
-        cup { PromoteSop(uid) }
+      path(Topic.SOPS / Segment / PathEnd) { id: UserId =>
+        cup { PromoteSop(id) }
       }
     } ~ delete {
-      path(Topic.SOPS / Segment / PathEnd) { uid: UserId =>
-        cup { DemoteSop(uid) }
+      path(Topic.SOPS / Segment / PathEnd) { id: UserId =>
+        cup { DemoteSop(id) }
       }
     }
 

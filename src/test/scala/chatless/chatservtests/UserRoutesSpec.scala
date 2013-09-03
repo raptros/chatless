@@ -6,7 +6,7 @@ import spray.http.StatusCodes
 import chatless._
 import org.scalatest.matchers.ShouldMatchers
 import org.scalamock.scalatest.MockFactory
-import chatless.model.User
+import chatless.model.{Info, User}
 import chatless.db.UserDAO
 import spray.routing.{HttpService, Directives}
 import chatless.services.clientApi.UserApi
@@ -31,7 +31,7 @@ class UserRoutesSpec
     userId,
     "this user",
     true,
-    JObject(),
+    new Info(Map.empty[String, Any]),
     Set(id2),
     Set("otherUser"),
     Set("some-blocked"),
@@ -42,7 +42,7 @@ class UserRoutesSpec
     id1,
     "a public user",
     true,
-    JObject(),
+    new Info(Map.empty[String, Any]),
     Set("otherUser"),
     Set(userId),
     Set("some-blocked"),
@@ -53,9 +53,9 @@ class UserRoutesSpec
     id2,
     "a private user followed",
     false,
-    JObject(),
-    Set(otherUser1.uid),
-    Set(fakeCaller.uid),
+    new Info(Map.empty[String, Any]),
+    Set(otherUser1.id),
+    Set(fakeCaller.id),
     Set.empty[UserId],
     Set(),
     Set())
@@ -64,8 +64,8 @@ class UserRoutesSpec
     id3,
     "a private user not followed",
     false,
-    JObject(),
-    Set(otherUser1.uid),
+    new Info(Map.empty[String, Any]),
+    Set(otherUser1.id),
     Set(),
     Set.empty[UserId],
     Set(),
@@ -74,9 +74,9 @@ class UserRoutesSpec
   def mkPath(uid: UserId, field: String) = s"/user/$uid/$field"
 
   class Fixture(targetOther: User, count: Int) { self =>
-    def mkGet(field: String = "") = Get(mkPath(targetOther.uid, field))
+    def mkGet(field: String = "") = Get(mkPath(targetOther.id, field))
     val userDao = mock[UserDAO]
-    (userDao.get(_: UserId)) expects targetOther.uid repeated count returning Some(targetOther)
+    (userDao.get(_: UserId)) expects targetOther.id repeated count returning Some(targetOther)
     val userApi = new UserApi {
       val userDao = self.userDao
       override val actorRefFactory = system

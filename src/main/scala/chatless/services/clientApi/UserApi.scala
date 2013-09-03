@@ -11,21 +11,15 @@ import chatless.db.UserDAO
 
 trait UserApi extends ServiceBase {
 
-  val USER_API_BASE = "user"
-
   val userDao: UserDAO
 
-//  private def protectedUserCompletions(cid: UserId, user: User): Route =
-
   private def userFieldsSelector(cid: UserId, user: => User): Set[String] =
-    if (user.uid == cid)
+    if (user.id == cid)
       User.allFields
     else if (user.public || (user.followers contains cid))
       User.followerFields
     else
       User.publicFields
-
-
 
   private def followerRoutes(user: User): Route =
     path(User.INFO / PathEnd) {
@@ -53,8 +47,8 @@ trait UserApi extends ServiceBase {
   private def publicRoutes(user: User)(fields: => Set[String]): Route =
     path(PathEnd) {
       complete { user getFields fields }
-    } ~ path(User.UID / PathEnd) {
-      complete(StringR(user.uid))
+    } ~ path(User.ID / PathEnd) {
+      complete(StringR(user.id))
     } ~ path(User.NICK / PathEnd) {
       complete(StringR(user.nick))
     } ~ path(User.PUBLIC / PathEnd) {
@@ -63,10 +57,10 @@ trait UserApi extends ServiceBase {
 
   private def userGets(cid: UserId)(user: User): Route =
     publicRoutes(user) {
-      userFieldsSelector(cid, user)
-    } ~ authorize(user.public || (user.followers contains cid)) {
+      userFieldsSelector(cid = cid, user = user)
+    } ~ authorize(check = user.public || (user.followers contains cid)) {
       followerRoutes(user)
-    } ~ authorize(user.uid == cid) {
+    } ~ authorize(user.id == cid) {
       callerRoutes(user)
     }
 

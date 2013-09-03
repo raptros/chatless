@@ -2,22 +2,22 @@ package chatless.model
 
 import chatless._
 import org.json4s._
+import com.novus.salat.annotations._
 
 case class User(
-    uid: UserId,
+    @Key("_id") id: UserId,
     nick: String,
     public: Boolean,
-    info: JObject,
+    info: Info,
     following: Set[UserId],
     followers: Set[UserId],
     blocked: Set[UserId],
     topics: Set[TopicId],
-    tags: Set[String])
-  extends BaseModel {
+    tags: Set[String]) {
   import User._
 
   def getFields(fields: Set[String]): Map[String, Any] = {
-    (UID -> uid) ::
+    (ID -> id) ::
     (NICK -> nick) ::
     (PUBLIC -> public) ::
     (INFO -> info) ::
@@ -31,7 +31,7 @@ case class User(
 }
 
 object User {
-  val UID = "uid"
+  val ID = "id"
   val NICK = "nick"
   val PUBLIC = "public"
   val INFO = "info"
@@ -42,15 +42,15 @@ object User {
   val TAGS = "tags"
 
   lazy val allFields = {
-    UID :: NICK :: PUBLIC :: INFO :: FOLLOWING :: FOLLOWERS :: BLOCKED :: TOPICS :: TAGS :: Nil
+    ID :: NICK :: PUBLIC :: INFO :: FOLLOWING :: FOLLOWERS :: BLOCKED :: TOPICS :: TAGS :: Nil
   }.toSet
 
   lazy val followerFields = {
-    UID :: NICK :: PUBLIC :: INFO :: FOLLOWING :: FOLLOWERS :: TOPICS :: Nil
+    ID :: NICK :: PUBLIC :: INFO :: FOLLOWING :: FOLLOWERS :: TOPICS :: Nil
   }.toSet
 
   lazy val publicFields = {
-    UID :: NICK :: PUBLIC :: Nil
+    ID :: NICK :: PUBLIC :: Nil
   }.toSet
 
   lazy val callerOnlyFields = allFields diff followerFields

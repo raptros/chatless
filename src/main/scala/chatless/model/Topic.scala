@@ -2,21 +2,21 @@ package chatless.model
 
 import chatless._
 import org.json4s._
+import com.novus.salat.annotations._
 
 case class Topic(
-    tid: TopicId,
+    @Key("_id") id: TopicId,
     title: String,
     public: Boolean,
     info: JObject,
     op: UserId,
     sops: Set[UserId],
     participating: Set[UserId],
-    tags: Set[String])
-  extends BaseModel {
+    tags: Set[String]) {
   import Topic._
 
   def getFields(fields: Set[String]): Map[String, Any] = {
-    (TID -> tid) ::
+    (ID -> id) ::
     (TITLE -> title) ::
     (PUBLIC -> public) ::
     (INFO -> info) ::
@@ -29,7 +29,7 @@ case class Topic(
 }
 
 object Topic {
-  val TID = "name"
+  val ID = "id"
   val TITLE = "title"
   val PUBLIC = "public"
   val INFO = "info"
@@ -38,8 +38,13 @@ object Topic {
   val PARTICIPATING = "participating"
   val TAGS = "tags"
 
-  val publicFields = TID :: TITLE :: PUBLIC :: Nil
-  val participantFields = TID :: TITLE :: PUBLIC :: INFO :: OP :: SOPS :: PARTICIPATING :: TAGS :: Nil
+  val publicFields = {
+    ID :: TITLE :: PUBLIC :: Nil
+  }.toSet
+
+  val participantFields = {
+    ID :: TITLE :: PUBLIC :: INFO :: OP :: SOPS :: PARTICIPATING :: TAGS :: Nil
+  }.toSet
 
 }
 

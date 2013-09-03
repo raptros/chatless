@@ -33,7 +33,7 @@ trait MessagesApi extends ServiceBase {
     resJson {
       complete {
         "no"
-//        dbac.getMessages(cid, topic.tid, gr)
+//        dbac.getMessages(cid, topic.id, gr)
       }
     }
   }*/
@@ -44,7 +44,7 @@ trait MessagesApi extends ServiceBase {
           relRoute(cid, topic)
         } ~ post {
           dEntity(as[Json]) { j: Json =>
-            completeJson { dbac.createMessage(cid, topic.tid, j) }
+            completeJson { dbac.createMessage(cid, topic.id, j) }
           }
         }
       }

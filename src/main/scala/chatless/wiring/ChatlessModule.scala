@@ -36,6 +36,7 @@ class ChatlessModule(val system: ActorSystem) extends AbstractModule with ScalaM
     bind[ActorSelection].annotatedWith[DbActorSelection] toInstance dbSel
 
     bind[UserDAO].to[SalatUserDAO].asEagerSingleton()
+    bind[TopicDAO].to[SalatTopicDAO].asEagerSingleton()
 
   }
 
