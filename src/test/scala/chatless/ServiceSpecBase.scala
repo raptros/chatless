@@ -9,7 +9,14 @@ import spray.testkit.ScalatestRouteTest
 import scala.concurrent._
 import spray.routing.authentication.UserPass
 
-trait ServiceSpecBase extends ScalatestRouteTest { this: Suite =>
+import org.json4s._
+import org.json4s.JsonDSL._
+import spray.httpx.Json4sSupport
+import chatless.model.JDocSerializer
+
+trait ServiceSpecBase extends ScalatestRouteTest with Json4sSupport { this: Suite =>
+
+  implicit val json4sFormats = DefaultFormats + (new JDocSerializer)
 
   def actorRefFactory = system
 
@@ -32,5 +39,14 @@ trait ServiceSpecBase extends ScalatestRouteTest { this: Suite =>
 
   /** won't ever actually be called for*/
   def dbSel = system.actorSelection("../chatless-service-db")
+
+  def assertContains(res: JObject) = {
+    assert((res \ "contains").extract[Boolean])
+  }
+
+  def assertNotContains(res: JObject) = {
+    assert(!(res \ "contains").extract[Boolean])
+  }
+
 
 }

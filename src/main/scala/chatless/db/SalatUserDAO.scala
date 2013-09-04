@@ -1,0 +1,23 @@
+package chatless.db
+
+import chatless._
+
+import com.novus.salat._
+import com.novus.salat.annotations._
+import com.novus.salat.dao._
+import com.mongodb.casbah.Imports._
+import com.mongodb.casbah.MongoConnection
+import com.google.inject.Inject
+import chatless.wiring.params.UserCollection
+import chatless.model.User
+
+class SalatUserDAO @Inject() (
+    @UserCollection collection: MongoCollection)
+  extends SalatDAO[User, String](collection)
+  with UserDAO {
+
+  def get(id: UserId): Option[User] = findOneById(id)
+
+
+//  def getAsFields(id: UserId, )
+}

@@ -1,6 +1,5 @@
 package chatless.op2
 import chatless._
-import argonaut.Json
 
 sealed trait Specifier
 
@@ -72,13 +71,13 @@ case class SetPublic(public: Boolean)
   with ForTopics
 
 /** applies to users and topics */
-case class UpdateInfo(info: Json)
+case class UpdateInfo(info: Map[String, Any])
   extends UpdateSpec
   with ForUsers with
   ForTopics
 
 /** applies to users. requires a request. */
-case class FollowUser(user: UserId, additional: Option[Json] = None)
+case class FollowUser(user: UserId, additional: Map[String, Any] = Map.empty)
   extends UpdateSpec
   with ForUsers
 
@@ -105,7 +104,7 @@ case class UnblockUser(user: UserId)
   with ForTopics
 
 /** applies to users. requires a request.*/
-case class JoinTopic(topic: TopicId, additional: Option[Json] = None)
+case class JoinTopic(topic: TopicId, additional: Map[String, Any] = Map.empty)
   extends UpdateSpec
   with ForUsers
 
@@ -129,7 +128,7 @@ case class ChangeTitle(title: String)
   extends UpdateSpec
   with ForTopics
 
-case class InviteUser(uid: UserId, additional: Option[Json] = None)
+case class InviteUser(uid: UserId, additional: Map[String, Any] = Map.empty)
   extends UpdateSpec
   with ForTopics
 
@@ -148,6 +147,6 @@ case class DemoteSop(uid: UserId)
 
 sealed abstract class Create extends Specifier
 
-case class CreateMessage(messageJson: Json)
+case class CreateMessage(message: Map[String, Any])
   extends Create
   with ForMessages
