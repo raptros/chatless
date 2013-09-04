@@ -3,7 +3,6 @@ package chatless.services.clientApi
 import chatless._
 import spray.routing._
 import shapeless._
-import chatless.db.DatabaseAccessor
 import akka.actor.ActorRefFactory
 import chatless.services._
 import com.google.inject.Inject
