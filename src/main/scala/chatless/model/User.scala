@@ -8,7 +8,7 @@ case class User(
     @Key("_id") id: UserId,
     nick: String,
     public: Boolean,
-    info: Info,
+    info: JDoc,
     following: Set[UserId],
     followers: Set[UserId],
     blocked: Set[UserId],

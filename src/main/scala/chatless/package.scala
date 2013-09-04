@@ -31,6 +31,12 @@ package object chatless {
 
   type OptPair[+A, +B] = Option[(A, B)]
 
+  import com.novus.salat.{ TypeHintFrequency, StringTypeHintStrategy, Context }
 
+  import chatless.db.JDocStringTransformer
 
+  implicit val ctx = new Context() {
+    val name: String = "chatless"
+    registerCustomTransformer(JDocStringTransformer)
+  }
 }

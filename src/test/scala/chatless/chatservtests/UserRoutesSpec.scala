@@ -6,7 +6,7 @@ import spray.http.StatusCodes
 import chatless._
 import org.scalatest.matchers.ShouldMatchers
 import org.scalamock.scalatest.MockFactory
-import chatless.model.{Info, User}
+import chatless.model.{JDoc, User}
 import chatless.db.UserDAO
 import spray.routing.{HttpService, Directives}
 import chatless.services.clientApi.UserApi
@@ -31,7 +31,7 @@ class UserRoutesSpec
     userId,
     "this user",
     true,
-    new Info(Map.empty[String, Any]),
+    JDoc(),
     Set(id2),
     Set("otherUser"),
     Set("some-blocked"),
@@ -42,7 +42,7 @@ class UserRoutesSpec
     id1,
     "a public user",
     true,
-    new Info(Map.empty[String, Any]),
+    JDoc(),
     Set("otherUser"),
     Set(userId),
     Set("some-blocked"),
@@ -53,7 +53,7 @@ class UserRoutesSpec
     id2,
     "a private user followed",
     false,
-    new Info(Map.empty[String, Any]),
+    JDoc(),
     Set(otherUser1.id),
     Set(fakeCaller.id),
     Set.empty[UserId],
@@ -64,7 +64,7 @@ class UserRoutesSpec
     id3,
     "a private user not followed",
     false,
-    new Info(Map.empty[String, Any]),
+    JDoc(),
     Set(otherUser1.id),
     Set(),
     Set.empty[UserId],

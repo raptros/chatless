@@ -6,7 +6,7 @@ import spray.http.StatusCodes
 import chatless._
 import org.scalatest.matchers.ShouldMatchers
 import org.scalamock.scalatest.MockFactory
-import chatless.model.Topic
+import chatless.model.{JDoc, Topic}
 import chatless.db.TopicDAO
 import spray.routing.{HttpService, Directives}
 import chatless.services.clientApi.TopicApi
@@ -43,9 +43,9 @@ class TopicRoutesSpec
     (topicDao.get(_: TopicId)) expects topic.id repeated times returning Some(topic)
   }
 
-  val topic1 = Topic("topic1", "topic 1", true, JObject(), "topic1op", Set.empty[String], Set("topic1op", userId), Set.empty[String])
+  val topic1 = Topic("topic1", "topic 1", true, JDoc(), "topic1op", Set.empty[String], Set("topic1op", userId), Set.empty[String])
 
-  val topic2 = Topic("topic2", "topic 1", false, JObject(), "topic2op", Set.empty[String], Set("topic2op"), Set.empty[String])
+  val topic2 = Topic("topic2", "topic 1", false, JDoc(), "topic2op", Set.empty[String], Set("topic2op"), Set.empty[String])
 
   "the topic api" when {
     "handling a get request" should {

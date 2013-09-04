@@ -8,7 +8,7 @@ case class Topic(
     @Key("_id") id: TopicId,
     title: String,
     public: Boolean,
-    info: JObject,
+    info: JDoc,
     op: UserId,
     sops: Set[UserId],
     participating: Set[UserId],

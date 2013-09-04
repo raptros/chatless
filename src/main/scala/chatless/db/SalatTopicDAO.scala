@@ -2,7 +2,6 @@ package chatless.db
 import chatless._
 
 import com.novus.salat._
-import com.novus.salat.global._
 import com.novus.salat.annotations._
 import com.novus.salat.dao._
 

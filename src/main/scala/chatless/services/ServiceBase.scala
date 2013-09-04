@@ -15,13 +15,13 @@ import org.json4s.native.JsonMethods._
 import spray.httpx.Json4sSupport
 
 import chatless.responses._
-import chatless.model.InfoSerializer
+import chatless.model.JDocSerializer
 
 trait ServiceBase extends HttpService with Json4sSupport {
   implicit val json4sFormats =
     DefaultFormats ++
     org.json4s.ext.JodaTimeSerializers.all +
-    new InfoSerializer
+    new JDocSerializer
 
     def optionJsonEntity: Directive1[Option[Map[String, Any]]] = extract { c: RequestContext =>
       for {

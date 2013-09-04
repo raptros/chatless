@@ -11,7 +11,7 @@ import scalaz.syntax.std.option._
 import org.scalatest.matchers.ShouldMatchers
 import org.scalamock.scalatest.MockFactory
 import chatless.db.UserDAO
-import chatless.model.{User, Info}
+import chatless.model.{JDoc, User}
 import chatless.services.clientApi.MeApi
 import org.json4s._
 import org.json4s.JsonDSL._
@@ -28,7 +28,7 @@ class MeRoutesSpec
   with MockFactory {
 
 
-  val fakeUser1 = User(userId, "this user", true, new Info(Map("contact?" -> true)),
+  val fakeUser1 = User(userId, "this user", true, JDoc("contact?" -> JBool(true)),
     Set("otherUser"), Set("otherUser"), Set("some-blocked"),
     Set("tid0"), Set("tag0"))
 
@@ -87,7 +87,7 @@ class MeRoutesSpec
       }
       "a get for the info field" in new Fixture1 {
         Get("/me/info") ~>  api ~> check {
-          val res = (entityAs[JObject] \ User.INFO).extract[Info]
+          val res = (entityAs[JObject] \ User.INFO).asInstanceOf[JObject]
           res should equal (fakeUser1.info)
         }
       }
