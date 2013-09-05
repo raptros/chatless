@@ -13,8 +13,9 @@ import chatless.model.Topic
 class SalatTopicDAO @Inject()(
   @TopicCollection collection: MongoCollection)
   extends SalatDAO[Topic, String](collection)
-  with TopicDAO {
+  with TopicDAO
+  with DAOHelpers {
 
-  def get(id: TopicId): Option[Topic] = findOneById(id)
+  def get(id: TopicId) = findOneById(id)
 
 }

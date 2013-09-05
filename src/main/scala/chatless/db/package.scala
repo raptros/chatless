@@ -6,4 +6,5 @@ import chatless.responses.StateError
 package object db {
   type ValidModel[A] = StateError \/ A
 
+  type WriteStat = String \/ Boolean
 }

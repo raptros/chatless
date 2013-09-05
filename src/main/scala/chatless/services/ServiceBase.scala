@@ -8,6 +8,8 @@ import MediaTypes._
 import spray.httpx.encoding.NoEncoding
 import spray.httpx.unmarshalling._
 
+import shapeless._
+import shapeless.Typeable._
 
 import org.json4s._
 import org.json4s.native.JsonMethods._
@@ -15,7 +17,7 @@ import org.json4s.native.JsonMethods._
 import spray.httpx.Json4sSupport
 
 import chatless.responses._
-import chatless.model.JDocSerializer
+import chatless.model.{JDoc, JDocSerializer}
 
 trait ServiceBase extends HttpService with Json4sSupport {
   implicit val json4sFormats =
@@ -23,13 +25,14 @@ trait ServiceBase extends HttpService with Json4sSupport {
     org.json4s.ext.JodaTimeSerializers.all +
     new JDocSerializer
 
-    def optionJsonEntity: Directive1[Option[Map[String, Any]]] = extract { c: RequestContext =>
+    def optionJsonEntity: Directive1[Option[JDoc]] = extract { c: RequestContext =>
       for {
-        ent <- c.request.entity.toOption map { _.asString }
-        js <- parseOpt(ent)
-        m <- js.extractOpt[Map[String, Any]]
-      } yield m
-  }
+        ent <- c.request.entity.toOption
+        str = ent.asString
+        jsv <- parseOpt(str)
+        obj <- jsv.cast[JObject]
+      } yield JDoc(obj.obj)
+    }
 
   def dEntity[A](um: Unmarshaller[A]): Directive1[A] = decodeRequest(NoEncoding) & entity(um)
 
@@ -46,6 +49,9 @@ trait ServiceBase extends HttpService with Json4sSupport {
 
   def setCompletion(pathPairs: (String, Set[String])*): Route = setCompletion(pathPairs.toMap)
 
+  def fromString[T](implicit deser: FromStringDeserializer[T]): Unmarshaller[T] = new Deserializer[HttpEntity, T] {
+    def apply(v1: HttpEntity): Deserialized[T] = BasicUnmarshallers.StringUnmarshaller(v1).right flatMap { deser }
+  }
 
   def handleStateError(se: StateError) = se match {
     case _: UnhandleableMessageError => se complete StatusCodes.InternalServerError

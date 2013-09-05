@@ -6,7 +6,7 @@ import spray.testkit.ScalatestRouteTest
 import spray.routing._
 import chatless._
 import chatless.op2._
-import scalaz.syntax.std.option._
+import scalaz._
 
 import org.scalatest.matchers.ShouldMatchers
 import org.scalamock.scalatest.MockFactory
@@ -19,6 +19,7 @@ import org.json4s.native.JsonMethods._
 import spray.httpx.Json4sSupport
 import spray.httpx.unmarshalling.BasicUnmarshallers._
 import chatless.responses.{BoolR, StringR}
+import spray.http.{StatusCodes, StatusCode}
 
 class MeRoutesSpec
   extends WordSpec
@@ -40,18 +41,16 @@ class MeRoutesSpec
     Directives.dynamic { me.meApi(userId) }
   }
 
-  trait Fixture1 { self =>
-    val userDao = mock[UserDAO]
-    (userDao.get(_: UserId)) expects userId returning Some(fakeUser1)
-    val api = newApi(userDao)
+  trait BaseFixture {
+    val userDao: UserDAO
+    lazy val api = newApi(userDao)
   }
 
-  class Fixture2 (val spec: UpdateSpec with ForUsers) { self =>
-    val dao = mock[UserDAO]
-    val api = newApi(dao)
-    (dao.get(_: UserId)) expects * never()
-    //(dao.updateUser(_: UserId, _: UserId, _: UpdateSpec with ForUsers)) expects(userId, userId, spec, *) once() returning Future.successful(true)
+  trait Fixture1 extends BaseFixture { self =>
+    val userDao = mock[UserDAO]
+    (userDao.get(_: UserId)) expects userId returning Some(fakeUser1)
   }
+
 
   def itReceives = afterWord("it receives")
   def theFieldIs = afterWord("the field is")
@@ -61,7 +60,6 @@ class MeRoutesSpec
       "a get to its base" in new Fixture1 {
         Get("/me") ~>  api ~> check {
           val res = entityAs[JObject]
-          println(res)
           res.extract[User] should be (fakeUser1)
         }
       }
@@ -172,78 +170,58 @@ class MeRoutesSpec
         }
       }
     }
-    /*
-    "hit the database accessor properly" when itReceives {
-      "a PUT to /me/nick" in new Fixture2(ReplaceNick("wark")) {
-        Put("/me/nick", "wark") ~> api ~> check {
-          entityAs[Boolean] should be (true)
+  }
+
+  trait NickFixture1 extends BaseFixture {
+    val userDao = mock[UserDAO]
+    (userDao.setNick(_: UserId, _: String)) expects(userId, *) returning \/-(true)
+  }
+
+  trait NickFixture2 extends BaseFixture {
+    val userDao = mock[UserDAO]
+    (userDao.setNick(_: UserId, _: String)) expects(userId, *) returning \/-(true)
+  }
+
+  trait NickFixture3 extends BaseFixture {
+    val userDao = mock[UserDAO]
+    (userDao.setNick(_: UserId, _: String)) expects(userId, *) returning \/-(false)
+  }
+
+  trait PublicFixture1 extends BaseFixture {
+    val userDao = mock[UserDAO]
+    (userDao.setPublic(_: UserId, _: Boolean)) expects(userId, *) returning \/-(true)
+  }
+
+  trait PublicFixture2 extends BaseFixture {
+    val userDao = mock[UserDAO]
+    (userDao.setPublic(_: UserId, _: Boolean)) expects(*, *) never()
+  }
+
+  "the /me/ api" when itReceives {
+    "a PUT to /me/nick" should {
+      "update the userDao correctly" in new NickFixture1 {
+        Put("/me/nick/", "heyListen") ~> api ~> check { }
+      }
+      "generate an event if the userDao says an update occured" in new NickFixture2 {
+        (pending)
+        Put("/me/nick/", "heyListen") ~> api ~> check { }
+      }
+      "not generate an event if the userDao says no update occurred" in new NickFixture3 {
+        (pending)
+        Put("/me/nick/", "heyListen") ~> api ~> check { }
+      }
+    }
+    "a PUT to /me/public" should {
+      "update the userDao correctly for valid args" in new PublicFixture1 {
+        Put("/me/public", true) ~> api ~> check {
         }
       }
-      "a put to /me/public" in new Fixture2(SetPublic(false)) {
-        Put("/me/public", false) ~> api ~> check {
-          entityAs[Boolean] should be (true)
+      "not update the userDao for badly formed args" in new PublicFixture2 {
+        Put("/me/public", "antsg") ~> HttpService.sealRoute(api) ~> check {
+          println(response)
+          status === StatusCodes.BadRequest
         }
       }
-      "a put to /me/info" in new Fixture2(UpdateInfo(("place"  "testing") ->: jEmptyObject)) {
-        Put("/me/info", spec.asInstanceOf[UpdateInfo].info.nospaces) ~> api ~> check {
-          entityAs[Boolean] should be (true)
-        }
-      }
-      "a put to /me/following/:id" in new Fixture2(FollowUser("user2")) {
-        Put("/me/following/user2") ~> api ~> check {
-          entityAs[Boolean] should be (true)
-        }
-      }
-      "a put to /me/following/:id with a payload" in new Fixture2(FollowUser("user2", Some(("place" := "testing") ->: jEmptyObject))) {
-        Put("/me/following/user2", spec.asInstanceOf[FollowUser].additional.get.nospaces) ~> api ~> check {
-          entityAs[Boolean] should be (true)
-        }
-      }
-      "a delete to /me/following/:id" in new Fixture2(UnfollowUser("user2")) {
-        Delete("/me/following/user2") ~> api ~> check {
-          entityAs[Boolean] should be (true)
-        }
-      }
-      "a delete to /me/followers/:id" in new Fixture2(RemoveFollower("user2")) {
-        Delete("/me/followers/user2") ~> api ~> check {
-          entityAs[Boolean] should be (true)
-        }
-      }
-      "a put to /me/blocked/:id" in new Fixture2(BlockUser("someuser2")) {
-        Put("/me/blocked/someuser2") ~> api ~> check {
-          entityAs[Boolean] should be (true)
-        }
-      }
-      "a delete to /me/blocked/:id" in new Fixture2(UnblockUser("someuser2")) {
-        Delete("/me/blocked/someuser2") ~> api ~> check {
-          entityAs[Boolean] should be (true)
-        }
-      }
-      "a put to /me/topics/:id" in new Fixture2(JoinTopic("topic2")) {
-        Put("/me/topics/topic2") ~> api ~> check {
-          entityAs[Boolean] should be (true)
-        }
-      }
-      "a put to /me/topics/:id with a payload" in new Fixture2(JoinTopic("topic2", Some(("place" := "testing") ->: jEmptyObject))) {
-        Put("/me/topics/topic2", spec.asInstanceOf[JoinTopic].additional.get.nospaces) ~> api ~> check {
-          entityAs[Boolean] should be (true)
-        }
-      }
-      "a delete to /me/topics/:id" in new Fixture2(LeaveTopic("topic2")) {
-        Delete("/me/topics/topic2") ~> api ~> check {
-          entityAs[Boolean] should be (true)
-        }
-      }
-      "a put to /me/tags/:tag" in new Fixture2(AddTag("tag2")) {
-        Put("/me/tags/tag2") ~> api ~> check {
-          entityAs[Boolean] should be (true)
-        }
-      }
-      "a delete to /me/tags/:tag" in new Fixture2(RemoveTag("tag2")) {
-        Delete("/me/tags/tag2") ~> api ~> check {
-          entityAs[Boolean] should be (true)
-        }
-      }
-    }*/
+    }
   }
 }

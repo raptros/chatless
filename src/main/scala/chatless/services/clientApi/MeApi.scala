@@ -105,25 +105,27 @@ trait MeApi extends ServiceBase {
   }
 
   private val replaceFields: CallerRoute = cid => put {
-    path(User.NICK / PathEnd) {
-      dEntity(as[String]) { v =>
-        complete {
-          "no"
+    decodeRequest(NoEncoding) {
+      path(User.NICK / PathEnd) {
+        entity(as[String]) { v =>
+          complete {
+            userDao.setNick(cid, v)
+          }
         }
-      }
-    } ~ path(User.PUBLIC / PathEnd) {
-      dEntity(as[Boolean]) { v =>
-        complete {
-          "no"
+      } ~ path(User.PUBLIC / PathEnd) {
+        entity(fromString[Boolean]) { v =>
+          complete {
+            userDao.setPublic(cid, v)
+          }
         }
-      }
-    } ~ path(User.INFO / PathEnd) {
-      optionJsonEntity {
-        case Some(m) => complete {
-          StringR("no") 
-        }
-        case None => complete {
-          400 -> "need a json object here" 
+      } ~ path(User.INFO / PathEnd) {
+        optionJsonEntity {
+          case Some(m) => complete {
+            userDao.setInfo(cid, m)
+          }
+          case None => complete {
+            400 -> "need a json object here"
+          }
         }
       }
     }
@@ -141,7 +143,7 @@ trait MeApi extends ServiceBase {
         "whatever"
       }
     } ~ path(User.TOPICS / Segment / PathEnd) { t: TopicId =>
-      optionJsonEntity { m: Option[Map[String, Any]] =>
+      optionJsonEntity { m: Option[JDoc] =>
         complete {
           "whatever"
         }

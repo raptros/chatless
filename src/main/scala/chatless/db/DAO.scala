@@ -1,21 +1,19 @@
 package chatless.db
-import chatless._
-import chatless.model._
+
+import com.mongodb.casbah.Imports._
 
 trait DAO {
   type ID
   type Model
 
   def get(id: ID): Option[Model]
+
+  def setOneField[A: Manifest : AsQueryParam](id: ID, field: String, newVal: A): WriteStat
+  def addToSet[A : Manifest : AsQueryParam](id: ID, field: String, newItem: A): WriteStat
+  def removeFromSet[A : Manifest : AsQueryParam](id: ID, field: String, oldItem: A): WriteStat
+
 }
 
-trait UserDAO extends DAO {
-  type ID = UserId
-  type Model = User
-  def get(id: UserId): Option[User]
-}
 
-trait TopicDAO extends DAO {
-  type ID = TopicId
-  type Model = Topic
-}
+
+
