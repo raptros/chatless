@@ -13,6 +13,7 @@ import chatless.services.clientApi.UserApi
 import org.json4s._
 import org.json4s.native.JsonMethods._
 import spray.httpx.Json4sSupport
+import akka.event.Logging
 
 class UserRoutesSpec
   extends WordSpec
@@ -78,6 +79,7 @@ class UserRoutesSpec
     val userDao = mock[UserDAO]
     (userDao.get(_: UserId)) expects targetOther.id repeated count returning Some(targetOther)
     val userApi = new UserApi {
+      val log = Logging(system, "userApi in UserRoutesSpec")
       val userDao = self.userDao
       override val actorRefFactory = system
     }

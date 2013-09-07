@@ -10,12 +10,14 @@ import chatless.services.clientApi._
 import scalaz.syntax.semigroup._
 import chatless.db.{TopicDAO, UserDAO}
 import scalaz.std.function._
+import akka.actor.ActorLogging
 
 /** this is the actor for the chatless service. */
 class ClientApiActor @Inject() (
     val userDao: UserDAO,
     val topicDao: TopicDAO)
   extends HttpServiceActor
+  with ActorLogging
   with AllApis {
 
   val callerRoutes: List[CallerRoute] =

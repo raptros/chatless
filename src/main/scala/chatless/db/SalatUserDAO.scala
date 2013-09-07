@@ -17,8 +17,8 @@ import scalaz.syntax.id._
 class SalatUserDAO @Inject() (
     @UserCollection collection: MongoCollection)
   extends SalatDAO[User, String](collection)
-  with DAOHelpers
-  with UserDAO {
+  with UserDAO
+  with DAOHelpers {
 
   def get(id: UserId) = findOneById(id)
 

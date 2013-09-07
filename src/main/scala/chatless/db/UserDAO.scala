@@ -8,8 +8,6 @@ trait UserDAO extends DAO {
   type ID = UserId
   type Model = User
 
-  implicit val idAsQueryParam: AsQueryParam[ID] = AsQueryParam[String]
-
   def setNick(id: UserId, nick: String) = setOneField(id, User.NICK, nick)
 
   def setPublic(id: UserId, public: Boolean) = setOneField(id, User.PUBLIC, public)

@@ -20,21 +20,22 @@ import spray.httpx.Json4sSupport
 import spray.httpx.unmarshalling.BasicUnmarshallers._
 import chatless.responses.{BoolR, StringR}
 import spray.http.{StatusCodes, StatusCode}
+import akka.event.{LoggingAdapter, Logging}
 
 class MeRoutesSpec
   extends WordSpec
   with ScalatestRouteTest
   with ServiceSpecBase
   with ShouldMatchers
-  with MockFactory {
-
+  with MockFactory { self =>
 
   val fakeUser1 = User(userId, "this user", true, JDoc("contact?" -> JBool(true)),
     Set("otherUser"), Set("otherUser"), Set("some-blocked"),
     Set("tid0"), Set("tag0"))
 
   def newApi(dao: UserDAO) = {
-    val me = new MeApi {
+    val me = new MeApi { api =>
+      val log: LoggingAdapter = Logging(system, "meApi in MeRoutesSpec")
       val userDao = dao
       val actorRefFactory = system
     }
@@ -121,104 +122,120 @@ class MeRoutesSpec
       }
       "a query: following contains a user that is followed" in new Fixture1 {
         Get("/me/following/otherUser") ~>  api ~> check {
-          assertContains(entityAs[JObject])
+          status === StatusCodes.NoContent
         }
       }
       "a query: following contains a user that is not followed" in new Fixture1 {
         Get("/me/following/fakeUser") ~>  api ~> check {
-          assertNotContains(entityAs[JObject])
+          status === StatusCodes.NotFound
         }
       }
       "a query: followers contains a user that is following" in new Fixture1 {
         Get("/me/followers/otherUser") ~>  api ~> check {
-          assertContains(entityAs[JObject])
+          status === StatusCodes.NoContent
         }
       }
       "a query: followers contains a user that is not following" in new Fixture1 {
         Get("/me/followers/fakeUser") ~>  api ~> check {
-          assertNotContains(entityAs[JObject])
+          status === StatusCodes.NotFound
         }
       }
       "a query: blocked contains a user that is blocked" in new Fixture1 {
         Get("/me/blocked/some-blocked") ~>  api ~> check {
-          assertContains(entityAs[JObject])
+          status === StatusCodes.NoContent
         }
       }
       "a query: blocked contains a user that is not blocked" in new Fixture1 {
         Get("/me/blocked/fakeUser") ~>  api ~> check {
-          assertNotContains(entityAs[JObject])
+          status === StatusCodes.NotFound
         }
       }
       "a query: topics contains a topic that user does participate in" in new Fixture1 {
         Get("/me/topics/tid0") ~>  api ~> check {
-          assertContains(entityAs[JObject])
+          status === StatusCodes.NoContent
         }
       }
       "a query: topics contains a topic that user does not participate in" in new Fixture1 {
         Get("/me/topics/fakeTopic") ~>  api ~> check {
-          assertNotContains(entityAs[JObject])
+          status === StatusCodes.NotFound
         }
       }
       "a query: tags contains a tracked tag" in new Fixture1 {
         Get("/me/tags/tag0") ~>  api ~> check {
-          assertContains(entityAs[JObject])
+          status === StatusCodes.NoContent
         }
       }
       "a query: tags contains an untracked tagged" in new Fixture1 {
         Get("/me/tags/fakeTag") ~>  api ~> check {
-          assertNotContains(entityAs[JObject])
+          status === StatusCodes.NotFound
         }
       }
     }
   }
 
-  trait NickFixture1 extends BaseFixture {
+  trait Fixture2 extends BaseFixture {
     val userDao = mock[UserDAO]
-    (userDao.setNick(_: UserId, _: String)) expects(userId, *) returning \/-(true)
-  }
-
-  trait NickFixture2 extends BaseFixture {
-    val userDao = mock[UserDAO]
-    (userDao.setNick(_: UserId, _: String)) expects(userId, *) returning \/-(true)
-  }
-
-  trait NickFixture3 extends BaseFixture {
-    val userDao = mock[UserDAO]
-    (userDao.setNick(_: UserId, _: String)) expects(userId, *) returning \/-(false)
-  }
-
-  trait PublicFixture1 extends BaseFixture {
-    val userDao = mock[UserDAO]
-    (userDao.setPublic(_: UserId, _: Boolean)) expects(userId, *) returning \/-(true)
-  }
-
-  trait PublicFixture2 extends BaseFixture {
-    val userDao = mock[UserDAO]
-    (userDao.setPublic(_: UserId, _: Boolean)) expects(*, *) never()
   }
 
   "the /me/ api" when itReceives {
     "a PUT to /me/nick" should {
-      "update the userDao correctly" in new NickFixture1 {
-        Put("/me/nick/", "heyListen") ~> api ~> check { }
+      "update the userDao correctly" in new Fixture2 {
+        (userDao.setNick(_: UserId, _: String)) expects(userId, *) returning \/-(true)
+        Put("/me/nick/", "heyListen") ~> api ~> check {
+          status === StatusCodes.NoContent
+          header("x-chatless-updated").nonEmpty
+        }
       }
-      "generate an event if the userDao says an update occured" in new NickFixture2 {
+      "generate an event if the userDao says an update occured" in new Fixture2 {
         (pending)
-        Put("/me/nick/", "heyListen") ~> api ~> check { }
+        (userDao.setNick(_: UserId, _: String)) expects(userId, *) returning \/-(true)
+        Put("/me/nick/", "heyListen") ~> api ~> check {
+          status === StatusCodes.NoContent
+          header("x-chatless-updated").nonEmpty
+        }
       }
-      "not generate an event if the userDao says no update occurred" in new NickFixture3 {
+      "not generate an event if the userDao says no update occurred" in new Fixture2 {
         (pending)
-        Put("/me/nick/", "heyListen") ~> api ~> check { }
+        (userDao.setNick(_: UserId, _: String)) expects(userId, *) returning \/-(false)
+        Put("/me/nick/", "heyListen") ~> api ~> check {
+          status === StatusCodes.NoContent
+          header("x-chatless-updated").isEmpty
+        }
       }
     }
     "a PUT to /me/public" should {
-      "update the userDao correctly for valid args" in new PublicFixture1 {
+      "update the userDao correctly for valid args" in new Fixture2 {
+        (userDao.setPublic(_: UserId, _: Boolean)) expects(userId, *) returning \/-(true)
         Put("/me/public", true) ~> api ~> check {
+          status === StatusCodes.NoContent
+          header("x-chatless-updated").nonEmpty
         }
       }
-      "not update the userDao for badly formed args" in new PublicFixture2 {
+      "not update the userDao for badly formed args" in new Fixture2 {
+        (userDao.setPublic(_: UserId, _: Boolean)) expects(*, *) never()
         Put("/me/public", "antsg") ~> HttpService.sealRoute(api) ~> check {
-          println(response)
+          status === StatusCodes.BadRequest
+        }
+      }
+    }
+    "a put to /me/info" should {
+      "update the userDao for correctly formed json" in new Fixture2 {
+        val jStr = JDoc("hi" -> JBool(true), "also" -> JArray(JBool(true) :: JInt(34) :: Nil))
+        (userDao.setInfo(_: UserId, _: JDoc)) expects (userId, jStr) returning \/-(true) once()
+        Put("/me/info", jStr) ~> api ~> check {
+          status === StatusCodes.NoContent
+          header("x-chatless-updated").nonEmpty
+        }
+      }
+      "reject any badly formed json" in new Fixture2 {
+        (userDao.setInfo(_: UserId, _: JDoc)) expects (*, *) never()
+        Put("/me/info", """{"hi": "bye", """) ~> HttpService.sealRoute(api) ~> check {
+          status === StatusCodes.BadRequest
+        }
+      }
+      "reject when the body is empty" in new Fixture2 {
+        (userDao.setInfo(_: UserId, _: JDoc)) expects (*, *) never()
+        Put("/me/info", """{"hi": "bye", """) ~> HttpService.sealRoute(api) ~> check {
           status === StatusCodes.BadRequest
         }
       }

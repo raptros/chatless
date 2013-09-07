@@ -8,9 +8,9 @@ trait DAO {
 
   def get(id: ID): Option[Model]
 
-  def setOneField[A: Manifest : AsQueryParam](id: ID, field: String, newVal: A): WriteStat
-  def addToSet[A : Manifest : AsQueryParam](id: ID, field: String, newItem: A): WriteStat
-  def removeFromSet[A : Manifest : AsQueryParam](id: ID, field: String, oldItem: A): WriteStat
+  def setOneField[ID2: AsQueryParam, A: Manifest : AsQueryParam](id: ID2, field: String, newVal: A): WriteStat
+  def addToSet[ID2: AsQueryParam, A : Manifest : AsQueryParam](id: ID2, field: String, newItem: A): WriteStat
+  def removeFromSet[ID2: AsQueryParam, A : Manifest : AsQueryParam](id: ID2, field: String, oldItem: A): WriteStat
 
 }
 
