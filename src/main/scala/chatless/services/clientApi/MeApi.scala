@@ -31,7 +31,9 @@ import chatless.responses.{BoolR, StringR, UserNotFoundError}
 import org.json4s._
 import org.json4s.native.JsonMethods._
 import org.json4s.JsonDSL._
+import org.json4s.native.Serialization.write
 import akka.actor.ActorLogging
+import chatless.events.model.{Delta, UserDeltas}
 
 trait MeApi extends ServiceBase {
 
@@ -78,18 +80,22 @@ trait MeApi extends ServiceBase {
     }
   }
 
+  private def logDelta(delta: Delta) {
+    log.info("meApi: delta {}", write(delta))
+  }
+
   private def setNick(cid: UserId, newNick: String) = validate(!newNick.isEmpty, "invalid nick") {
     completeDBOp(userDao.setNick(cid, newNick)) {
-      log.info("meApi: updated nick to {} for user {}", newNick, cid)
+      logDelta(UserDeltas.SetNick(cid, newNick))
     }
   }
 
   private def setPublic(cid: UserId, v: Boolean) = completeDBOp(userDao.setPublic(cid, v)) {
-    log.info("meApi: updated public to {} for user {}", v, cid)
+    logDelta(UserDeltas.SetPublic(cid, v))
   }
 
   private def setInfo(cid: UserId, v: JObject) = completeDBOp(userDao.setInfo(cid, JDoc(v.obj))) {
-    log.info("meApi: updated info to {} for user {}", compact(render(v)), cid)
+    logDelta(UserDeltas.SetInfo(cid, JDoc(v.obj)))
   }
 
   private def followUser(cid: UserId, uid: UserId) =

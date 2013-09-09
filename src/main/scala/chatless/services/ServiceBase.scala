@@ -41,10 +41,7 @@ trait ServiceBase extends HttpService with Json4sSupport {
 
   val log: LoggingAdapter
 
-  implicit val json4sFormats =
-    DefaultFormats ++
-      org.json4s.ext.JodaTimeSerializers.all +
-      new JDocSerializer
+  implicit val json4sFormats = chatless.json4sFormats
 
   def optionJsonEntity: Directive1[Option[JDoc]] = extract { c: RequestContext =>
     for {

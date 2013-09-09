@@ -17,6 +17,7 @@ import org.json4s._
 import org.json4s.JsonDSL._
 import org.json4s.native.JsonMethods._
 import spray.httpx.Json4sSupport
+import spray.httpx.marshalling.BasicMarshallers._
 import spray.httpx.unmarshalling.BasicUnmarshallers._
 import chatless.responses.{BoolR, StringR}
 import spray.http.{StatusCodes, StatusCode}
@@ -180,7 +181,7 @@ class MeRoutesSpec
   "the /me/ api" when itReceives {
     "a PUT to /me/nick" should {
       "update the userDao correctly" in new Fixture2 {
-        (userDao.setNick(_: UserId, _: String)) expects(userId, *) returning \/-(true)
+        (userDao.setNick(_: UserId, _: String)) expects(userId, "heyListen") returning \/-(true)
         Put("/me/nick/", "heyListen") ~> api ~> check {
           status === StatusCodes.NoContent
           header("x-chatless-updated").nonEmpty
@@ -188,7 +189,7 @@ class MeRoutesSpec
       }
       "generate an event if the userDao says an update occured" in new Fixture2 {
         (pending)
-        (userDao.setNick(_: UserId, _: String)) expects(userId, *) returning \/-(true)
+        (userDao.setNick(_: UserId, _: String)) expects(userId, "heyListen") returning \/-(true)
         Put("/me/nick/", "heyListen") ~> api ~> check {
           status === StatusCodes.NoContent
           header("x-chatless-updated").nonEmpty

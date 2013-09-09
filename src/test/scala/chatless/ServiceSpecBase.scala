@@ -37,16 +37,5 @@ trait ServiceSpecBase extends ScalatestRouteTest with Json4sSupport { this: Suit
 
   def addCreds = addCredentials(BasicHttpCredentials(userId, password))
 
-  /** won't ever actually be called for*/
-  def dbSel = system.actorSelection("../chatless-service-db")
-
-  def assertContains(res: JObject) = {
-    assert((res \ "contains").extract[Boolean])
-  }
-
-  def assertNotContains(res: JObject) = {
-    assert(!(res \ "contains").extract[Boolean])
-  }
-
 
 }

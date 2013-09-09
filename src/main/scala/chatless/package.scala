@@ -39,4 +39,14 @@ package object chatless {
     val name: String = "chatless"
     registerCustomTransformer(JDocStringTransformer)
   }
+
+  import org.json4s._
+  import chatless.model.JDocSerializer
+  import chatless.events.model.ActionSerializer
+
+  implicit val json4sFormats =
+    DefaultFormats ++
+      org.json4s.ext.JodaTimeSerializers.all +
+      new JDocSerializer +
+      new ActionSerializer
 }
