@@ -12,17 +12,27 @@ trait TopicDAO extends DAO {
 
   def setPublic(id: TopicId, public: Boolean) = setOneField(id, Topic.PUBLIC, public)
 
+  def setMuted(id: TopicId, muted: Boolean) = setOneField(id, Topic.MUTED, muted)
+
   def setInfo(id: TopicId, info: JDoc) = setOneField(id, Topic.INFO, JDocStringTransformer.serialize(info))
 
   def setOp(id: TopicId, op: UserId) = setOneField(id, Topic.OP, op)
 
-  def addSOp(id: TopicId, sop: UserId) = addToSet(id, Topic.SOPS, sop)
+  def addSop(id: TopicId, sop: UserId) = addToSet(id, Topic.SOPS, sop)
 
   def removeSop(id: TopicId, sop: UserId) = removeFromSet(id, Topic.SOPS, sop)
+
+  def addVoiced(id: TopicId, voiced: UserId) = addToSet(id, Topic.VOICED, voiced)
+
+  def removeVoiced(id: TopicId, voiced: UserId) = removeFromSet(id, Topic.VOICED, voiced)
 
   def addParticipant(id: TopicId, part: UserId) = addToSet(id, Topic.PARTICIPATING, part)
 
   def removeParticipant(id: TopicId, part: UserId) = removeFromSet(id, Topic.PARTICIPATING, part)
+
+  def addBanned(id: TopicId, banned: UserId) = addToSet(id, Topic.BANNED, banned)
+
+  def removeBanned(id: TopicId, banned: UserId) = removeFromSet(id, Topic.BANNED, banned)
 
   def addTag(id: TopicId, tag: String) = addToSet(id, Topic.TAGS, tag)
 

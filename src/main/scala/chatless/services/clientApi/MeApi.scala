@@ -33,7 +33,7 @@ import org.json4s.native.JsonMethods._
 import org.json4s.JsonDSL._
 import org.json4s.native.Serialization.write
 import akka.actor.ActorLogging
-import chatless.events.model.{Delta, UserDeltas}
+import scalaz._
 
 trait MeApi extends ServiceBase {
 
@@ -80,22 +80,15 @@ trait MeApi extends ServiceBase {
     }
   }
 
-  private def logDelta(delta: Delta) {
-    log.info("meApi: delta {}", write(delta))
-  }
-
   private def setNick(cid: UserId, newNick: String) = validate(!newNick.isEmpty, "invalid nick") {
     completeDBOp(userDao.setNick(cid, newNick)) {
-      logDelta(UserDeltas.SetNick(cid, newNick))
     }
   }
 
   private def setPublic(cid: UserId, v: Boolean) = completeDBOp(userDao.setPublic(cid, v)) {
-    logDelta(UserDeltas.SetPublic(cid, v))
   }
 
   private def setInfo(cid: UserId, v: JObject) = completeDBOp(userDao.setInfo(cid, JDoc(v.obj))) {
-    logDelta(UserDeltas.SetInfo(cid, JDoc(v.obj)))
   }
 
   private def followUser(cid: UserId, uid: UserId) =
@@ -104,6 +97,12 @@ trait MeApi extends ServiceBase {
         StringR("whatever")
       }
     }
+
+  private def runBlockUser(cid: UserId, uid: UserId) = for {
+    update0 <- userDao.addBlocked(cid, uid)
+    update1 <- if (update0) userDao.removeFollower(cid, uid) else \/-(false)
+    update2 <- if (update1) userDao.removeFollowing(uid, cid) else \/-(false)
+  } yield true
 
   private def blockUser(cid: UserId, uid: UserId) = complete {
     "watever"
