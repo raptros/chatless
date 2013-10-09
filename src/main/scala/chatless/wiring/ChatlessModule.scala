@@ -19,6 +19,7 @@ class ChatlessModule(val system: ActorSystem) extends AbstractModule with ScalaM
     val chatlessDb = mc("chatless")
     val userCollection = chatlessDb("users")
     val topicCollection = chatlessDb("topics")
+    val eventCollection = chatlessDb("events")
 
     val timeout = 5.seconds
 
@@ -29,6 +30,7 @@ class ChatlessModule(val system: ActorSystem) extends AbstractModule with ScalaM
     bind[MongoDB].annotatedWith[ChatlessDb] toInstance chatlessDb
     bind[MongoCollection].annotatedWith[UserCollection] toInstance userCollection
     bind[MongoCollection].annotatedWith[TopicCollection] toInstance topicCollection
+    bind[MongoCollection].annotatedWith[EventCollection] toInstance eventCollection
 
     bind[ActorRefFactory] toInstance system
 
@@ -37,7 +39,7 @@ class ChatlessModule(val system: ActorSystem) extends AbstractModule with ScalaM
 
     bind[UserDAO].to[SalatUserDAO].asEagerSingleton()
     bind[TopicDAO].to[SalatTopicDAO].asEagerSingleton()
-
+    bind[EventDAO].to[SalatEventDAO].asEagerSingleton()
   }
 
 

@@ -3,6 +3,7 @@ import chatless._
 import com.mongodb.casbah.Imports._
 import chatless.model._
 import scalaz._
+import org.joda.time.DateTime
 
 trait EventDAO {
   def get(id: EventId): Option[Event]
@@ -21,4 +22,5 @@ trait EventDAO {
 
   def after(user: User, id: EventId, count: Int = 1) = rq(user, Some(id), true, false, count)
 
+  def oldestKnownEventTime: Option[DateTime]
 }

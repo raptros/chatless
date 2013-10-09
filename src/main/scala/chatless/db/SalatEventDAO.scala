@@ -1,8 +1,6 @@
 package chatless.db
 import chatless._
 
-import com.novus.salat._
-import com.novus.salat.annotations._
 import com.novus.salat.dao._
 
 import com.google.inject.Inject
@@ -12,7 +10,7 @@ import chatless.wiring.params.EventCollection
 import scalaz._
 import scalaz.syntax.id._
 import scalaz.syntax.std.option._
-import com.mongodb.casbah.Imports
+import org.joda.time.DateTime
 
 class SalatEventDAO @Inject()(
     @EventCollection collection: MongoCollection)
@@ -34,7 +32,6 @@ class SalatEventDAO @Inject()(
     case (false, false) => "_id" $lt id
   }
 
-
   def rq(user: User, id: Option[String], forward: Boolean, inclusive: Boolean, count: Int): Iterable[Event] = {
     val filterQ = $or(
       $and(
@@ -51,6 +48,8 @@ class SalatEventDAO @Inject()(
     cursor.toIterable
   }
 
+  def oldestKnownEventTime = primitiveProjection[DateTime]("timestamp" $exists true, "timestamp")
+
 
   def setup() {
     if (!collection.underlying.isCapped) {
@@ -58,6 +57,7 @@ class SalatEventDAO @Inject()(
     }
     collection.ensureIndex("kind")
     //todo make some sparse indexes
+    collection.ensureIndex("timestamp")
     collection.ensureIndex("uid")
     collection.ensureIndex("tid")
   }
