@@ -60,12 +60,45 @@ class TopicRoutesSpec
   class Fixture2(op: String, sops: Set[String], participants: Set[String]) extends Fixture {
     val tid = "testTopic"
     val topicDao = mock[TopicDAO]
-    val topic = Topic(tid, "topic 1", true, JDoc(), op, sops, participants, Set.empty[String])
+    val topic = Topic(
+      id = tid,
+      title = "topic 1",
+      public = true,
+      muted = false,
+      info = JDoc(),
+      op = op,
+      sops = sops,
+      voiced = Set.empty[String],
+      participating = participants,
+      banned = Set.empty[String],
+      tags = Set.empty[String])
   }
 
-  val topic1 = Topic("topic1", "topic 1", true, JDoc(), "topic1op", Set.empty[String], Set("topic1op", userId), Set.empty[String])
+  val topic1 = Topic(
+    id = "topic1",
+    title = "topic 1",
+    public = true,
+    muted = false,
+    info = JDoc(),
+    op = "topic1op",
+    sops = Set.empty[String],
+    voiced = Set.empty[String],
+    participating = Set("topic1op", userId),
+    banned = Set.empty[String],
+    tags = Set.empty[String])
 
-  val topic2 = Topic("topic2", "topic 1", false, JDoc(), "topic2op", Set.empty[String], Set("topic2op"), Set.empty[String])
+  val topic2 = Topic(
+    id = "topic2",
+    title = "topic 1",
+    public = false,
+    muted = false,
+    info = JDoc(),
+    op = "topic2op",
+    sops = Set.empty[String],
+    voiced = Set.empty[String],
+    participating = Set("topic2op"),
+    banned = Set.empty[String],
+    tags = Set.empty[String])
 
   "the topic api" when {
     "handling a get request" should {
