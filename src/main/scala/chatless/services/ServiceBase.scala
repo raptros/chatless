@@ -23,7 +23,7 @@ import org.json4s.native.JsonMethods._
 import spray.httpx.Json4sSupport
 
 import chatless.responses._
-import chatless.model.{JDoc, JDocSerializer}
+import chatless.model.{JDoc}
 import chatless.db.WriteStat
 import spray.http.HttpHeaders.RawHeader
 import akka.event.LoggingAdapter

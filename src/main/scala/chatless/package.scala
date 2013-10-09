@@ -1,3 +1,4 @@
+import chatless.model.js.{JDocSerializer, ActionSerializer}
 import org.joda.time.DateTime
 
 package object chatless {
@@ -8,10 +9,11 @@ package object chatless {
   import spray.httpx.marshalling._
 
   type UserId = String
-  type MessageId = String
   type TopicId = String
-  type EventId = String
   type RequestId = String
+
+  type EventId = String
+  type MessageId = String
 
   implicit class TryToConv[A](attempt: Try[A]) {
     trait FailureConv[B] {
@@ -38,15 +40,12 @@ package object chatless {
   implicit val ctx = new Context() {
     val name: String = "chatless"
     registerCustomTransformer(JDocStringTransformer)
+    com.mongodb.casbah.commons.conversions.scala.RegisterJodaTimeConversionHelpers()
   }
 
   import org.json4s._
-  import chatless.model.JDocSerializer
-  import chatless.events.model.ActionSerializer
+  import chatless.model.js.formats
 
-  implicit val json4sFormats =
-    DefaultFormats ++
-      org.json4s.ext.JodaTimeSerializers.all +
-      new JDocSerializer +
-      new ActionSerializer
+  implicit val json4sFormats = formats ++ org.json4s.ext.JodaTimeSerializers.all
+
 }

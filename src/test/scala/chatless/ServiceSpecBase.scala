@@ -12,7 +12,7 @@ import spray.routing.authentication.UserPass
 import org.json4s._
 import org.json4s.JsonDSL._
 import spray.httpx.Json4sSupport
-import chatless.model.JDocSerializer
+import chatless.model.js.JDocSerializer
 
 trait ServiceSpecBase extends ScalatestRouteTest with Json4sSupport { this: Suite =>
 

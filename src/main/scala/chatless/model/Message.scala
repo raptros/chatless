@@ -8,7 +8,7 @@ case class Message(
     tid: TopicId,
     uid: UserId,
     timestamp: DateTime,
-    body: Map[String, Any])
+    body: JDoc)
 
 object Message {
   val MID = "mid"
