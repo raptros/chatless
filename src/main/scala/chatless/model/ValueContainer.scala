@@ -13,6 +13,17 @@ sealed trait ValueContainer {
   def value: V
 }
 
+object ValueContainer {
+  def apply[A](a: A): ValueContainer = a match {
+    case b: Boolean => BooleanVC(b)
+    case s: String => StringVC(s)
+    case j: JDoc => JDocVC(j)
+    case m: Message => MessageVC(m)
+    case t: Topic => TopicVC(t)
+    case _ => FailedVC
+  }
+}
+
 case object FailedVC extends ValueContainer {
   def isEmpty = true
   type V = Nothing

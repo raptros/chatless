@@ -50,7 +50,7 @@ libraryDependencies ++= Seq(
   "org.mongodb" %% "casbah" % "2.6.2",
   "org.scalaz" %% "scalaz-core" % "7.0.2",
   "com.chuusai" %% "shapeless" % "1.2.4",
-  "com.novus" %% "salat" % "1.9.3-SNAPSHOT",
+  "com.novus" %% "salat" % "1.9.3",
   "ch.qos.logback" % "logback-classic" % "1.0.7",
   "net.codingwell" %% "scala-guice" % "4.0.0-beta",
   "com.google.inject.extensions" % "guice-assistedinject" % "4.0-beta"

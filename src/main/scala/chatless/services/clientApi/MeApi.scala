@@ -80,8 +80,12 @@ trait MeApi extends ServiceBase {
     }
   }
 
+  def mkEvent[A](action: Action.Value, id: UserId, field: String, value: A) =
+    Event(kind = EventKind.USER_UPDATE, action = action, uid = Some(id), field = Some(field), value = ValueContainer(value))
+
   private def setNick(cid: UserId, newNick: String) = validate(!newNick.isEmpty, "invalid nick") {
     completeDBOp(userDao.setNick(cid, newNick)) {
+      val ev = mkEvent(Action.REPLACE,cid, User.NICK, newNick)
     }
   }
 
@@ -98,11 +102,15 @@ trait MeApi extends ServiceBase {
       }
     }
 
-  private def runBlockUser(cid: UserId, uid: UserId) = for {
+  private def runBlockUser(cid: UserId, uid: UserId): String \/ List[Event] = for {
     update0 <- userDao.addBlocked(cid, uid)
     update1 <- if (update0) userDao.removeFollower(cid, uid) else \/-(false)
     update2 <- if (update1) userDao.removeFollowing(uid, cid) else \/-(false)
-  } yield true
+  } yield update0 ?? mkEvent(Action.ADD, cid, User.BLOCKED, uid) :: {
+      update1 ?? mkEvent(Action.REMOVE, cid, User.FOLLOWERS, uid) :: {
+        update2 ?? List(mkEvent(Action.REMOVE, uid, User.FOLLOWING, cid))
+      }
+    }
 
   private def blockUser(cid: UserId, uid: UserId) = complete {
     "watever"
