@@ -48,7 +48,7 @@ libraryDependencies ++= Seq(
 libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-reflect" % "2.10.2",
   "org.mongodb" %% "casbah" % "2.6.2",
-  "org.scalaz" %% "scalaz-core" % "7.0.2",
+  "org.scalaz" %% "scalaz-core" % "7.0.4" withJavadoc(),
   "com.chuusai" %% "shapeless" % "1.2.4",
   "com.novus" %% "salat" % "1.9.3",
   "ch.qos.logback" % "logback-classic" % "1.0.7",

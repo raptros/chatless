@@ -1,7 +1,6 @@
 package chatless.responses
 
 import chatless.{UserId, TopicId, MessageId}
-import chatless.op2.{Operation, Specifier}
 import scalaz.NonEmptyList
 import com.mongodb.casbah.Imports._
 
@@ -24,17 +23,4 @@ case class ModelExtractionError(modelName: String, dbo: MongoDBObject, errors: N
 case class TopicNotFoundError(tid: TopicId)
   extends StateError(s"could not find topic $tid")
 
-case class OperationNotSupportedError(op: Operation)
-  extends StateError(s"cannot perform operation $op")
-
-
-/*
-case class NonExistentField(field: String, res: Resource)
-  extends StateError(s"cannot get field $field for $res")
-*/
-
-/*
-case class AccessNotPermitted(cid: UserId, res: Resource, spec: Specifier)
-  extends StateError(s"caller $cid is not allowed to do $spec on resource $res")
-*/
 

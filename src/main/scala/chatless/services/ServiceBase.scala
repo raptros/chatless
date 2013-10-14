@@ -29,7 +29,6 @@ import spray.http.HttpHeaders.RawHeader
 import akka.event.LoggingAdapter
 import spray.routing.RequestContext
 import spray.http.HttpHeaders.RawHeader
-import chatless.responses.OperationNotSupportedError
 import scala.Some
 import spray.http.HttpResponse
 import chatless.responses.ModelExtractionError
@@ -87,7 +86,6 @@ trait ServiceBase extends HttpService with Json4sSupport {
     case _: UserNotFoundError => se complete StatusCodes.NotFound
     case _: ModelExtractionError => se complete StatusCodes.InternalServerError
     case _: TopicNotFoundError => se complete StatusCodes.NotFound
-    case _: OperationNotSupportedError => se complete StatusCodes.BadRequest
   }
 
   def throwableToJson(t: Throwable): JObject = {

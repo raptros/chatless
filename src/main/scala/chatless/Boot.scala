@@ -10,6 +10,7 @@ import com.mongodb.casbah.Imports._
 import com.google.inject.{Injector, Guice}
 import chatless.wiring.ChatlessModule
 import chatless.wiring.actors.ActorInjector
+import chatless.events.LocalEventReceiver
 
 object Boot extends App {
  // we need an ActorSystem to host our application in
@@ -20,6 +21,16 @@ object Boot extends App {
   val actorProvider = ActorInjector.providerFor(injector)
 
   import net.codingwell.scalaguice.InjectorExtensions._
+  import net.codingwell.scalaguice.KeyExtensions._
+
+
+
+
+
+
+
+  // start up the event receiver
+  val eventRecv = system.actorOf(actorProvider.props[LocalEventReceiver], "pants")
 
   // create and start our service actor
   val service = system.actorOf(actorProvider.props[ClientApiActor], "chatless-service")

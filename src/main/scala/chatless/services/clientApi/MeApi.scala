@@ -34,23 +34,24 @@ import org.json4s.JsonDSL._
 import org.json4s.native.Serialization.write
 import akka.actor.ActorLogging
 import scalaz._
+import chatless.sequencers.UserOpSequences
 
 trait MeApi extends ServiceBase {
 
   val userDao: UserDAO
 
-  private val getUser = (uid: UserId) => userDao get uid getOrElse { throw UserNotFoundError(uid) }
+  val userOps: UserOpSequences
 
   def setContains[A](v: A): Set[A] => Boolean = _ contains v
 
   private def completeWithUserSetCheck(uid: UserId)(field: User => Set[String])(value: String): Route =
     complete {
-        if (uid |> getUser |> field |> setContains(value)) StatusCodes.NoContent else StatusCodes.NotFound
+        if (uid |> userOps.getUser |> field |> setContains(value)) StatusCodes.NoContent else StatusCodes.NotFound
       }
 
   private def fieldQuery[A <% JValue](field: String)(value: User => A): CallerRoute = cid => path(field / PathEnd) {
     complete {
-      Map(field -> { cid |> getUser |> value })
+      Map(field -> { cid |> userOps.getUser |> value })
     }
   }
 
@@ -102,18 +103,8 @@ trait MeApi extends ServiceBase {
       }
     }
 
-  private def runBlockUser(cid: UserId, uid: UserId): String \/ List[Event] = for {
-    update0 <- userDao.addBlocked(cid, uid)
-    update1 <- if (update0) userDao.removeFollower(cid, uid) else \/-(false)
-    update2 <- if (update1) userDao.removeFollowing(uid, cid) else \/-(false)
-  } yield update0 ?? mkEvent(Action.ADD, cid, User.BLOCKED, uid) :: {
-      update1 ?? mkEvent(Action.REMOVE, cid, User.FOLLOWERS, uid) :: {
-        update2 ?? List(mkEvent(Action.REMOVE, uid, User.FOLLOWING, cid))
-      }
-    }
+  private def blockUser(cid: UserId, uid: UserId) = completeDBOp(userOps.blockUser(cid, uid)) {
 
-  private def blockUser(cid: UserId, uid: UserId) = complete {
-    "watever"
   }
 
   private def joinTopic(cid: UserId, tid: TopicId) = optionJsonEntity { m: Option[JDoc] =>
@@ -184,7 +175,7 @@ trait MeApi extends ServiceBase {
       get {
         path(PathEnd) {
           complete {
-            getUser(cid)
+            userOps.getUser(cid)
           }
         } ~ getFields(cid) ~ querySetsRoute(cid)
       } ~ put {

@@ -10,7 +10,6 @@ import org.json4s._
 import org.json4s.JsonDSL._
 import org.json4s.native.JsonMethods._
 import scalaz.syntax.std.boolean._
-import chatless.op2.SetPublic
 import spray.http.{StatusCodes, HttpResponse}
 import spray.http.HttpHeaders.RawHeader
 import spray.httpx.encoding.NoEncoding
