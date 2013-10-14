@@ -11,6 +11,7 @@ import scala.concurrent.ExecutionContext
 import akka.actor.{ActorRefFactory, Props, ActorSelection, ActorSystem}
 import scala.concurrent.duration._
 import chatless.db._
+import chatless.sequencers.UserOpSequences
 
 class ChatlessModule(val system: ActorSystem) extends AbstractModule with ScalaModule {
 
@@ -34,12 +35,13 @@ class ChatlessModule(val system: ActorSystem) extends AbstractModule with ScalaM
 
     bind[ActorRefFactory] toInstance system
 
-    val dbSel = system.actorSelection("/chatless-service-db")
-    bind[ActorSelection].annotatedWith[DbActorSelection] toInstance dbSel
+    bind[ActorSelection].annotatedWith[LocalEventReceiverSelection] toInstance system.actorSelection(ActorPaths.LOCAL_EVENT_RECV)
 
     bind[UserDAO].to[SalatUserDAO].asEagerSingleton()
     bind[TopicDAO].to[SalatTopicDAO].asEagerSingleton()
     bind[EventDAO].to[SalatEventDAO].asEagerSingleton()
+
+    bind[UserOpSequences].asEagerSingleton()
   }
 
 

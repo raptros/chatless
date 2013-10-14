@@ -85,16 +85,12 @@ trait MeApi extends ServiceBase {
     Event(kind = EventKind.USER_UPDATE, action = action, uid = Some(id), field = Some(field), value = ValueContainer(value))
 
   private def setNick(cid: UserId, newNick: String) = validate(!newNick.isEmpty, "invalid nick") {
-    completeDBOp(userDao.setNick(cid, newNick)) {
-      val ev = mkEvent(Action.REPLACE,cid, User.NICK, newNick)
-    }
+    completeDBOp(userOps.setNick(cid, newNick)) { }
   }
 
-  private def setPublic(cid: UserId, v: Boolean) = completeDBOp(userDao.setPublic(cid, v)) {
-  }
+  private def setPublic(cid: UserId, v: Boolean) = completeDBOp(userOps.setPublic(cid, v)) { }
 
-  private def setInfo(cid: UserId, v: JObject) = completeDBOp(userDao.setInfo(cid, JDoc(v.obj))) {
-  }
+  private def setInfo(cid: UserId, v: JObject) = completeDBOp(userOps.setInfo(cid, JDoc(v.obj))) { }
 
   private def followUser(cid: UserId, uid: UserId) =
     optionJsonEntity { oj =>
@@ -103,9 +99,7 @@ trait MeApi extends ServiceBase {
       }
     }
 
-  private def blockUser(cid: UserId, uid: UserId) = completeDBOp(userOps.blockUser(cid, uid)) {
-
-  }
+  private def blockUser(cid: UserId, uid: UserId) = completeDBOp(userOps.blockUser(cid, uid)) { }
 
   private def joinTopic(cid: UserId, tid: TopicId) = optionJsonEntity { m: Option[JDoc] =>
     complete {
@@ -117,7 +111,7 @@ trait MeApi extends ServiceBase {
     log.info("meApi: added tag {} for user {}", tag, cid)
   }
 
-  private def unfollow(cid: UserId, uid: UserId) = complete { "whatever" }
+  private def unfollow(cid: UserId, uid: UserId) = completeDBOp(userOps.unfollowUser(cid, uid)) { }
 
   private def removeFollower(cid: UserId, uid: UserId) = complete { "whatever" }
 
