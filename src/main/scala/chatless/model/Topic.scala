@@ -55,5 +55,8 @@ object Topic {
     ID :: TITLE :: PUBLIC :: MUTED :: INFO :: OP :: SOPS :: VOICED :: PARTICIPATING :: BANNED :: TAGS :: Nil
   }.toSet
 
+  implicit val containableTopic = new ContainableValue[Topic] {
+    def contain(a: Topic): ValueContainer = TopicVC(a)
+  }
 }
 

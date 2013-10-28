@@ -7,10 +7,10 @@ package chatless.wiring
  * Time: 09:30
  * To change this template use File | Settings | File Templates.
  */
-object ActorPaths {
+object ActorNames {
 
-  val LOCAL_EVENT_RECV = "/chatless/events/local/recv"
+  val LOCAL_EVENT_RECV = "events-local-recv"
 
-  val CLIENT_API = "/chatless/api/service"
+  val CLIENT_API = "client-api-service"
 
 }

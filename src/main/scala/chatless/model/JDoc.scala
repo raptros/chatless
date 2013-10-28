@@ -10,4 +10,8 @@ object JDoc {
   def apply(fs: JField*) = new JDoc(fs.toList)
 
   def unapply(jd: JDoc): Option[List[JField]] = Some(jd.obj)
+
+  implicit val containableJDoc = new ContainableValue[JDoc] {
+    def contain(a: JDoc) = JDocVC(a)
+  }
 }

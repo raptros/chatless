@@ -1,4 +1,7 @@
-package chatless
+package chatless.ops
+
+import chatless.db.WriteStat
+import chatless.model.Event
 
 package object sequencers {
   import scalaz._
@@ -19,8 +22,22 @@ package object sequencers {
 
   def writeItem[I, L](i: I) = WriterTEither[List[I], L, Unit] { (List(i) -> ()).right[L] }
 
-  def condWriteItem[I, L](i: I)(c: Boolean) = WriterTEither {
+  def cWrite1[I, L](i: I)(c: Boolean) = WriterTEither {
     ((c ?? List(i)) -> c).right[L]
   }
 
+  def cWrite2[I, L](c: Boolean)(i: I) = WriterTEither {
+    ((c ?? List(i)) -> c).right[L]
+  }
+
+  implicit class WritableEither[L](e: L \/ Boolean) {
+    def withEvent[I](event: I) = wrapEither[I, L, Boolean](e) flatMap {
+      cWrite1 { event }
+    }
+  }
+
+  implicit class BooleanEitherGuard(b: Boolean) {
+    def step[L](v: => L \/ Boolean) = stepEither(b, b)(v)
+  }
 }
+

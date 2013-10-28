@@ -8,7 +8,7 @@ import scala.concurrent.duration._
 
 import com.mongodb.casbah.Imports._
 import com.google.inject.{Injector, Guice}
-import chatless.wiring.{ActorPaths, ChatlessModule}
+import chatless.wiring.{ActorNames, ChatlessModule}
 import chatless.wiring.actors.ActorInjector
 import chatless.events.LocalEventReceiver
 
@@ -23,10 +23,10 @@ object Boot extends App {
   import net.codingwell.scalaguice.InjectorExtensions._
 
   // start up the event receiver
-  val eventRecv = system.actorOf(actorProvider.props[LocalEventReceiver], ActorPaths.LOCAL_EVENT_RECV)
+  val eventRecv = system.actorOf(actorProvider.props[LocalEventReceiver], ActorNames.LOCAL_EVENT_RECV)
 
   // create and start our service actor
-  val service = system.actorOf(actorProvider.props[ClientApiActor], ActorPaths.CLIENT_API)
+  val service = system.actorOf(actorProvider.props[ClientApiActor], ActorNames.CLIENT_API)
 
   // start a new HTTP server on port 8080 with our service actor as the handler
   IO(Http) ! Http.Bind(service, interface = "localhost", port = 5775)

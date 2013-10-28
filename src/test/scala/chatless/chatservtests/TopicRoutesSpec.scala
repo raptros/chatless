@@ -16,6 +16,7 @@ import spray.httpx.Json4sSupport
 import scalaz._
 import spray.httpx.marshalling.Marshaller
 import akka.event.Logging
+import chatless.ops.TopicOps
 
 class TopicRoutesSpec
   extends WordSpec
@@ -31,6 +32,7 @@ class TopicRoutesSpec
 
   trait Fixture { self =>
     val topicDao: TopicDAO
+    val topicOps: TopicOps
     val tid: TopicId
 
     def mkGet(field: String = "") = Get(mkPath(tid, field))
@@ -45,6 +47,7 @@ class TopicRoutesSpec
     lazy val topicApi = new TopicApi {
       val log = Logging(system, "topicApi in TopicRouesSpec")
       val topicDao = self.topicDao
+      val topicOps = self.topicOps
       override val actorRefFactory = system
     }
 
@@ -54,12 +57,14 @@ class TopicRoutesSpec
   class GetterFixture(val topic: Topic, val times: Int = 1) extends Fixture {
     val tid = topic.id
     val topicDao = mock[TopicDAO]
+    val topicOps = mock[TopicOps]
     (topicDao.get(_: TopicId)) expects topic.id repeated times returning Some(topic)
   }
 
   class Fixture2(op: String, sops: Set[String], participants: Set[String]) extends Fixture {
     val tid = "testTopic"
     val topicDao = mock[TopicDAO]
+    val topicOps = mock[TopicOps]
     val topic = Topic(
       id = tid,
       title = "topic 1",
@@ -105,34 +110,34 @@ class TopicRoutesSpec
       "return an object with only the proper fields" when {
         "the caller is a participant in the topic" in new GetterFixture(topic1) {
           mkGet() ~> api ~> check {
-            entityAs[JObject].values.keySet should be (participantFields.toSet)
+            responseAs[JObject].values.keySet should be (participantFields.toSet)
           }
         }
         "the caller is not a participant and the topic is not public" in new GetterFixture(topic2) {
           mkGet() ~> api ~> check {
-            entityAs[JObject].values.keySet should be (publicFields.toSet)
+            responseAs[JObject].values.keySet should be (publicFields.toSet)
           }
         }
         "the caller is not a participant in the topic but the topic is public" in new GetterFixture(topic2.copy(public = true)) {
           mkGet() ~> api ~> check {
-            entityAs[JObject].values.keySet should be (participantFields.toSet)
+            responseAs[JObject].values.keySet should be (participantFields.toSet)
           }
         }
         s"the caller requests /topic/:tid/${Topic.TITLE}" in new GetterFixture(topic1) {
           mkGet(Topic.TITLE) ~> api ~> check {
-            val res = (entityAs[JObject] \ Topic.TITLE).extract[String]
+            val res = (responseAs[JObject] \ Topic.TITLE).extract[String]
             res === topic.title
           }
         }
         s"the caller requests /topic/:tid/${Topic.PUBLIC}" in new GetterFixture(topic1) {
           mkGet(Topic.PUBLIC) ~> api ~> check {
-            val res = (entityAs[JObject] \ Topic.PUBLIC).extract[Boolean]
+            val res = (responseAs[JObject] \ Topic.PUBLIC).extract[Boolean]
             res === topic.public
           }
         }
         s"the caller requests /topic/:tid/${Topic.INFO}" in new GetterFixture(topic1) {
           mkGet(Topic.INFO) ~> api ~> check {
-            val res = (entityAs[JObject] \ Topic.INFO).asInstanceOf[JObject]
+            val res = (responseAs[JObject] \ Topic.INFO).asInstanceOf[JObject]
             res === topic.info
           }
         }
@@ -167,15 +172,15 @@ class TopicRoutesSpec
       "forbid access" when {
         "the user is not at least a second op" in new Fixture2("notuser", Set.empty[String], Set(userId)) {
           (topicDao.get(_: TopicId)) expects topic.id once() returning Some(topic)
-          (topicDao.setTitle(_: TopicId, _: String)) expects (*, *) never()
+          (topicOps.setTitle(_: UserId, _: TopicId, _: String)) expects (*, *, *) never()
           mkPut(Topic.TITLE, "newTitle") ~> sealRoute(api) ~> check {
             status === StatusCodes.Forbidden
           }
         }
       }
-      "update the dao properly" in new Fixture2("notuser", Set(userId), Set(userId)) {
+      "update the topic properly" in new Fixture2("notuser", Set(userId), Set(userId)) {
         (topicDao.get(_: TopicId)) expects topic.id once() returning Some(topic)
-        (topicDao.setTitle(_: TopicId, _: String)) expects (*, *) once() returning \/-(true)
+        (topicOps.setTitle(_: UserId, _: TopicId, _: String)) expects (*, *, *) once() returning \/-(true)
         mkPut(Topic.TITLE, "newTitle") ~> api ~> check {
           status === StatusCodes.NoContent
           header("x-chatless-updated").nonEmpty

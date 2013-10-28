@@ -35,6 +35,7 @@ import chatless.responses.ModelExtractionError
 import chatless.responses.TopicNotFoundError
 import chatless.responses.UnhandleableMessageError
 import chatless.responses.UserNotFoundError
+import akka.actor.ActorRef
 
 trait ServiceBase extends HttpService with Json4sSupport {
 
@@ -51,7 +52,7 @@ trait ServiceBase extends HttpService with Json4sSupport {
     } yield JDoc(obj.obj)
   }
 
-  def dEntity[A](um: Unmarshaller[A]): Directive1[A] = decodeRequest(NoEncoding) & entity(um)
+  def pathEnd = rawPathPrefix(Slash.? ~ PathEnd)
 
 
   def resJson: Directive0 = respondWithMediaType(`application/json`)
@@ -59,19 +60,31 @@ trait ServiceBase extends HttpService with Json4sSupport {
   def resText: Directive0 = respondWithMediaType(`text/plain`)
 
   def setCompletion(pathMap: Map[String, Set[String]]): Route = {
-    path(pathMap / Segment / PathEnd) { (set: Set[String], v: String) =>
+    path(pathMap / Segment) { (set: Set[String], v: String) =>
       complete { if (set contains v) StatusCodes.NoContent else StatusCodes.NotFound }
     }
   }
 
   def setCompletion(pathPairs: (String, Set[String])*): Route = setCompletion(pathPairs.toMap)
 
-  def fromString[T](implicit deser: FromStringDeserializer[T]): Unmarshaller[T] = new Deserializer[HttpEntity, T] {
-    def apply(v1: HttpEntity): Deserialized[T] = BasicUnmarshallers.StringUnmarshaller(v1).right flatMap { deser }
+  def fromString[T](implicit deser: FromStringDeserializer[T]) = new FromRequestUnmarshaller[T] {
+    def apply(v1: HttpRequest): Deserialized[T] = BasicUnmarshallers.StringUnmarshaller(v1.entity).right flatMap { deser }
   }
 
   def completeDBOp(res: WriteStat)(onUpdated: => Unit) = res match {
     case \/-(true) => onUpdated; respondWithHeader(RawHeader("x-chatless-updated", "yes")) {
+      complete(StatusCodes.NoContent)
+    }
+    case \/-(false) => complete(StatusCodes.NoContent)
+    case -\/(msg) =>
+      log.warning("failed to complete update because: {}", msg)
+      complete(StatusCodes.InternalServerError -> msg)
+  }
+
+  /** completes with an operation that returns a writestat - i.e. something that updates the database
+    */
+  def completeOp(res: => WriteStat) = res match {
+    case \/-(true) => respondWithHeader(RawHeader("x-chatless-updated", "yes")) {
       complete(StatusCodes.NoContent)
     }
     case \/-(false) => complete(StatusCodes.NoContent)

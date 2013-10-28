@@ -4,17 +4,19 @@ package chatless.services.clientApi
 import chatless._
 import chatless.model.{JDoc, Topic}
 import chatless.services._
-import chatless.responses.{BoolR, StringR, TopicNotFoundError}
-import chatless.db.{WriteStat, TopicDAO}
+import chatless.responses.TopicNotFoundError
+import chatless.db.TopicDAO
+import scalaz.std.string._
 import org.json4s._
 import org.json4s.JsonDSL._
 import org.json4s.native.JsonMethods._
-import scalaz.syntax.std.boolean._
-import spray.http.{StatusCodes, HttpResponse}
-import spray.http.HttpHeaders.RawHeader
+import spray.http.StatusCodes
 import spray.httpx.encoding.NoEncoding
+import chatless.ops.TopicOps
 
 trait TopicApi extends ServiceBase {
+
+  val topicOps: TopicOps
 
   val topicDao: TopicDAO
 
@@ -28,14 +30,16 @@ trait TopicApi extends ServiceBase {
   private def fieldsFor(cid: UserId, topic: Topic): Set[String] = if (canRead(cid, topic))
     Topic.participantFields else Topic.publicFields
 
-  private def fieldComplete[A <% JValue](field: String)(value: A) = path(field / PathEnd) {
-    complete { Map(field -> value) }
+  private def fieldComplete[A <% JValue](field: String)(value: A) = path(field) {
+    resJson { complete { Map(field -> value) } }
   }
 
   private def infoRoute(cid: UserId, topic: Topic) = get {
-    path(PathEnd) {
-      complete {
-        topic getFields fieldsFor(cid, topic)
+    pathEnd {
+      resJson {
+        complete {
+          topic getFields fieldsFor(cid, topic)
+        }
       }
     } ~ fieldComplete(Topic.ID) {
       topic.id
@@ -70,22 +74,14 @@ trait TopicApi extends ServiceBase {
   }
 
   private def setTitle(cid: UserId, tid: TopicId, newTitle: String) = validate(!newTitle.isEmpty, "invalid topic title") {
-    completeDBOp(topicDao.setTitle(tid, newTitle)) {
-      log.info("topicApi: set title \"{}\" for topic {}", newTitle, tid)
-    }
+    completeOp { topicOps.setTitle(cid, tid, newTitle) }
   }
 
-  private def setPublic(cid: UserId, tid: TopicId, public: Boolean) = completeDBOp(topicDao.setPublic(tid, public)) {
-    log.info("topicApi: set public to {} for topic {}", public, tid)
-  }
+  private def setPublic(cid: UserId, tid: TopicId, public: Boolean) = completeOp { topicOps.setPublic(cid, tid, public) }
 
-  private def setMuted(cid: UserId, tid: TopicId, muted: Boolean) = completeDBOp(topicDao.setMuted(tid, muted)) {
-    log.info("topicApi: set muted to {} for topic {}", muted, tid)
-  }
+  private def setMuted(cid: UserId, tid: TopicId, muted: Boolean) = completeOp { topicOps.setMuted(cid, tid, muted) }
 
-  private def setInfo(cid: UserId, tid: TopicId, v: JObject) = completeDBOp(topicDao.setInfo(tid, JDoc(v.obj))) {
-    log.info("topicApi: set info to \"{}\" for topic {}", compact(render(v)), tid)
-  }
+  private def setInfo(cid: UserId, tid: TopicId, v: JObject) = completeOp { topicOps.setInfo(cid, tid, JDoc(v.obj)) }
 
   private def voiceUser(cid: UserId, tid: TopicId, uid: UserId) = complete { StatusCodes.NotImplemented }
 
@@ -120,35 +116,35 @@ trait TopicApi extends ServiceBase {
 
   private def sopLevelUpdates(cid: UserId, tid: TopicId) =
     put {
-      path(Topic.TITLE / PathEnd) {
+      path(Topic.TITLE) {
         entity(fromString[String]) {
           setTitle(cid, tid, _)
         }
-      } ~ path(Topic.PUBLIC / PathEnd) {
+      } ~ path(Topic.PUBLIC) {
         entity(fromString[Boolean]) {
           setPublic(cid, tid, _)
         }
-      } ~ path(Topic.MUTED / PathEnd) {
+      } ~ path(Topic.MUTED) {
         entity(fromString[Boolean]) {
           setMuted(cid, tid, _)
         }
-      } ~ path(Topic.INFO / PathEnd) {
+      } ~ path(Topic.INFO) {
         entity(as[JObject]) {
           setInfo(cid, tid, _)
         }
-      } ~ path(Topic.VOICED / Segment / PathEnd) {
+      } ~ path(Topic.VOICED / Segment) {
         voiceUser(cid, tid, _)
-      } ~ path(Topic.PARTICIPATING / Segment / PathEnd) {
+      } ~ path(Topic.PARTICIPATING / Segment) {
         inviteUser(cid, tid, _)
-      } ~ path(Topic.TAGS / Segment / PathEnd) {
+      } ~ path(Topic.TAGS / Segment) {
         addTag(cid, tid, _)
       }
     } ~ delete {
-      path(Topic.VOICED / Segment / PathEnd) {
+      path(Topic.VOICED / Segment) {
         unvoiceUser(cid, tid, _)
-      } ~ path(Topic.PARTICIPATING / Segment / PathEnd) {
+      } ~ path(Topic.PARTICIPATING / Segment) {
         kickUser(cid, tid, _)
-      } ~ path(Topic.TAGS / Segment / PathEnd) {
+      } ~ path(Topic.TAGS / Segment) {
         removeTag(cid, tid, _)
       }
     }
@@ -156,11 +152,11 @@ trait TopicApi extends ServiceBase {
 
   private def opLevelUpdates(cid: UserId, tid: TopicId) =
     put {
-      path(Topic.SOPS / Segment / PathEnd) {
+      path(Topic.SOPS / Segment) {
         promoteSop(cid, tid, _)
       }
     } ~ delete {
-      path(Topic.SOPS / Segment / PathEnd) {
+      path(Topic.SOPS / Segment) {
         demoteSop(cid, tid, _)
       }
     }
@@ -175,9 +171,7 @@ trait TopicApi extends ServiceBase {
 
   val topicApi: CallerRoute = cid => pathPrefix(TOPIC_API_BASE / Segment) { tid: TopicId =>
     val topic = topicDao get tid getOrElse { throw TopicNotFoundError(tid) }
-    resJson {
-      infoRoute(cid, topic) ~ update(cid, topic)
-    }
+    infoRoute(cid, topic) ~ update(cid, topic)
   }
 
 }

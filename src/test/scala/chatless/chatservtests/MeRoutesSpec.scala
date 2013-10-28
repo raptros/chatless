@@ -5,7 +5,6 @@ import org.scalatest.WordSpec
 import spray.testkit.ScalatestRouteTest
 import spray.routing._
 import chatless._
-import chatless.op2._
 import scalaz._
 
 import org.scalatest.matchers.ShouldMatchers
@@ -22,6 +21,7 @@ import spray.httpx.unmarshalling.BasicUnmarshallers._
 import chatless.responses.{BoolR, StringR}
 import spray.http.{StatusCodes, StatusCode}
 import akka.event.{LoggingAdapter, Logging}
+import chatless.ops.UserOps
 
 class MeRoutesSpec
   extends WordSpec
@@ -34,23 +34,23 @@ class MeRoutesSpec
     Set("otherUser"), Set("otherUser"), Set("some-blocked"),
     Set("tid0"), Set("tag0"))
 
-  def newApi(dao: UserDAO) = {
+  def newApi(ops: UserOps) = {
     val me = new MeApi { api =>
       val log: LoggingAdapter = Logging(system, "meApi in MeRoutesSpec")
-      val userDao = dao
+      val userOps = ops
       val actorRefFactory = system
     }
     Directives.dynamic { me.meApi(userId) }
   }
 
   trait BaseFixture {
-    val userDao: UserDAO
-    lazy val api = newApi(userDao)
+    val userOps: UserOps
+    lazy val api = newApi(userOps)
   }
 
   trait Fixture1 extends BaseFixture { self =>
-    val userDao = mock[UserDAO]
-    (userDao.get(_: UserId)) expects userId returning Some(fakeUser1)
+    val userOps = mock[UserOps]
+    (userOps.getOrThrow(_: UserId)) expects userId returning fakeUser1
   }
 
 
@@ -61,7 +61,7 @@ class MeRoutesSpec
     "provide the correct user object, deserialzable from json" when itReceives {
       "a get to its base" in new Fixture1 {
         Get("/me") ~>  api ~> check {
-          val res = entityAs[JObject]
+          val res = responseAs[JObject]
           res.extract[User] should be (fakeUser1)
         }
       }
@@ -69,55 +69,55 @@ class MeRoutesSpec
     "produce the correct value" when itReceives {
       "a get for the id field" in new Fixture1 {
         Get("/me/id") ~> api ~> check {
-          val res = (entityAs[JObject] \ User.ID).extract[String]
+          val res = (responseAs[JObject] \ User.ID).extract[String]
           res should be (userId)
         }
       }
       "a get for the nick field" in new Fixture1 {
         Get("/me/nick") ~> api ~> check {
-          val res = (entityAs[JObject] \ User.NICK).extract[String]
+          val res = (responseAs[JObject] \ User.NICK).extract[String]
           assert(res === "this user")
         }
       }
       "a get for the public field" in new Fixture1 {
         Get("/me/public") ~> api ~> check {
-          val res = (entityAs[JObject] \ User.PUBLIC).extract[Boolean]
+          val res = (responseAs[JObject] \ User.PUBLIC).extract[Boolean]
           assert(res === fakeUser1.public)
         }
       }
       "a get for the info field" in new Fixture1 {
         Get("/me/info") ~>  api ~> check {
-          val res = (entityAs[JObject] \ User.INFO).asInstanceOf[JObject]
+          val res = (responseAs[JObject] \ User.INFO).asInstanceOf[JObject]
           res should equal (fakeUser1.info)
         }
       }
       "a get for the following field" in new Fixture1 {
         Get("/me/following") ~>  api ~> check {
-          val res = (entityAs[JObject] \ User.FOLLOWING).extract[Set[String]]
+          val res = (responseAs[JObject] \ User.FOLLOWING).extract[Set[String]]
           res should equal (fakeUser1.following)
         }
       }
       "a get for the followers field" in new Fixture1 {
         Get("/me/followers") ~>  api ~> check {
-          val res = (entityAs[JObject] \ User.FOLLOWERS).extract[Set[String]]
+          val res = (responseAs[JObject] \ User.FOLLOWERS).extract[Set[String]]
           res should equal (fakeUser1.followers)
         }
       }
       "a get for the blocked field " in new Fixture1 {
         Get("/me/blocked") ~>  api ~> check {
-          val res = (entityAs[JObject] \ User.BLOCKED).extract[Set[String]]
+          val res = (responseAs[JObject] \ User.BLOCKED).extract[Set[String]]
           res should equal (fakeUser1.blocked)
         }
       }
       "a get for the topics field" in new Fixture1 {
         Get("/me/topics") ~>  api ~> check {
-          val res = (entityAs[JObject] \ User.TOPICS).extract[Set[String]]
+          val res = (responseAs[JObject] \ User.TOPICS).extract[Set[String]]
           res should equal (fakeUser1.topics)
         }
       }
       "a get for the tags field " in new Fixture1 {
         Get("/me/tags") ~>  api ~> check {
-          val res = (entityAs[JObject] \ User.TAGS).extract[Set[String]]
+          val res = (responseAs[JObject] \ User.TAGS).extract[Set[String]]
           res should equal (fakeUser1.tags)
         }
       }
@@ -176,66 +176,51 @@ class MeRoutesSpec
 
   trait Fixture2 extends BaseFixture {
     val userDao = mock[UserDAO]
+    val userOps = mock[UserOps]
   }
 
   "the /me/ api" when itReceives {
     "a PUT to /me/nick" should {
-      "update the userDao correctly" in new Fixture2 {
-        (userDao.setNick(_: UserId, _: String)) expects(userId, "heyListen") returning \/-(true)
+      "perform the appropriate user op" in new Fixture2 {
+        (userOps.setNick(_: UserId, _: String)) expects(userId, "heyListen") returning \/-(true)
         Put("/me/nick/", "heyListen") ~> api ~> check {
           status === StatusCodes.NoContent
           header("x-chatless-updated").nonEmpty
-        }
-      }
-      "generate an event if the userDao says an update occured" in new Fixture2 {
-        (pending)
-        (userDao.setNick(_: UserId, _: String)) expects(userId, "heyListen") returning \/-(true)
-        Put("/me/nick/", "heyListen") ~> api ~> check {
-          status === StatusCodes.NoContent
-          header("x-chatless-updated").nonEmpty
-        }
-      }
-      "not generate an event if the userDao says no update occurred" in new Fixture2 {
-        (pending)
-        (userDao.setNick(_: UserId, _: String)) expects(userId, *) returning \/-(false)
-        Put("/me/nick/", "heyListen") ~> api ~> check {
-          status === StatusCodes.NoContent
-          header("x-chatless-updated").isEmpty
         }
       }
     }
     "a PUT to /me/public" should {
-      "update the userDao correctly for valid args" in new Fixture2 {
-        (userDao.setPublic(_: UserId, _: Boolean)) expects(userId, *) returning \/-(true)
-        Put("/me/public", true) ~> api ~> check {
+      "update the user correctly for valid args" in new Fixture2 {
+        (userOps.setPublic(_: UserId, _: Boolean)) expects(userId, *) returning \/-(true)
+        Put("/me/public", true.toString) ~> api ~> check {
           status === StatusCodes.NoContent
           header("x-chatless-updated").nonEmpty
         }
       }
-      "not update the userDao for badly formed args" in new Fixture2 {
-        (userDao.setPublic(_: UserId, _: Boolean)) expects(*, *) never()
+      "not update the user for badly formed args" in new Fixture2 {
+        (userOps.setPublic(_: UserId, _: Boolean)) expects(*, *) never()
         Put("/me/public", "antsg") ~> HttpService.sealRoute(api) ~> check {
           status === StatusCodes.BadRequest
         }
       }
     }
     "a put to /me/info" should {
-      "update the userDao for correctly formed json" in new Fixture2 {
+      "update the user for correctly formed json" in new Fixture2 {
         val jStr = JDoc("hi" -> JBool(true), "also" -> JArray(JBool(true) :: JInt(34) :: Nil))
-        (userDao.setInfo(_: UserId, _: JDoc)) expects (userId, jStr) returning \/-(true) once()
+        (userOps.setInfo(_: UserId, _: JDoc)) expects (userId, jStr) returning \/-(true) once()
         Put("/me/info", jStr) ~> api ~> check {
           status === StatusCodes.NoContent
           header("x-chatless-updated").nonEmpty
         }
       }
       "reject any badly formed json" in new Fixture2 {
-        (userDao.setInfo(_: UserId, _: JDoc)) expects (*, *) never()
+        (userOps.setInfo(_: UserId, _: JDoc)) expects (*, *) never()
         Put("/me/info", """{"hi": "bye", """) ~> HttpService.sealRoute(api) ~> check {
           status === StatusCodes.BadRequest
         }
       }
       "reject when the body is empty" in new Fixture2 {
-        (userDao.setInfo(_: UserId, _: JDoc)) expects (*, *) never()
+        (userOps.setInfo(_: UserId, _: JDoc)) expects (*, *) never()
         Put("/me/info", """{"hi": "bye", """) ~> HttpService.sealRoute(api) ~> check {
           status === StatusCodes.BadRequest
         }

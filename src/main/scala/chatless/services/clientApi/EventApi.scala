@@ -45,7 +45,7 @@ trait EventApi extends ServiceBase {
         path("oldest" / PathEnd) {
           complete { Map("timestamp" -> eventDao.oldestKnownEventTime) }
         } ~ provide(userDao get cid getOrElse { throw UserNotFoundError(cid) }) {
-          eventsFor _
+          eventsFor
         }
       }
     }

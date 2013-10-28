@@ -8,25 +8,26 @@ name := "chatless"
 
 version := "0.1-SNAPSHOT"
 
-scalaVersion := "2.10.2"
+scalaVersion := "2.10.3"
 
 seq(Revolver.settings: _*)
 
-sprayVersion := "1.2-20130822"
+sprayVersion := "1.2-RC1"
 
 json4sVersion := "3.2.5"
 
-akkaVersion := "2.2.0"
+akkaVersion := "2.2.3"
 
 showCurrentGitBranch
 
 scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
 
-resolvers += "spray nightly repo" at "http://nightlies.spray.io"
-
-resolvers += "Sonatype OSS Releases" at "https://oss.sonatype.org/content/repositories/releases"
-
-resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
+resolvers ++= Seq(
+  "spray repo" at "http://repo.spray.io",
+  "spray nightly repo" at "http://nightlies.spray.io",
+  "Sonatype OSS Releases" at "https://oss.sonatype.org/content/repositories/releases",
+  "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
+)
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % akkaVersion.value,
@@ -36,7 +37,7 @@ libraryDependencies ++= Seq(
 
 libraryDependencies ++= Seq(
   "io.spray" % "spray-can" % sprayVersion.value,
-  "io.spray" % "spray-routing" % sprayVersion.value,
+  "io.spray" % "spray-routing" % sprayVersion.value withJavadoc(),
   "io.spray" % "spray-testkit" % sprayVersion.value % "test"
 )
 
@@ -46,11 +47,11 @@ libraryDependencies ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "org.scala-lang" % "scala-reflect" % "2.10.2",
-  "org.mongodb" %% "casbah" % "2.6.2",
+  "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+  "org.mongodb" %% "casbah" % "2.6.4",
   "org.scalaz" %% "scalaz-core" % "7.0.4" withJavadoc(),
   "com.chuusai" %% "shapeless" % "1.2.4",
-  "com.novus" %% "salat" % "1.9.3",
+  "com.novus" %% "salat" % "1.9.4",
   "ch.qos.logback" % "logback-classic" % "1.0.7",
   "net.codingwell" %% "scala-guice" % "4.0.0-beta",
   "com.google.inject.extensions" % "guice-assistedinject" % "4.0-beta"

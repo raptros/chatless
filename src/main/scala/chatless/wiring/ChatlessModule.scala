@@ -11,7 +11,9 @@ import scala.concurrent.ExecutionContext
 import akka.actor.{ActorRefFactory, Props, ActorSelection, ActorSystem}
 import scala.concurrent.duration._
 import chatless.db._
-import chatless.sequencers.UserOpSequences
+import chatless.ops.{TopicOps, UserOps}
+import chatless.ops.sequencers.{TopicOpSequences, UserOpSequences}
+import com.google.inject.assistedinject.FactoryModuleBuilder
 
 class ChatlessModule(val system: ActorSystem) extends AbstractModule with ScalaModule {
 
@@ -35,13 +37,15 @@ class ChatlessModule(val system: ActorSystem) extends AbstractModule with ScalaM
 
     bind[ActorRefFactory] toInstance system
 
-    bind[ActorSelection].annotatedWith[LocalEventReceiverSelection] toInstance system.actorSelection(ActorPaths.LOCAL_EVENT_RECV)
+    bind[ActorSelection].annotatedWith[LocalEventReceiverSelection] toInstance system.actorSelection(system / ActorNames.LOCAL_EVENT_RECV)
 
     bind[UserDAO].to[SalatUserDAO].asEagerSingleton()
     bind[TopicDAO].to[SalatTopicDAO].asEagerSingleton()
     bind[EventDAO].to[SalatEventDAO].asEagerSingleton()
 
-    bind[UserOpSequences].asEagerSingleton()
+    bind[UserOps].to[UserOpSequences].asEagerSingleton()
+
+    install(FMB.bindImpl[UserOps, UserOpSequences].bindImpl[TopicOps, TopicOpSequences].buildF[OpsFactory])
   }
 
 

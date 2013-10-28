@@ -28,8 +28,6 @@ package object chatless {
     }
   }
 
-  implicit def marshallBoolean: Marshaller[Boolean] = Marshaller.delegate(`text/plain`) { bool: Boolean => bool.toString }
-
 
   type OptPair[+A, +B] = Option[(A, B)]
 

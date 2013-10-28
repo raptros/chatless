@@ -14,6 +14,7 @@ import org.json4s._
 import org.json4s.native.JsonMethods._
 import spray.httpx.Json4sSupport
 import akka.event.Logging
+import chatless.ops.UserOps
 
 class UserRoutesSpec
   extends WordSpec
@@ -76,11 +77,11 @@ class UserRoutesSpec
 
   class Fixture(targetOther: User, count: Int) { self =>
     def mkGet(field: String = "") = Get(mkPath(targetOther.id, field))
-    val userDao = mock[UserDAO]
-    (userDao.get(_: UserId)) expects targetOther.id repeated count returning Some(targetOther)
+    val userOps = mock[UserOps]
+    (userOps.getOrThrow(_: UserId)) expects targetOther.id repeated count returning targetOther
     val userApi = new UserApi {
       val log = Logging(system, "userApi in UserRoutesSpec")
-      val userDao = self.userDao
+      val userOps = self.userOps
       override val actorRefFactory = system
     }
     val api = Directives.dynamic { userApi.userApi(userId) }
@@ -90,7 +91,7 @@ class UserRoutesSpec
     "the requested user is the caller" should {
       "return every field for the object" in new Fixture(fakeCaller, 1) {
         mkGet() ~> api ~> check {
-          val obj = entityAs[JObject]
+          val obj = responseAs[JObject]
           val objFields = obj.values.keySet
           for (f <- allFields) {
             objFields should contain (f)
@@ -108,7 +109,7 @@ class UserRoutesSpec
     "the requested user is public" should {
       "return every follower-visible field for the object" in new Fixture(otherUser1, 1) {
         mkGet() ~> api ~> check {
-          val obj = entityAs[JObject]
+          val obj = responseAs[JObject]
           val objFields = obj.values.keySet
           for (f <- followerFields) {
             objFields should contain (f)
@@ -117,7 +118,7 @@ class UserRoutesSpec
       }
       "not return any non-follower-visible fields in the object" in new Fixture(otherUser1, 1) {
         mkGet() ~> api ~> check {
-          val obj = entityAs[JObject]
+          val obj = responseAs[JObject]
           val objFields = obj.values.keySet
           for (f <- callerOnlyFields) {
             objFields should not contain (f)
@@ -142,7 +143,7 @@ class UserRoutesSpec
     "the requested user is followed by the caller" should {
       "return every follower-visible field for the object" in new Fixture(otherUser2, 1) {
         mkGet() ~> api ~> check {
-          val obj = entityAs[JObject]
+          val obj = responseAs[JObject]
           val objFields = obj.values.keySet
           for (f <- followerFields) {
             objFields should contain (f)
@@ -151,7 +152,7 @@ class UserRoutesSpec
       }
       "not return any non-follower-visible fields in the object" in new Fixture(otherUser2, 1) {
         mkGet() ~> api ~> check {
-          val obj = entityAs[JObject]
+          val obj = responseAs[JObject]
           val objFields = obj.values.keySet
           for (f <- callerOnlyFields) {
             objFields should not contain (f)
@@ -176,7 +177,7 @@ class UserRoutesSpec
     "the requested user is not public and not followed" should {
       "return every publically visible field for the object" in new Fixture(otherUser3, 1) {
         mkGet() ~> api ~> check {
-          val obj = entityAs[JObject]
+          val obj = responseAs[JObject]
           val objFields = obj.values.keySet
           for (f <- publicFields) {
             objFields should contain (f)
@@ -185,7 +186,7 @@ class UserRoutesSpec
       }
       "not return any non-publically-visible fields in the object" in new Fixture(otherUser3, 1) {
         mkGet() ~> api ~> check {
-          val obj = entityAs[JObject]
+          val obj = responseAs[JObject]
           val objFields = obj.values.keySet
           for (f <- nonPublicFields) {
             objFields should not contain (f)
@@ -195,7 +196,7 @@ class UserRoutesSpec
       for (f <- publicFields) {
         s"return publically visible field $f by request" in new Fixture(otherUser3, 1) {
           mkGet(f) ~> api ~> check {
-            entity should not be ('isEmpty)
+            assert(entity.nonEmpty)
           }
         }
       }

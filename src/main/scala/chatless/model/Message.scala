@@ -16,4 +16,8 @@ object Message {
   val UID = "uid"
   val BODY = "body"
   val TIMESTAMP = "timestamp"
+
+  implicit val containableMessage = new ContainableValue[Message] {
+    def contain(a: Message) = MessageVC(a)
+  }
 }

@@ -42,6 +42,9 @@ class SalatEventDAO @Inject()(
         "tid" $in user.topics),
       $and(
         "kind" $eq EventKind.USER_UPDATE.id,
+        "uid" $eq user.id),
+      $and(
+        "kind" $eq EventKind.USER_UPDATE.id,
         "uid" $in user.following))
     val mainQ = id map { i => $and(idBasedQ(i, forward, inclusive), filterQ) } getOrElse filterQ
     val cursor = find(mainQ) sort MongoDBObject("$natural" -> { if (forward) 1 else -1 }) limit count

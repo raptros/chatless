@@ -8,13 +8,14 @@ import chatless.db.UserDAO
 import chatless.responses.UserNotFoundError
 import org.json4s._
 import org.json4s.JsonDSL._
+import chatless.ops.UserOps
 
 
 trait UserApi extends ServiceBase {
 
-  val userDao: UserDAO
+  val userOps: UserOps
 
-  private def fieldComplete[A <% JValue](field: String)(value: A) = path(field / PathEnd) {
+  private def fieldComplete[A <% JValue](field: String)(value: A) = path(field) {
     complete { Map(field -> value) }
   }
   private def userFieldsSelector(cid: UserId, user: => User): Set[String] =
@@ -28,11 +29,10 @@ trait UserApi extends ServiceBase {
 
   val userApi: CallerRoute = cid => get {
     resJson {
-      pathPrefix(USER_API_BASE / Segment) { uid: UserId =>
-        val user = userDao get uid getOrElse { throw UserNotFoundError(uid) }
+      pathPrefix(USER_API_BASE / Segment) map userOps.getOrThrow apply { user: User =>
         /*----------------------------------------*/
         /*these paths can be requested by any user*/
-        path(PathEnd) {
+        pathEnd {
           complete { user getFields userFieldsSelector(cid, user) }
         } ~ fieldComplete(User.ID) {
           user.id

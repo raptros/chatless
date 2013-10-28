@@ -7,6 +7,10 @@ import chatless.model.Event
 import akka.event.Logging
 import scalaz._
 import scalaz.syntax.id._
+import scalaz.syntax.foldable._
+import scalaz.std.option._
+import scalaz.syntax.std.option._
+import scalaz.std.list._
 
 import shapeless._
 import shapeless.Typeable._
@@ -24,10 +28,19 @@ class LocalEventReceiver @Inject() (
 
   def receive = {
     case e: Event => saveEvent(e)
-    case l: List[_] =>
+    case l: List[_] => handleList(l)
+  }
+
+  def saveEventsList(first:Event, rest: List[Event]) {
+    (rest foldLeft saveEvent(first)) { (parent, next) =>
+      parent flatMap { pId => saveEvent(next.copy(parent = pId.some)) }
+    }
   }
 
   def handleList(l: List[Any]) {
-    l flatMap { _.cast[Event] }
+    val eventsList = l flatMap { _.cast[Event] }
+    if (eventsList.nonEmpty) {
+      saveEventsList(eventsList.head, eventsList.tail)
+    }
   }
 }
