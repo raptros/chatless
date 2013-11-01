@@ -25,13 +25,12 @@ class TopicRoutesSpec
   with ShouldMatchers
   with HttpService
   with MockFactory {
-  import Topic.{publicFields, participantFields}
+  import Topic.{publicFields, userFields}
 
 
   def mkPath(tid: TopicId, field: String) = s"/${chatless.services.TOPIC_API_BASE}/$tid/$field"
 
   trait Fixture { self =>
-    val topicDao: TopicDAO
     val topicOps: TopicOps
     val tid: TopicId
 
@@ -46,7 +45,6 @@ class TopicRoutesSpec
     //rest are lazy vals so topicDao can be set before these are instantiated
     lazy val topicApi = new TopicApi {
       val log = Logging(system, "topicApi in TopicRouesSpec")
-      val topicDao = self.topicDao
       val topicOps = self.topicOps
       override val actorRefFactory = system
     }
@@ -56,9 +54,8 @@ class TopicRoutesSpec
 
   class GetterFixture(val topic: Topic, val times: Int = 1) extends Fixture {
     val tid = topic.id
-    val topicDao = mock[TopicDAO]
     val topicOps = mock[TopicOps]
-    (topicDao.get(_: TopicId)) expects topic.id repeated times returning Some(topic)
+    (topicOps.getOrThrow(_: TopicId)) expects topic.id repeated times returning topic
   }
 
   class Fixture2(op: String, sops: Set[String], participants: Set[String]) extends Fixture {
@@ -74,7 +71,7 @@ class TopicRoutesSpec
       op = op,
       sops = sops,
       voiced = Set.empty[String],
-      participating = participants,
+      users = participants,
       banned = Set.empty[String],
       tags = Set.empty[String])
   }
@@ -88,7 +85,7 @@ class TopicRoutesSpec
     op = "topic1op",
     sops = Set.empty[String],
     voiced = Set.empty[String],
-    participating = Set("topic1op", userId),
+    users = Set("topic1op", userId),
     banned = Set.empty[String],
     tags = Set.empty[String])
 
@@ -101,7 +98,7 @@ class TopicRoutesSpec
     op = "topic2op",
     sops = Set.empty[String],
     voiced = Set.empty[String],
-    participating = Set("topic2op"),
+    users = Set("topic2op"),
     banned = Set.empty[String],
     tags = Set.empty[String])
 
@@ -110,7 +107,7 @@ class TopicRoutesSpec
       "return an object with only the proper fields" when {
         "the caller is a participant in the topic" in new GetterFixture(topic1) {
           mkGet() ~> api ~> check {
-            responseAs[JObject].values.keySet should be (participantFields.toSet)
+            responseAs[JObject].values.keySet should be (userFields.toSet)
           }
         }
         "the caller is not a participant and the topic is not public" in new GetterFixture(topic2) {
@@ -120,7 +117,7 @@ class TopicRoutesSpec
         }
         "the caller is not a participant in the topic but the topic is public" in new GetterFixture(topic2.copy(public = true)) {
           mkGet() ~> api ~> check {
-            responseAs[JObject].values.keySet should be (participantFields.toSet)
+            responseAs[JObject].values.keySet should be (userFields.toSet)
           }
         }
         s"the caller requests /topic/:tid/${Topic.TITLE}" in new GetterFixture(topic1) {
@@ -144,21 +141,21 @@ class TopicRoutesSpec
       }
       "return ok" when {
         "the participants set is checkd for a user that is participating" in new GetterFixture(topic1) {
-          mkGet(s"${Topic.PARTICIPATING}/$userId/") ~> api ~> check {
+          mkGet(s"${Topic.USERS}/$userId/") ~> api ~> check {
             status === StatusCodes.NoContent
           }
         }
       }
       "return not found" when {
         "the participants set is checked for a non-participating user" in new GetterFixture(topic1) {
-          mkGet(s"${Topic.PARTICIPATING}/fakeUser/") ~> api ~> check {
+          mkGet(s"${Topic.USERS}/fakeUser/") ~> api ~> check {
             status === StatusCodes.NotFound
           }
         }
       }
       "forbid access" when {
         "the caller does not participate in the topic and the topic is private" when {
-          for (f <- participantFields diff publicFields) {
+          for (f <- userFields diff publicFields) {
             s"and the caller attempts to access $f" in new GetterFixture(topic2) {
               mkGet(f) ~> HttpService.sealRoute(api) ~> check {
                 status === StatusCodes.Forbidden
@@ -171,7 +168,7 @@ class TopicRoutesSpec
     s"""handling a put to ${mkPath("testTopic", "title")}""" should {
       "forbid access" when {
         "the user is not at least a second op" in new Fixture2("notuser", Set.empty[String], Set(userId)) {
-          (topicDao.get(_: TopicId)) expects topic.id once() returning Some(topic)
+          (topicOps.getOrThrow(_: TopicId)) expects topic.id once() returning topic
           (topicOps.setTitle(_: UserId, _: TopicId, _: String)) expects (*, *, *) never()
           mkPut(Topic.TITLE, "newTitle") ~> sealRoute(api) ~> check {
             status === StatusCodes.Forbidden
@@ -179,7 +176,7 @@ class TopicRoutesSpec
         }
       }
       "update the topic properly" in new Fixture2("notuser", Set(userId), Set(userId)) {
-        (topicDao.get(_: TopicId)) expects topic.id once() returning Some(topic)
+        (topicOps.getOrThrow(_: TopicId)) expects topic.id once() returning topic
         (topicOps.setTitle(_: UserId, _: TopicId, _: String)) expects (*, *, *) once() returning \/-(true)
         mkPut(Topic.TITLE, "newTitle") ~> api ~> check {
           status === StatusCodes.NoContent

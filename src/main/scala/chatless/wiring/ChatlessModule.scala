@@ -43,8 +43,6 @@ class ChatlessModule(val system: ActorSystem) extends AbstractModule with ScalaM
     bind[TopicDAO].to[SalatTopicDAO].asEagerSingleton()
     bind[EventDAO].to[SalatEventDAO].asEagerSingleton()
 
-    bind[UserOps].to[UserOpSequences].asEagerSingleton()
-
     install(FMB.bindImpl[UserOps, UserOpSequences].bindImpl[TopicOps, TopicOpSequences].buildF[OpsFactory])
   }
 

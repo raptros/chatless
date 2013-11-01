@@ -98,15 +98,15 @@ class UserOpSequences @Inject() (
     update0 <- userDao.addTopic(cid, tid) withEvent
       userUpdate(Action.ADD, cid, User.TOPICS, tid)
     //todo this topic event should have cid set to whoever accepted the join request if this isn't a public topic
-    update1 <- update0 step topicDao.addParticipant(tid, cid) withEvent
-      topicUpdate(Action.ADD, cid, tid, Topic.PARTICIPATING, cid)
+    update1 <- update0 step topicDao.addUser(tid, cid) withEvent
+      topicUpdate(Action.ADD, cid, tid, Topic.USERS, cid)
   } yield update0
 
   def leaveTopicSequence(cid: UserId, tid: TopicId) = for {
     update0 <- userDao.removeTopic(cid, tid) withEvent
       userUpdate(Action.REMOVE, cid, User.TOPICS, tid)
-    update1 <- update0 step topicDao.removeParticipant(tid, cid) withEvent
-      topicUpdate(Action.REMOVE, cid, tid, Topic.PARTICIPATING, cid)
+    update1 <- update0 step topicDao.removeUser(tid, cid) withEvent
+      topicUpdate(Action.REMOVE, cid, tid, Topic.USERS, cid)
   } yield update0
 
 }

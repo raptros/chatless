@@ -1,9 +1,11 @@
 package chatless.ops
 import chatless._
 import chatless.db.WriteStat
-import chatless.model.JDoc
+import chatless.model.{Topic, JDoc}
 
 trait TopicOps {
+  def getOrThrow(tid: TopicId): Topic
+
   def setTitle(cid: UserId, tid: TopicId, value: String): WriteStat
 
   def setPublic(cid: UserId, tid: TopicId, value: Boolean): WriteStat
@@ -16,8 +18,19 @@ trait TopicOps {
 
   def banUser(cid: UserId, tid: TopicId, uid: UserId): WriteStat
 
-  //def inviteUser
+  def unbanUser(cid: UserId, tid: TopicId, uid: UserId): WriteStat
 
   def addSop(cid: UserId, tid: TopicId, uid: UserId): WriteStat
 
+  def removeSop(cid: UserId, tid: TopicId, uid: UserId): WriteStat
+
+  def addVoiced(cid: UserId, tid: TopicId, uid: UserId): WriteStat
+
+  //def inviteUser
+
+  def removeVoiced(cid: UserId, tid: TopicId, uid: UserId): WriteStat
+
+  def addTag(cid: UserId, tid: TopicId, tag: String): WriteStat
+
+  def removeTag(cid: UserId, tid: TopicId, tag: String): WriteStat
 }

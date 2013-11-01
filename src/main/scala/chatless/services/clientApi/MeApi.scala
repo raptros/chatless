@@ -28,44 +28,51 @@ trait MeApi extends ServiceBase {
 
   private def mkMap[A](s: String)(v: A) = new Map.Map1[String, A](s, v)
 
-  private def completeWithUserSetCheck(uid: UserId)(field: User => Set[String])(value: String): Route =
-    complete {
-        if (uid |> userOps.getOrThrow |> field |> setContains(value)) StatusCodes.NoContent else StatusCodes.NotFound
-      }
+  val mkJObj: Pair[String, JValue] => JValue = p => JObject(p)
 
-  private def fieldQuery[A <% JValue](field: String)(value: User => A): CallerRoute = cid => path(field) {
-    resJson {
+  private def mapExtractors(extractors: Seq[(String, User => JValue)]) = extractors.toMap map {
+    case (field, extractFunc) => field -> { extractFunc andThen field.-> andThen mkJObj }
+  }
+
+  private def queryFields(extractors: (String, User => JValue)*): CallerRoute = cid => {
+    path(mapExtractors(extractors)) { extractor =>
+      resJson {
+        complete {
+          extractor(userOps.getOrThrow(cid))
+        }
+      }
+    }
+  }
+
+  def setChecks(setFields: (String, User => Set[String])*): CallerRoute = cid => {
+    path(setFields.toMap / Segment) { (extractor, value) =>
       complete {
-        cid |> userOps.getOrThrow |> value |> mkMap[A](field)
+        if (cid |> userOps.getOrThrow |> extractor |> setContains(value)) StatusCodes.NoContent else StatusCodes.NotFound
       }
     }
   }
 
-  private val getFields: CallerRoute =
-    fieldQuery(User.ID) { _.id } |+|
-    fieldQuery(User.NICK) { _.nick } |+|
-    fieldQuery(User.PUBLIC) { _.public } |+|
-    fieldQuery(User.INFO) { _.info } |+|
-    fieldQuery(User.FOLLOWING) { _.following } |+|
-    fieldQuery(User.FOLLOWERS) { _.followers } |+|
-    fieldQuery(User.BLOCKED) { _.blocked } |+|
-    fieldQuery(User.TOPICS) { _.topics } |+|
-    fieldQuery(User.TAGS) { _.tags }
+  private val renderUser: CallerRoute = cid => pathEnd { resJson { complete { userOps.getOrThrow(cid) } } }
 
-  private val querySetsRoute: CallerRoute = cid => get {
-    val completeCheck = completeWithUserSetCheck(cid) _
-    path(User.FOLLOWING / Segment) {
-      completeCheck { _.following }
-    } ~ path(User.FOLLOWERS / Segment) {
-      completeCheck { _.followers }
-    } ~ path(User.BLOCKED / Segment) {
-      completeCheck { _.blocked }
-    } ~ path(User.TOPICS / Segment) {
-      completeCheck { _.topics }
-    } ~ path(User.TAGS / Segment) {
-      completeCheck { _.tags }
-    }
-  }
+  private val getFields: CallerRoute = queryFields(
+    User.ID        -> { _.id },
+    User.NICK      -> { _.nick },
+    User.PUBLIC    -> { _.public },
+    User.INFO      -> { _.info },
+    User.FOLLOWING -> { _.following },
+    User.FOLLOWERS -> { _.followers },
+    User.BLOCKED   -> { _.blocked },
+    User.TOPICS    -> { _.topics },
+    User.TAGS      -> { _.tags }
+  )
+
+  private val querySetsRoute: CallerRoute = setChecks(
+    User.FOLLOWING -> { _.following },
+    User.FOLLOWERS -> { _.followers },
+    User.BLOCKED   -> { _.blocked },
+    User.TOPICS    -> { _.topics },
+    User.TAGS      -> { _.tags }
+  )
 
   private def setNick(cid: UserId, newNick: String) = validate(!newNick.isEmpty, "invalid nick") {
     completeOp { userOps.setNick(cid, newNick) }
@@ -136,16 +143,11 @@ trait MeApi extends ServiceBase {
     }
 
 
+
   val meApi: CallerRoute = cid => {
     pathPrefix(ME_API_BASE) {
       get {
-        pathEnd {
-          resJson {
-            complete {
-              userOps.getOrThrow(cid)
-            }
-          }
-        } ~ getFields(cid) ~ querySetsRoute(cid)
+        cid |> { renderUser |+| getFields  |+| querySetsRoute }
       } ~ put {
         allPuts(cid)
       } ~ delete {

@@ -26,9 +26,9 @@ trait TopicDAO extends DAO {
 
   def removeVoiced(id: TopicId, voiced: UserId) = removeFromSet(id, Topic.VOICED, voiced)
 
-  def addParticipant(id: TopicId, part: UserId) = addToSet(id, Topic.PARTICIPATING, part)
+  def addUser(id: TopicId, part: UserId) = addToSet(id, Topic.USERS, part)
 
-  def removeParticipant(id: TopicId, part: UserId) = removeFromSet(id, Topic.PARTICIPATING, part)
+  def removeUser(id: TopicId, part: UserId) = removeFromSet(id, Topic.USERS, part)
 
   def addBanned(id: TopicId, banned: UserId) = addToSet(id, Topic.BANNED, banned)
 

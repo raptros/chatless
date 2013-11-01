@@ -59,13 +59,19 @@ trait ServiceBase extends HttpService with Json4sSupport {
 
   def resText: Directive0 = respondWithMediaType(`text/plain`)
 
+  def mapFieldsAsJson(fields: Seq[(String, JValue)]): Map[String, JValue] = fields.toMap map {
+    case (s, v) => s -> JObject(s -> v)
+  }
+
+  def completeFieldsAs(fields: (String, JValue)*) = path(mapFieldsAsJson(fields)) { v => resJson { complete(v) } }
+
   def setCompletion(pathMap: Map[String, Set[String]]): Route = {
     path(pathMap / Segment) { (set: Set[String], v: String) =>
       complete { if (set contains v) StatusCodes.NoContent else StatusCodes.NotFound }
     }
   }
 
-  def setCompletion(pathPairs: (String, Set[String])*): Route = setCompletion(pathPairs.toMap)
+  def completeWithContains(pathPairs: (String, Set[String])*): Route = setCompletion(pathPairs.toMap)
 
   def fromString[T](implicit deser: FromStringDeserializer[T]) = new FromRequestUnmarshaller[T] {
     def apply(v1: HttpRequest): Deserialized[T] = BasicUnmarshallers.StringUnmarshaller(v1.entity).right flatMap { deser }
