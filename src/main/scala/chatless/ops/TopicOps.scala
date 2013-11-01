@@ -2,9 +2,12 @@ package chatless.ops
 import chatless._
 import chatless.db.WriteStat
 import chatless.model.{Topic, JDoc}
+import chatless.model.inits.TopicInit
 
 trait TopicOps {
   def getOrThrow(tid: TopicId): Topic
+
+  def createTopic(cid: UserId, init: TopicInit): WriteStat
 
   def setTitle(cid: UserId, tid: TopicId, value: String): WriteStat
 

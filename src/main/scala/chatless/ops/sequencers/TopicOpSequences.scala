@@ -11,11 +11,13 @@ import chatless.db.WriteStat
 import com.google.inject.Inject
 import chatless.model._
 import chatless.model.Event
-import chatless.model.Event.{userUpdate, topicUpdate}
+import chatless.model.Event.{userUpdate, topicUpdate, topicCreate}
 import scalaz._
 import scalaz.std.list._
 import com.google.inject.assistedinject.Assisted
 import chatless.responses.TopicNotFoundError
+import chatless.model.inits.TopicInit
+import scala.util.Random
 
 class TopicOpSequences @Inject() (
     val userDao: UserDAO,
@@ -26,6 +28,11 @@ class TopicOpSequences @Inject() (
   with TopicOps {
 
   def getOrThrow(tid: TopicId) = topicDao get tid getOrElse { throw TopicNotFoundError(tid) }
+
+
+  def createTopic(cid: UserId, init: TopicInit) = runSequence {
+    createTopicSequence(initTopicFrom(cid, init), init.invite)
+  }
 
   def setTitle(cid: UserId, tid: TopicId, value: String) = runSequence {
     topicDao.setTitle(tid, value) withEvent topicUpdate(Action.REPLACE, cid, tid, Topic.TITLE, value)
@@ -74,6 +81,30 @@ class TopicOpSequences @Inject() (
   def removeTag(cid: UserId, tid: TopicId, tag: String) = runSequence {
     topicDao.addTag(tid, tag) withEvent topicUpdate(Action.REMOVE, cid, tid, Topic.TAGS, tag)
   }
+
+  //todo fix the heck out of this!
+  def initTopicFrom(cid: UserId, init: TopicInit) = Topic(
+    id = Random.nextString(33),
+    title = init.title,
+    public = init.public,
+    muted = init.muted,
+    info = init.info,
+    op = cid,
+    sops = Set.empty[UserId],
+    voiced = Set.empty[UserId],
+    users = Set.empty[UserId],
+    banned = Set.empty[UserId],
+    tags = init.tags)
+
+  def createTopicSequence(topic: Topic, invite: Set[String]) = for {
+    create <- topicDao.saveNewTopic(topic) withEvent
+      topicCreate(topic)
+    added <- create step topicDao.addUser(topic.id, topic.op) withEvent
+      topicUpdate(Action.ADD, topic.op, topic.id, Topic.USERS, topic.op)
+    joined <- added step userDao.addTopic(topic.op, topic.id) withEvent
+      userUpdate(Action.ADD, topic.op, User.TOPICS, topic.id)
+    //todo send invites.
+  } yield create
 
   def kickUserSequence(cid: UserId, tid: TopicId, uid: UserId) = for {
     update0 <-  topicDao.removeUser(tid, uid) withEvent

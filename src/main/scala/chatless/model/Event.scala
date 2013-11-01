@@ -36,4 +36,11 @@ object Event {
       tid = Some(tid),
       field = Some(field),
       value = containable.contain(value))
+
+  def topicCreate(topic: Topic) = Event(
+    kind = EventKind.TOPIC_UPDATE,
+    action = Action.CREATE,
+    cid = Some(topic.op),
+    tid = Some(topic.id),
+    value = TopicVC(topic))
 }

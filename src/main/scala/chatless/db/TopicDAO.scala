@@ -8,6 +8,8 @@ trait TopicDAO extends DAO {
   type ID = TopicId
   type Model = Topic
 
+  def saveNewTopic(topic: Topic): WriteStat
+
   def setTitle(id: TopicId, title: String) = setOneField(id, Topic.TITLE, title)
 
   def setPublic(id: TopicId, public: Boolean) = setOneField(id, Topic.PUBLIC, public)
