@@ -17,18 +17,17 @@ case class User(
     tags:       Set[String]) {
   import User._
 
-  def getFields(fields: Set[String]): Map[String, Any] = {
-    (ID         -> id) ::
-    (NICK       -> nick) ::
-    (PUBLIC     -> public) ::
-    (INFO       -> info) ::
-    (FOLLOWING  -> following) ::
-    (FOLLOWERS  -> followers) ::
-    (BLOCKED    -> blocked) ::
-    (TOPICS     -> topics) ::
-    (TAGS       -> tags) ::
-    Nil
-  }.toMap filterKeys { fields.contains }
+  def getFields(fields: Set[String]): Map[String, Any] = Map(
+    ID         -> id,
+    NICK       -> nick,
+    PUBLIC     -> public,
+    INFO       -> info,
+    FOLLOWING  -> following,
+    FOLLOWERS  -> followers,
+    BLOCKED    -> blocked,
+    TOPICS     -> topics,
+    TAGS       -> tags
+  ) filterKeys { fields.contains }
 }
 
 object User {

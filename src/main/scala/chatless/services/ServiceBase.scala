@@ -77,16 +77,6 @@ trait ServiceBase extends HttpService with Json4sSupport {
     def apply(v1: HttpRequest): Deserialized[T] = BasicUnmarshallers.StringUnmarshaller(v1.entity).right flatMap { deser }
   }
 
-  def completeDBOp(res: WriteStat)(onUpdated: => Unit) = res match {
-    case \/-(true) => onUpdated; respondWithHeader(RawHeader("x-chatless-updated", "yes")) {
-      complete(StatusCodes.NoContent)
-    }
-    case \/-(false) => complete(StatusCodes.NoContent)
-    case -\/(msg) =>
-      log.warning("failed to complete update because: {}", msg)
-      complete(StatusCodes.InternalServerError -> msg)
-  }
-
   /** completes with an operation that returns a writestat - i.e. something that updates the database
     */
   def completeOp(res: => WriteStat) = res match {

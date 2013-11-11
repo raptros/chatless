@@ -84,7 +84,7 @@ class TopicOpSequences @Inject() (
 
   //todo fix the heck out of this!
   def initTopicFrom(cid: UserId, init: TopicInit) = Topic(
-    id = Random.nextString(33),
+    id = Random.nextString(33), //bad!
     title = init.title,
     public = init.public,
     muted = init.muted,

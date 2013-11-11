@@ -19,20 +19,19 @@ case class Topic(
     tags:   Set[String]) {
   import Topic._
 
-  def getFields(fields: Set[String]): Map[String, Any] = {
-    (ID     -> id) ::
-    (TITLE  -> title) ::
-    (PUBLIC -> public) ::
-    (MUTED  -> muted) ::
-    (INFO   -> info) ::
-    (OP     -> op) ::
-    (SOPS   -> sops) ::
-    (VOICED -> voiced) ::
-    (USERS  -> users) ::
-    (BANNED -> banned) ::
-    (TAGS   -> tags) ::
-    Nil
-  }.toMap filterKeys { fields.contains }
+  def getFields(fields: Set[String]): Map[String, Any] = Map(
+    ID     -> id,
+    TITLE  -> title,
+    PUBLIC -> public,
+    MUTED  -> muted,
+    INFO   -> info,
+    OP     -> op,
+    SOPS   -> sops,
+    VOICED -> voiced,
+    USERS  -> users,
+    BANNED -> banned,
+    TAGS   -> tags
+  ) filterKeys { fields.contains }
 }
 
 object Topic {

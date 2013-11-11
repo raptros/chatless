@@ -8,7 +8,7 @@ import scala.concurrent.duration._
 
 import com.mongodb.casbah.Imports._
 import com.google.inject.{Injector, Guice}
-import chatless.wiring.{ActorNames, ChatlessModule}
+import chatless.wiring.{ActorNames, SystemModule}
 import chatless.wiring.actors.ActorInjector
 import chatless.events.LocalEventReceiver
 
@@ -16,7 +16,7 @@ object Boot extends App {
  // we need an ActorSystem to host our application in
   implicit val system = ActorSystem("chatless-system")
 
-  val injector: Injector = Guice.createInjector(new ChatlessModule(system))
+  val injector: Injector = Guice.createInjector(new SystemModule(system))
 
   val actorProvider = ActorInjector.providerFor(injector)
 

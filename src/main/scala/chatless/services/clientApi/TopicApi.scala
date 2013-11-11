@@ -13,6 +13,9 @@ import org.json4s.native.JsonMethods._
 import spray.http.StatusCodes
 import spray.httpx.encoding.NoEncoding
 import chatless.ops.TopicOps
+import spray.httpx.unmarshalling.FromRequestUnmarshaller
+import spray.routing.{Directive1, HListable, Directive, Route}
+import shapeless.{HNil, ::}
 
 trait TopicApi extends ServiceBase {
 
@@ -50,7 +53,8 @@ trait TopicApi extends ServiceBase {
         Topic.VOICED -> topic.voiced,
         Topic.USERS  -> topic.users,
         Topic.BANNED -> topic.banned,
-        Topic.TAGS   -> topic.tags)
+        Topic.TAGS   -> topic.tags
+      )
     }
   }
 
@@ -86,11 +90,44 @@ trait TopicApi extends ServiceBase {
 
   private def unbanUser(cid: UserId, tid: TopicId, uid: UserId) = completeOp { topicOps.unbanUser(cid, tid, uid) }
 
+  trait Completable {
+    def route: Route
+  }
+  
+  def entityRoute[A](um: FromRequestUnmarshaller[A])(op: A => db.WriteStat) = new Completable {
+    def route = pathEnd { entity(um) { v => completeOp { op(v) } } }
+  }
+  
+  def fieldRoute(op: String => db.WriteStat) = new Completable {
+    def route = path(Segment) { s => completeOp { op(s) } }
+  }
+  
+  def fieldRouteWithEntity(op: (String, Option[JDoc]) => db.WriteStat) = new Completable {
+    def route = path(Segment) { s => optionJsonEntity { oj => completeOp { op(s, oj) } } }
+  }
+  
+  def notImplemented = new Completable {
+    def route = path(Segment) { _ => complete { StatusCodes.NotImplemented } }
+  }
+
+  def completableFields(cfs: (String, Completable)*) = pathPrefix(cfs.toMap) { completable => completable.route }
+
+  private def sopLevelUpdates2(cid: UserId, tid: TopicId) =
+    put {
+      completableFields(
+        Topic.TITLE  -> entityRoute(fromString[String])  { topicOps.setTitle(cid, tid, _) },
+        Topic.PUBLIC -> entityRoute(fromString[Boolean]) { topicOps.setPublic(cid, tid, _) },
+        Topic.MUTED  -> entityRoute(fromString[Boolean]) { topicOps.setMuted(cid, tid, _) }
+      )
+    }
+
   private def sopLevelUpdates(cid: UserId, tid: TopicId) =
     put {
       path(Topic.TITLE) {
-        entity(fromString[String]) {
-          setTitle(cid, tid, _)
+        entity(fromString[String]) { v =>
+          completeOp {
+            topicOps.setTitle(cid, tid, v)
+          }
         }
       } ~ path(Topic.PUBLIC) {
         entity(fromString[Boolean]) {
@@ -104,10 +141,14 @@ trait TopicApi extends ServiceBase {
         entity(as[JObject]) {
           setInfo(cid, tid, _)
         }
-      } ~ path(Topic.VOICED / Segment) {
-        voiceUser(cid, tid, _)
-      } ~ path(Topic.USERS / Segment) {
-        inviteUser(cid, tid, _)
+      } ~ path(Topic.VOICED / Segment) { uid =>
+        completeOp {
+          topicOps.addVoiced(cid, tid, uid)
+        }
+      } ~ path(Topic.USERS / Segment) { uid =>
+        optionJsonEntity { oj =>
+          complete { StatusCodes.NotImplemented }
+        }
       } ~ path(Topic.TAGS / Segment) {
         addTag(cid, tid, _)
       }
