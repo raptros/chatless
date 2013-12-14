@@ -6,13 +6,14 @@ import chatless.services.{CallerRoute, ServiceBase, EVENT_API_BASE}
 import chatless.db.{UserDAO, EventDAO}
 import chatless.model.{User, Event}
 import chatless.responses.UserNotFoundError
+import chatless.ops.UserOps
 
 trait EventApi extends ServiceBase {
 
   val eventDao: EventDAO
-  val userDao: UserDAO
+  val userOps: UserOps
 
-  private val getCount:Directive1[Int] = (path(PathEnd) & provide(1)) | path(IntNumber / PathEnd)
+  private val getCount:Directive1[Int] = (pathEnd & provide(1)) | path(IntNumber)
 
   private def completeWithQuery1(query: String)(operation: Int => Iterable[Event]): Route =
     (pathPrefix(query)  & getCount) { count: Int =>
@@ -25,7 +26,7 @@ trait EventApi extends ServiceBase {
     }
 
   private def eventsFor(user: User) =
-    path(PathEnd) {
+    pathEnd {
       complete { eventDao.last(user) }
     } ~ completeWithQuery1("last") {
       eventDao.last(user, _)
@@ -42,10 +43,10 @@ trait EventApi extends ServiceBase {
   val eventApi: CallerRoute = cid => pathPrefix(EVENT_API_BASE) {
     get {
       resJson {
-        path("oldest" / PathEnd) {
+        path("oldest") {
           complete { Map("timestamp" -> eventDao.oldestKnownEventTime) }
-        } ~ provide(userDao get cid getOrElse { throw UserNotFoundError(cid) }) {
-          eventsFor _
+        } ~ provide(userOps getOrThrow cid) {
+          eventsFor
         }
       }
     }

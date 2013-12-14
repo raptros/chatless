@@ -2,183 +2,96 @@ package chatless.services.clientApi
 
 import chatless._
 import chatless.db._
+import chatless.services.routeutils._
 
-import scalaz.syntax.id._
-import scalaz.syntax.std.boolean._
-
-import spray.httpx.unmarshalling._
-import shapeless._
 
 import spray.routing._
-import HListDeserializer._
 
 import spray.httpx.unmarshalling.Deserializer._
-import spray.httpx.encoding.NoEncoding
 
 import spray.http._
-import MediaTypes._
-import scala.concurrent.{ExecutionContext, Future}
 
-import scalaz.std.function._
 import scalaz.syntax.semigroup._
+import scalaz.std.function._
 import scalaz.syntax.id._
 import chatless.model._
 import chatless.services._
-import com.google.inject.Inject
-import scala.Some
-import chatless.responses.{BoolR, StringR, UserNotFoundError}
 
 import org.json4s._
-import org.json4s.native.JsonMethods._
 import org.json4s.JsonDSL._
-import org.json4s.native.Serialization.write
-import akka.actor.ActorLogging
-import scalaz._
+import chatless.ops.UserOps
+import shapeless.HNil
 
 trait MeApi extends ServiceBase {
 
-  val userDao: UserDAO
-
-  private val getUser = (uid: UserId) => userDao get uid getOrElse { throw UserNotFoundError(uid) }
+  val userOps: UserOps
 
   def setContains[A](v: A): Set[A] => Boolean = _ contains v
 
-  private def completeWithUserSetCheck(uid: UserId)(field: User => Set[String])(value: String): Route =
-    complete {
-        if (uid |> getUser |> field |> setContains(value)) StatusCodes.NoContent else StatusCodes.NotFound
-      }
+  val mkJObj: Pair[String, JValue] => JValue = p => JObject(p)
 
-  private def fieldQuery[A <% JValue](field: String)(value: User => A): CallerRoute = cid => path(field / PathEnd) {
-    complete {
-      Map(field -> { cid |> getUser |> value })
+  private def mapExtractors(extractors: Map[String, User => JValue]) = extractors map {
+    case (field, extractFunc) => field -> { extractFunc andThen field.-> andThen mkJObj }
+  }
+
+  private def queryFields(extractors: (String, User => JValue)*): CallerRoute = cid => {
+    fPath(mapExtractors(extractors.toMap)) { extractor =>
+      resJson { complete(extractor(userOps.getOrThrow(cid))) }
     }
   }
 
-  private val getFields: CallerRoute =
-    fieldQuery(User.ID) { _.id } |+|
-    fieldQuery(User.NICK) { _.nick } |+|
-    fieldQuery(User.PUBLIC) { _.public } |+|
-    fieldQuery(User.INFO) { _.info } |+|
-    fieldQuery(User.FOLLOWING) { _.following } |+|
-    fieldQuery(User.FOLLOWERS) { _.followers } |+|
-    fieldQuery(User.BLOCKED) { _.blocked } |+|
-    fieldQuery(User.TOPICS) { _.topics } |+|
-    fieldQuery(User.TAGS) { _.tags }
+  def setChecks(setFields: (String, User => Set[String])*): CallerRoute = cid =>
+    fPath(setFields.toMap / Segment) { (e, v) => complete(check(cid, e, v)) }
 
-  private val querySetsRoute: CallerRoute = cid => get {
-    val completeCheck = completeWithUserSetCheck(cid) _
-    path(User.FOLLOWING / Segment / PathEnd) {
-      completeCheck { _.following }
-    } ~ path(User.FOLLOWERS / Segment / PathEnd) {
-      completeCheck { _.followers }
-    } ~ path(User.BLOCKED / Segment / PathEnd) {
-      completeCheck { _.blocked }
-    } ~ path(User.TOPICS / Segment / PathEnd) {
-      completeCheck { _.topics }
-    } ~ path(User.TAGS / Segment / PathEnd) {
-      completeCheck { _.tags }
-    }
-  }
+  private def check(cid: UserId, extractor: User => Set[String], value: String) =
+    if (cid |> userOps.getOrThrow |> extractor |> setContains(value)) StatusCodes.NoContent else StatusCodes.NotFound
 
-  private def setNick(cid: UserId, newNick: String) = validate(!newNick.isEmpty, "invalid nick") {
-    completeDBOp(userDao.setNick(cid, newNick)) {
-    }
-  }
+  private val renderUser: CallerRoute = cid => (pathEndOrSingleSlash & resJson) { complete(userOps.getOrThrow(cid)) }
 
-  private def setPublic(cid: UserId, v: Boolean) = completeDBOp(userDao.setPublic(cid, v)) {
-  }
+  private val getFields: CallerRoute = queryFields(
+    User.ID        -> { _.id },
+    User.NICK      -> { _.nick },
+    User.PUBLIC    -> { _.public },
+    User.INFO      -> { _.info },
+    User.FOLLOWING -> { _.following },
+    User.FOLLOWERS -> { _.followers },
+    User.BLOCKED   -> { _.blocked },
+    User.TOPICS    -> { _.topics },
+    User.TAGS      -> { _.tags }
+  )
 
-  private def setInfo(cid: UserId, v: JObject) = completeDBOp(userDao.setInfo(cid, JDoc(v.obj))) {
-  }
+  private val querySetsRoute: CallerRoute = setChecks(
+    User.FOLLOWING -> { _.following },
+    User.FOLLOWERS -> { _.followers },
+    User.BLOCKED   -> { _.blocked },
+    User.TOPICS    -> { _.topics },
+    User.TAGS      -> { _.tags }
+  )
 
-  private def followUser(cid: UserId, uid: UserId) =
-    optionJsonEntity { oj =>
-      complete {
-        StringR("whatever")
-      }
-    }
+  private def allPuts(cid: UserId) = routeCarriers(
+    User.NICK      carry sEntity(fromString[String]) buildOp { userOps.setNick(cid, _) },
+    User.PUBLIC    carry sEntity(fromString[Boolean]) buildOp { userOps.setPublic(cid, _) },
+    User.INFO      carry sEntity(as[JObject]) buildOp { j => userOps.setInfo(cid, JDoc(j.obj)) },
+    //todo build the request system to handle follow requests
+    User.FOLLOWING carry (segFin & optionJsonEntity) buildOp { (uid, oj) => userOps.followUser(cid, uid)},
+    User.BLOCKED   carry segFin buildOp { userOps.blockUser(cid, _) },
+    //todo see above
+    User.TOPICS    carry (segFin & optionJsonEntity) buildOp { (tid, oj) => userOps.joinTopic(cid, tid) },
+    User.TAGS      carry segFin buildOp { userOps.addTag(cid, _) }
+  )
 
-  private def runBlockUser(cid: UserId, uid: UserId) = for {
-    update0 <- userDao.addBlocked(cid, uid)
-    update1 <- if (update0) userDao.removeFollower(cid, uid) else \/-(false)
-    update2 <- if (update1) userDao.removeFollowing(uid, cid) else \/-(false)
-  } yield true
+  private def allDeletes(cid: UserId) = routeCarriers(
+    User.FOLLOWING carry segFin buildOp { userOps.unfollowUser(cid, _) },
+    User.FOLLOWERS carry segFin buildOp { userOps.removeFollower(cid, _) },
+    User.BLOCKED   carry segFin buildOp { userOps.unblockUser(cid, _) },
+    User.TOPICS    carry segFin buildOp { userOps.leaveTopic(cid, _) },
+    User.TAGS      carry segFin buildOp { userOps.removeTag(cid, _) }
+  )
 
-  private def blockUser(cid: UserId, uid: UserId) = complete {
-    "watever"
-  }
-
-  private def joinTopic(cid: UserId, tid: TopicId) = optionJsonEntity { m: Option[JDoc] =>
-    complete {
-      "joinTopic"
-    }
-  }
-
-  private def addTag(cid: UserId, tag: String) = completeDBOp(userDao.addTag(cid, tag)) {
-    log.info("meApi: added tag {} for user {}", tag, cid)
-  }
-
-  private def unfollow(cid: UserId, uid: UserId) = complete { "whatever" }
-
-  private def removeFollower(cid: UserId, uid: UserId) = complete { "whatever" }
-
-  private def unblockUser(cid: UserId, uid: UserId) = completeDBOp(userDao.removeBlocked(cid, uid)) {
-    log.info("meApi: unblocked user {} for user {}", uid, cid)
-  }
-
-  private def leaveTopic(cid: UserId, tid: TopicId) = complete {
-    "ugh"
-  }
-
-  private def removeTag(cid: UserId, tag: String) = completeDBOp(userDao.removeTag(cid, tag)) {
-    log.info("meApi: removed tag {} for user {}", tag, cid)
-  }
-
-  private def allPuts(cid: UserId) =
-    path(User.NICK / PathEnd) {
-      entity(fromString[String]) {
-        setNick(cid, _)
-      }
-    } ~ path(User.PUBLIC / PathEnd) {
-      entity(fromString[Boolean]) {
-        setPublic(cid, _)
-      }
-    } ~ path(User.INFO / PathEnd) {
-      entity(as[JObject]) {
-        setInfo(cid, _)
-      }
-    } ~ path(User.FOLLOWING / Segment / PathEnd) {
-      followUser(cid, _)
-    } ~ path(User.BLOCKED / Segment / PathEnd) {
-      blockUser(cid, _)
-    } ~ path(User.TOPICS / Segment / PathEnd) {
-      joinTopic(cid, _)
-    } ~ path(User.TAGS / Segment / PathEnd) {
-      addTag(cid, _)
-    }
-
-  private def allDeletes(cid: UserId) =
-    path(User.FOLLOWING / Segment / PathEnd) {
-      unfollow(cid, _)
-    } ~ path(User.FOLLOWERS / Segment / PathEnd) {
-      removeFollower(cid, _)
-    } ~ path(User.BLOCKED / Segment / PathEnd) {
-      unblockUser(cid, _)
-    } ~ path(User.TOPICS / Segment / PathEnd) {
-      leaveTopic(cid, _)
-    } ~ path(User.TAGS / Segment / PathEnd) {
-      removeTag(cid, _)
-    }
-
-
-  val meApi: CallerRoute = cid => resJson {
+  val meApi: CallerRoute = cid => {
     pathPrefix(ME_API_BASE) {
       get {
-        path(PathEnd) {
-          complete {
-            getUser(cid)
-          }
-        } ~ getFields(cid) ~ querySetsRoute(cid)
+        cid |> { renderUser |+| getFields  |+| querySetsRoute }
       } ~ put {
         allPuts(cid)
       } ~ delete {
