@@ -1,21 +1,14 @@
 package chatless.services.clientApi
 
-
 import chatless._
 import chatless.model.{JDoc, Topic}
 import chatless.services._
-import chatless.responses.TopicNotFoundError
-import chatless.db.TopicDAO
-import scalaz.std.string._
+import chatless.services.routeutils._
 import org.json4s._
 import org.json4s.JsonDSL._
-import org.json4s.native.JsonMethods._
 import spray.http.StatusCodes
 import spray.httpx.encoding.NoEncoding
 import chatless.ops.TopicOps
-import spray.httpx.unmarshalling.FromRequestUnmarshaller
-import spray.routing.{Directive1, HListable, Directive, Route}
-import shapeless.{HNil, ::}
 
 trait TopicApi extends ServiceBase {
 
@@ -32,7 +25,7 @@ trait TopicApi extends ServiceBase {
     Topic.userFields else Topic.publicFields
 
   private def infoRoute(cid: UserId, topic: Topic) = get {
-    pathEnd {
+    pathEndOrSingleSlash {
       resJson { complete { topic getFields fieldsFor(cid, topic) } }
     } ~ completeFieldsAs(
       Topic.ID     -> topic.id,
@@ -57,124 +50,35 @@ trait TopicApi extends ServiceBase {
       )
     }
   }
-
-  private def setTitle(cid: UserId, tid: TopicId, newTitle: String) =
-    validate(!newTitle.isEmpty, "invalid topic title") {
-      completeOp { topicOps.setTitle(cid, tid, newTitle) }
-    }
-
-  private def setPublic(cid: UserId, tid: TopicId, public: Boolean) = completeOp { topicOps.setPublic(cid, tid, public) }
-
-  private def setMuted(cid: UserId, tid: TopicId, muted: Boolean) = completeOp { topicOps.setMuted(cid, tid, muted) }
-
-  private def setInfo(cid: UserId, tid: TopicId, v: JObject) = completeOp { topicOps.setInfo(cid, tid, JDoc(v.obj)) }
-
-  private def voiceUser(cid: UserId, tid: TopicId, uid: UserId) = completeOp { topicOps.addVoiced(cid, tid, uid) }
-
-  private def unvoiceUser(cid: UserId, tid: TopicId, uid: UserId) = completeOp { topicOps.removeVoiced(cid, tid, uid) }
-
-  private def inviteUser(cid: UserId, tid: TopicId, uid: UserId) =
-    optionJsonEntity { t =>
-      complete {
-        StatusCodes.NotImplemented
-      }
-    }
-
-  private def kickUser(cid: UserId, tid: TopicId, uid: UserId) = completeOp { topicOps.kickUser(cid, tid, uid) }
-
-  private def addTag(cid: UserId, tid: TopicId, tag: String) = completeOp { topicOps.addTag(cid, tid, tag) }
-
-  private def removeTag(cid: UserId, tid: TopicId, tag: String) = completeOp { topicOps.removeTag(cid, tid, tag) }
-
-  private def banUser(cid: UserId, tid: TopicId, uid: UserId) = completeOp { topicOps.banUser(cid, tid, uid) }
-
-  private def unbanUser(cid: UserId, tid: TopicId, uid: UserId) = completeOp { topicOps.unbanUser(cid, tid, uid) }
-
-  trait Completable {
-    def route: Route
-  }
   
-  def entityRoute[A](um: FromRequestUnmarshaller[A])(op: A => db.WriteStat) = new Completable {
-    def route = pathEnd { entity(um) { v => completeOp { op(v) } } }
+  private def sopLevelUpdates(cid: UserId, tid: TopicId) = put {
+    routeCarriers(
+      Topic.TITLE  carry sEntity(fromString[String])  buildOp { topicOps.setTitle(cid, tid, _) },
+      Topic.PUBLIC carry sEntity(fromString[Boolean]) buildOp { topicOps.setPublic(cid, tid, _) },
+      Topic.MUTED  carry sEntity(fromString[Boolean]) buildOp { topicOps.setMuted(cid, tid, _) },
+      Topic.INFO   carry sEntity(as[JObject]) buildOp { j => topicOps.setInfo(cid, tid, JDoc(j.obj)) },
+      //todo this next one needs the request system
+      Topic.USERS  carry (segFin & optionJsonEntity) build { (uid, oj) =>
+        complete(StatusCodes.NotImplemented)
+      },
+      Topic.VOICED carry segFin buildOp { topicOps.addVoiced(cid, tid, _) },
+      Topic.BANNED carry segFin buildOp { topicOps.banUser(cid, tid, _) },
+      Topic.TAGS   carry segFin buildOp { topicOps.addTag(cid, tid, _) }
+    )
+  } ~ delete {
+    routeCarriers(
+      Topic.USERS  carry segFin buildOp { topicOps.kickUser(cid, tid, _) },
+      Topic.VOICED carry segFin buildOp { topicOps.removeVoiced(cid, tid, _) },
+      Topic.BANNED carry segFin buildOp { topicOps.unbanUser(cid, tid, _) },
+      Topic.TAGS   carry segFin buildOp { topicOps.removeTag(cid, tid, _) }
+    )
   }
-  
-  def fieldRoute(op: String => db.WriteStat) = new Completable {
-    def route = path(Segment) { s => completeOp { op(s) } }
-  }
-  
-  def fieldRouteWithEntity(op: (String, Option[JDoc]) => db.WriteStat) = new Completable {
-    def route = path(Segment) { s => optionJsonEntity { oj => completeOp { op(s, oj) } } }
-  }
-  
-  def notImplemented = new Completable {
-    def route = path(Segment) { _ => complete { StatusCodes.NotImplemented } }
-  }
-
-  def completableFields(cfs: (String, Completable)*) = pathPrefix(cfs.toMap) { completable => completable.route }
-
-  private def sopLevelUpdates2(cid: UserId, tid: TopicId) =
-    put {
-      completableFields(
-        Topic.TITLE  -> entityRoute(fromString[String])  { topicOps.setTitle(cid, tid, _) },
-        Topic.PUBLIC -> entityRoute(fromString[Boolean]) { topicOps.setPublic(cid, tid, _) },
-        Topic.MUTED  -> entityRoute(fromString[Boolean]) { topicOps.setMuted(cid, tid, _) }
-      )
-    }
-
-  private def sopLevelUpdates(cid: UserId, tid: TopicId) =
-    put {
-      path(Topic.TITLE) {
-        entity(fromString[String]) { v =>
-          completeOp {
-            topicOps.setTitle(cid, tid, v)
-          }
-        }
-      } ~ path(Topic.PUBLIC) {
-        entity(fromString[Boolean]) {
-          setPublic(cid, tid, _)
-        }
-      } ~ path(Topic.MUTED) {
-        entity(fromString[Boolean]) {
-          setMuted(cid, tid, _)
-        }
-      } ~ path(Topic.INFO) {
-        entity(as[JObject]) {
-          setInfo(cid, tid, _)
-        }
-      } ~ path(Topic.VOICED / Segment) { uid =>
-        completeOp {
-          topicOps.addVoiced(cid, tid, uid)
-        }
-      } ~ path(Topic.USERS / Segment) { uid =>
-        optionJsonEntity { oj =>
-          complete { StatusCodes.NotImplemented }
-        }
-      } ~ path(Topic.TAGS / Segment) {
-        addTag(cid, tid, _)
-      }
-    } ~ delete {
-      path(Topic.VOICED / Segment) {
-        unvoiceUser(cid, tid, _)
-      } ~ path(Topic.USERS / Segment) {
-        kickUser(cid, tid, _)
-      } ~ path(Topic.TAGS / Segment) {
-        removeTag(cid, tid, _)
-      }
-    }
-
-  private def promoteSop(cid: UserId, tid: TopicId, uid: UserId) = completeOp { topicOps.addSop(cid, tid, uid) }
-
-  private def demoteSop(cid: UserId, tid: TopicId, uid: UserId) = completeOp { topicOps.removeSop(cid, tid, uid) }
 
   private def opLevelUpdates(cid: UserId, tid: TopicId) =
     put {
-      path(Topic.SOPS / Segment) {
-        promoteSop(cid, tid, _)
-      }
+      routeCarriers(Topic.SOPS carry segFin buildOp { topicOps.addSop(cid, tid, _) })
     } ~ delete {
-      path(Topic.SOPS / Segment) {
-        demoteSop(cid, tid, _)
-      }
+      routeCarriers(Topic.SOPS carry segFin buildOp { topicOps.removeSop(cid, tid, _) })
     }
 
   private def update(cid: UserId, topic: Topic) = decodeRequest(NoEncoding) {
@@ -188,5 +92,4 @@ trait TopicApi extends ServiceBase {
   val topicApi: CallerRoute = cid => pathPrefix(TOPIC_API_BASE / Segment) map topicOps.getOrThrow apply { topic =>
     infoRoute(cid, topic) ~ update(cid, topic)
   }
-
 }

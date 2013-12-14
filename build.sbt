@@ -12,7 +12,7 @@ scalaVersion := "2.10.3"
 
 seq(Revolver.settings: _*)
 
-sprayVersion := "1.2-RC1"
+sprayVersion := "1.2.0"
 
 json4sVersion := "3.2.5"
 

@@ -2,6 +2,7 @@ package chatless.services.clientApi
 
 import chatless._
 import chatless.db._
+import chatless.services.routeutils._
 
 
 import spray.routing._
@@ -19,6 +20,7 @@ import chatless.services._
 import org.json4s._
 import org.json4s.JsonDSL._
 import chatless.ops.UserOps
+import shapeless.HNil
 
 trait MeApi extends ServiceBase {
 
@@ -26,33 +28,25 @@ trait MeApi extends ServiceBase {
 
   def setContains[A](v: A): Set[A] => Boolean = _ contains v
 
-  private def mkMap[A](s: String)(v: A) = new Map.Map1[String, A](s, v)
-
   val mkJObj: Pair[String, JValue] => JValue = p => JObject(p)
 
-  private def mapExtractors(extractors: Seq[(String, User => JValue)]) = extractors.toMap map {
+  private def mapExtractors(extractors: Map[String, User => JValue]) = extractors map {
     case (field, extractFunc) => field -> { extractFunc andThen field.-> andThen mkJObj }
   }
 
   private def queryFields(extractors: (String, User => JValue)*): CallerRoute = cid => {
-    path(mapExtractors(extractors)) { extractor =>
-      resJson {
-        complete {
-          extractor(userOps.getOrThrow(cid))
-        }
-      }
+    fPath(mapExtractors(extractors.toMap)) { extractor =>
+      resJson { complete(extractor(userOps.getOrThrow(cid))) }
     }
   }
 
-  def setChecks(setFields: (String, User => Set[String])*): CallerRoute = cid => {
-    path(setFields.toMap / Segment) { (extractor, value) =>
-      complete {
-        if (cid |> userOps.getOrThrow |> extractor |> setContains(value)) StatusCodes.NoContent else StatusCodes.NotFound
-      }
-    }
-  }
+  def setChecks(setFields: (String, User => Set[String])*): CallerRoute = cid =>
+    fPath(setFields.toMap / Segment) { (e, v) => complete(check(cid, e, v)) }
 
-  private val renderUser: CallerRoute = cid => pathEnd { resJson { complete { userOps.getOrThrow(cid) } } }
+  private def check(cid: UserId, extractor: User => Set[String], value: String) =
+    if (cid |> userOps.getOrThrow |> extractor |> setContains(value)) StatusCodes.NoContent else StatusCodes.NotFound
+
+  private val renderUser: CallerRoute = cid => (pathEndOrSingleSlash & resJson) { complete(userOps.getOrThrow(cid)) }
 
   private val getFields: CallerRoute = queryFields(
     User.ID        -> { _.id },
@@ -74,75 +68,25 @@ trait MeApi extends ServiceBase {
     User.TAGS      -> { _.tags }
   )
 
-  private def setNick(cid: UserId, newNick: String) = validate(!newNick.isEmpty, "invalid nick") {
-    completeOp { userOps.setNick(cid, newNick) }
-  }
-
-  private def setPublic(cid: UserId, v: Boolean) = completeOp { userOps.setPublic(cid, v) }
-
-  private def setInfo(cid: UserId, v: JObject) = completeOp { userOps.setInfo(cid, JDoc(v.obj)) }
-
-  private def followUser(cid: UserId, uid: UserId) = optionJsonEntity { oj =>
+  private def allPuts(cid: UserId) = routeCarriers(
+    User.NICK      carry sEntity(fromString[String]) buildOp { userOps.setNick(cid, _) },
+    User.PUBLIC    carry sEntity(fromString[Boolean]) buildOp { userOps.setPublic(cid, _) },
+    User.INFO      carry sEntity(as[JObject]) buildOp { j => userOps.setInfo(cid, JDoc(j.obj)) },
     //todo build the request system to handle follow requests
-    completeOp { userOps.followUser(cid, uid) }
-  }
-
-  private def blockUser(cid: UserId, uid: UserId) = completeOp { userOps.blockUser(cid, uid) }
-
-  private def joinTopic(cid: UserId, tid: TopicId) = optionJsonEntity { m: Option[JDoc] =>
+    User.FOLLOWING carry (segFin & optionJsonEntity) buildOp { (uid, oj) => userOps.followUser(cid, uid)},
+    User.BLOCKED   carry segFin buildOp { userOps.blockUser(cid, _) },
     //todo see above
-    completeOp { userOps.joinTopic(cid, tid) }
-  }
+    User.TOPICS    carry (segFin & optionJsonEntity) buildOp { (tid, oj) => userOps.joinTopic(cid, tid) },
+    User.TAGS      carry segFin buildOp { userOps.addTag(cid, _) }
+  )
 
-  private def unfollow(cid: UserId, uid: UserId) = completeOp { userOps.unfollowUser(cid, uid) }
-
-  private def removeFollower(cid: UserId, uid: UserId) = completeOp { userOps.removeFollower(cid, uid) }
-
-  private def unblockUser(cid: UserId, uid: UserId) = completeOp { userOps.unblockUser(cid, uid) }
-
-  private def leaveTopic(cid: UserId, tid: TopicId) = completeOp { userOps.leaveTopic(cid, tid) }
-
-  private def addTag(cid: UserId, tag: String) = completeOp { userOps.addTag(cid, tag) }
-
-  private def removeTag(cid: UserId, tag: String) = completeOp { userOps.removeTag(cid, tag) }
-
-  private def allPuts(cid: UserId) =
-    path(User.NICK) {
-      entity(fromString[String]) {
-        setNick(cid, _)
-      }
-    } ~ path(User.PUBLIC) {
-      entity(fromString[Boolean]) {
-        setPublic(cid, _)
-      }
-    } ~ path(User.INFO) {
-      entity(as[JObject]) {
-        setInfo(cid, _)
-      }
-    } ~ path(User.FOLLOWING / Segment) {
-      followUser(cid, _)
-    } ~ path(User.BLOCKED / Segment) {
-      blockUser(cid, _)
-    } ~ path(User.TOPICS / Segment) {
-      joinTopic(cid, _)
-    } ~ path(User.TAGS / Segment) {
-      addTag(cid, _)
-    }
-
-  private def allDeletes(cid: UserId) =
-    path(User.FOLLOWING / Segment) {
-      unfollow(cid, _)
-    } ~ path(User.FOLLOWERS / Segment) {
-      removeFollower(cid, _)
-    } ~ path(User.BLOCKED / Segment) {
-      unblockUser(cid, _)
-    } ~ path(User.TOPICS / Segment) {
-      leaveTopic(cid, _)
-    } ~ path(User.TAGS / Segment) {
-      removeTag(cid, _)
-    }
-
-
+  private def allDeletes(cid: UserId) = routeCarriers(
+    User.FOLLOWING carry segFin buildOp { userOps.unfollowUser(cid, _) },
+    User.FOLLOWERS carry segFin buildOp { userOps.removeFollower(cid, _) },
+    User.BLOCKED   carry segFin buildOp { userOps.unblockUser(cid, _) },
+    User.TOPICS    carry segFin buildOp { userOps.leaveTopic(cid, _) },
+    User.TAGS      carry segFin buildOp { userOps.removeTag(cid, _) }
+  )
 
   val meApi: CallerRoute = cid => {
     pathPrefix(ME_API_BASE) {

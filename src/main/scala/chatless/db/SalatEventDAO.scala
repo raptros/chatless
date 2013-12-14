@@ -75,8 +75,8 @@ class SalatEventDAO @Inject()(
   def oldestKnownEventTime = primitiveProjection[DateTime](
     MongoDBObject(
       "$query" -> (Event.TIMESTAMP $exists true),
-      "$orderby" -> MongoDBObject(Event.POSITION -> 11)
-    ), Event.TIMESTAMP)
+      "$orderby" -> MongoDBObject(Event.POSITION -> 1)),
+    Event.TIMESTAMP)
 
   def setup() {
     collection.ensureIndex(Event.POSITION)

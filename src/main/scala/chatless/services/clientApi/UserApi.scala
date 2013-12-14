@@ -26,7 +26,7 @@ trait UserApi extends ServiceBase {
   val userApi: CallerRoute = cid => get {
     pathPrefix(USER_API_BASE / Segment) map userOps.getOrThrow apply { user =>
     /*these paths can be requested by any user*/
-      pathEnd {
+      pathEndOrSingleSlash {
         resJson { complete { user getFields userFieldsSelector(cid, user) } }
       } ~ completeFieldsAs(
         User.ID     -> user.id,

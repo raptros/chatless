@@ -19,8 +19,6 @@ trait UserOps {
 
   def removeFollower(cid: UserId, uid: UserId): WriteStat
 
-  //  def followUser(cid: UserId, )
-
   def blockUser(cid: UserId, uid: UserId): WriteStat
 
   def unblockUser(cid: UserId, uid: UserId): WriteStat
