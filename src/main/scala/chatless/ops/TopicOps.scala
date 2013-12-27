@@ -3,11 +3,12 @@ import chatless._
 import chatless.db.WriteStat
 import chatless.model.{Topic, JDoc}
 import chatless.model.inits.TopicInit
+import scalaz.\/
 
 trait TopicOps {
   def getOrThrow(tid: TopicId): Topic
 
-  def createTopic(cid: UserId, init: TopicInit): WriteStat
+  def createTopic(cid: UserId, init: TopicInit): String \/ TopicId
 
   def setTitle(cid: UserId, tid: TopicId, value: String): WriteStat
 
@@ -36,4 +37,6 @@ trait TopicOps {
   def addTag(cid: UserId, tid: TopicId, tag: String): WriteStat
 
   def removeTag(cid: UserId, tid: TopicId, tag: String): WriteStat
+
+  def sendMessage(cid: UserId, tid: TopicId, body: JDoc): String \/ MessageId
 }

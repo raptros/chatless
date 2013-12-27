@@ -1,4 +1,4 @@
-import chatless.model.js.{JDocSerializer, ActionSerializer}
+import chatless.model.js.{JDocSerializer}
 import org.joda.time.DateTime
 
 package object chatless {
@@ -41,9 +41,6 @@ package object chatless {
     com.mongodb.casbah.commons.conversions.scala.RegisterJodaTimeConversionHelpers()
   }
 
-  import org.json4s._
-  import chatless.model.js.formats
-
-  implicit val json4sFormats = formats ++ org.json4s.ext.JodaTimeSerializers.all
+  implicit val json4sFormats = chatless.model.js.formats
 
 }

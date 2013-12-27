@@ -1,12 +1,14 @@
 package chatless.services.routeutils
 
-import spray.routing.{HListable, ApplyConverter, Directive, Route}
+import spray.routing._
 import shapeless._
 import chatless.db.WriteStat
 import scalaz.std.function._
 import scalaz.syntax.bind._
 import scalaz.syntax.monad._
 import akka.event.LoggingAdapter
+import spray.util.LoggingContext
+import spray.httpx.marshalling.{ToResponseMarshaller, ToResponseMarshallable}
 
 class CarryBuilder[L1 <: HList](path:String, extractions: Directive[L1]) { self =>
   def hBuild(f: L1 => Route): (String, CompleterCarrier) = path -> new CompleterCarrier {
@@ -29,8 +31,12 @@ object CarryBuilder {
 
     def build(f: In[Route]): Out = cb hBuild { apF(f) }
 
-    def buildOp(f: In[WriteStat])(implicit log: LoggingAdapter): Out = cb hBuild {
+    def buildOp(f: In[WriteStat])(implicit lc: LoggingContext): Out = cb hBuild {
       { w: WriteStat => HelperDirectives.completeOp(w) }.compose(apF(f))
+    }
+
+    def buildQuery[Q: ToResponseMarshaller](f: In[Q])(implicit lc: LoggingContext): Out = cb hBuild {
+      { q: Q => Directives.complete { q } }.compose(apF(f))
     }
   }
 

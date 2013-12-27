@@ -49,7 +49,7 @@ libraryDependencies ++= Seq(
 libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-reflect" % scalaVersion.value,
   "org.mongodb" %% "casbah" % "2.6.4",
-  "org.scalaz" %% "scalaz-core" % "7.0.4" withJavadoc(),
+  "org.scalaz" %% "scalaz-core" % "7.0.5" withJavadoc(),
   "com.chuusai" %% "shapeless" % "1.2.4",
   "com.novus" %% "salat" % "1.9.4",
   "ch.qos.logback" % "logback-classic" % "1.0.7",
@@ -58,7 +58,7 @@ libraryDependencies ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "org.scalatest" % "scalatest_2.10" % "1.9.1" % "test",
-  "org.scalamock" %% "scalamock-scalatest-support" % "3.0.1" % "test"
+  "org.scalatest" %% "scalatest" % "2.0" % "test",
+  "org.scalamock" %% "scalamock-scalatest-support" % "3.1.RC1" % "test"
 )
 

@@ -7,7 +7,6 @@ import spray.routing._
 import chatless._
 import scalaz._
 
-import org.scalatest.matchers.ShouldMatchers
 import org.scalamock.scalatest.MockFactory
 import chatless.db.UserDAO
 import chatless.model.{JDoc, User}
@@ -22,12 +21,11 @@ import chatless.responses.{BoolR, StringR}
 import spray.http.{StatusCodes, StatusCode}
 import akka.event.{LoggingAdapter, Logging}
 import chatless.ops.UserOps
+import org.scalatest.Matchers._
 
 class MeRoutesSpec
   extends WordSpec
-  with ScalatestRouteTest
   with ServiceSpecBase
-  with ShouldMatchers
   with MockFactory { self =>
 
   val fakeUser1 = User(userId, "this user", true, JDoc("contact?" -> JBool(true)),
@@ -36,9 +34,8 @@ class MeRoutesSpec
 
   def newApi(ops: UserOps) = {
     val me = new MeApi { api =>
-      val log: LoggingAdapter = Logging(system, "meApi in MeRoutesSpec")
       val userOps = ops
-      val actorRefFactory = system
+      val actorRefFactory = self.system
     }
     Directives.dynamic { me.meApi(userId) }
   }
@@ -61,7 +58,7 @@ class MeRoutesSpec
     "provide the correct user object, deserialzable from json" when itReceives {
       "a get to its base" in new Fixture1 {
         Get("/me") ~>  api ~> check {
-          val res = responseAs[JObject]
+          val res = parseJObject
           res.extract[User] should be (fakeUser1)
         }
       }
@@ -69,106 +66,106 @@ class MeRoutesSpec
     "produce the correct value" when itReceives {
       "a get for the id field" in new Fixture1 {
         Get("/me/id") ~> api ~> check {
-          val res = (responseAs[JObject] \ User.ID).extract[String]
+          val res = (parseJObject \ User.ID).extract[String]
           res should be (userId)
         }
       }
       "a get for the nick field" in new Fixture1 {
         Get("/me/nick") ~> api ~> check {
-          val res = (responseAs[JObject] \ User.NICK).extract[String]
+          val res = (parseJObject \ User.NICK).extract[String]
           assert(res === "this user")
         }
       }
       "a get for the public field" in new Fixture1 {
         Get("/me/public") ~> api ~> check {
-          val res = (responseAs[JObject] \ User.PUBLIC).extract[Boolean]
+          val res = (parseJObject \ User.PUBLIC).extract[Boolean]
           assert(res === fakeUser1.public)
         }
       }
       "a get for the info field" in new Fixture1 {
         Get("/me/info") ~>  api ~> check {
-          val res = (responseAs[JObject] \ User.INFO).asInstanceOf[JObject]
+          val res = (parseJObject \ User.INFO).asInstanceOf[JObject]
           res should equal (fakeUser1.info)
         }
       }
       "a get for the following field" in new Fixture1 {
         Get("/me/following") ~>  api ~> check {
-          val res = (responseAs[JObject] \ User.FOLLOWING).extract[Set[String]]
+          val res = (parseJObject \ User.FOLLOWING).extract[Set[String]]
           res should equal (fakeUser1.following)
         }
       }
       "a get for the followers field" in new Fixture1 {
         Get("/me/followers") ~>  api ~> check {
-          val res = (responseAs[JObject] \ User.FOLLOWERS).extract[Set[String]]
+          val res = (parseJObject \ User.FOLLOWERS).extract[Set[String]]
           res should equal (fakeUser1.followers)
         }
       }
       "a get for the blocked field " in new Fixture1 {
         Get("/me/blocked") ~>  api ~> check {
-          val res = (responseAs[JObject] \ User.BLOCKED).extract[Set[String]]
+          val res = (parseJObject \ User.BLOCKED).extract[Set[String]]
           res should equal (fakeUser1.blocked)
         }
       }
       "a get for the topics field" in new Fixture1 {
         Get("/me/topics") ~>  api ~> check {
-          val res = (responseAs[JObject] \ User.TOPICS).extract[Set[String]]
+          val res = (parseJObject \ User.TOPICS).extract[Set[String]]
           res should equal (fakeUser1.topics)
         }
       }
       "a get for the tags field " in new Fixture1 {
         Get("/me/tags") ~>  api ~> check {
-          val res = (responseAs[JObject] \ User.TAGS).extract[Set[String]]
+          val res = (parseJObject \ User.TAGS).extract[Set[String]]
           res should equal (fakeUser1.tags)
         }
       }
       "a query: following contains a user that is followed" in new Fixture1 {
         Get("/me/following/otherUser") ~>  api ~> check {
-          status === StatusCodes.NoContent
+          status shouldBe StatusCodes.NoContent
         }
       }
       "a query: following contains a user that is not followed" in new Fixture1 {
         Get("/me/following/fakeUser") ~>  api ~> check {
-          status === StatusCodes.NotFound
+          status shouldBe StatusCodes.NotFound
         }
       }
       "a query: followers contains a user that is following" in new Fixture1 {
         Get("/me/followers/otherUser") ~>  api ~> check {
-          status === StatusCodes.NoContent
+          status shouldBe StatusCodes.NoContent
         }
       }
       "a query: followers contains a user that is not following" in new Fixture1 {
         Get("/me/followers/fakeUser") ~>  api ~> check {
-          status === StatusCodes.NotFound
+          status shouldBe StatusCodes.NotFound
         }
       }
       "a query: blocked contains a user that is blocked" in new Fixture1 {
         Get("/me/blocked/some-blocked") ~>  api ~> check {
-          status === StatusCodes.NoContent
+          status shouldBe StatusCodes.NoContent
         }
       }
       "a query: blocked contains a user that is not blocked" in new Fixture1 {
         Get("/me/blocked/fakeUser") ~>  api ~> check {
-          status === StatusCodes.NotFound
+          status shouldBe StatusCodes.NotFound
         }
       }
       "a query: topics contains a topic that user does participate in" in new Fixture1 {
         Get("/me/topics/tid0") ~>  api ~> check {
-          status === StatusCodes.NoContent
+          status shouldBe StatusCodes.NoContent
         }
       }
       "a query: topics contains a topic that user does not participate in" in new Fixture1 {
         Get("/me/topics/fakeTopic") ~>  api ~> check {
-          status === StatusCodes.NotFound
+          status shouldBe StatusCodes.NotFound
         }
       }
       "a query: tags contains a tracked tag" in new Fixture1 {
         Get("/me/tags/tag0") ~>  api ~> check {
-          status === StatusCodes.NoContent
+          status shouldBe StatusCodes.NoContent
         }
       }
       "a query: tags contains an untracked tagged" in new Fixture1 {
         Get("/me/tags/fakeTag") ~>  api ~> check {
-          status === StatusCodes.NotFound
+          status shouldBe StatusCodes.NotFound
         }
       }
     }
@@ -184,7 +181,7 @@ class MeRoutesSpec
       "perform the appropriate user op" in new Fixture2 {
         (userOps.setNick(_: UserId, _: String)) expects(userId, "heyListen") returning \/-(true)
         Put("/me/nick/", "heyListen") ~> api ~> check {
-          status === StatusCodes.NoContent
+          status shouldBe StatusCodes.NoContent
           header("x-chatless-updated").nonEmpty
         }
       }
@@ -193,14 +190,14 @@ class MeRoutesSpec
       "update the user correctly for valid args" in new Fixture2 {
         (userOps.setPublic(_: UserId, _: Boolean)) expects(userId, *) returning \/-(true)
         Put("/me/public", true.toString) ~> api ~> check {
-          status === StatusCodes.NoContent
+          status shouldBe StatusCodes.NoContent
           header("x-chatless-updated").nonEmpty
         }
       }
       "not update the user for badly formed args" in new Fixture2 {
         (userOps.setPublic(_: UserId, _: Boolean)) expects(*, *) never()
         Put("/me/public", "antsg") ~> HttpService.sealRoute(api) ~> check {
-          status === StatusCodes.BadRequest
+          status shouldBe StatusCodes.BadRequest
         }
       }
     }
@@ -208,21 +205,21 @@ class MeRoutesSpec
       "update the user for correctly formed json" in new Fixture2 {
         val jStr = JDoc("hi" -> JBool(true), "also" -> JArray(JBool(true) :: JInt(34) :: Nil))
         (userOps.setInfo(_: UserId, _: JDoc)) expects (userId, jStr) returning \/-(true) once()
-        Put("/me/info", jStr) ~> api ~> check {
-          status === StatusCodes.NoContent
+        Put("/me/info", jsonEntity(compact(render(jStr)))) ~> api ~> check {
+          status shouldBe StatusCodes.NoContent
           header("x-chatless-updated").nonEmpty
         }
       }
       "reject any badly formed json" in new Fixture2 {
         (userOps.setInfo(_: UserId, _: JDoc)) expects (*, *) never()
-        Put("/me/info", """{"hi": "bye", """) ~> HttpService.sealRoute(api) ~> check {
-          status === StatusCodes.BadRequest
+        Put("/me/info", jsonEntity("""{"hi": "bye", """)) ~> HttpService.sealRoute(api) ~> check {
+          status shouldBe StatusCodes.BadRequest
         }
       }
       "reject when the body is empty" in new Fixture2 {
         (userOps.setInfo(_: UserId, _: JDoc)) expects (*, *) never()
-        Put("/me/info", """{"hi": "bye", """) ~> HttpService.sealRoute(api) ~> check {
-          status === StatusCodes.BadRequest
+        Put("/me/info", jsonEntity("""{"hi": "bye", """)) ~> HttpService.sealRoute(api) ~> check {
+          status shouldBe StatusCodes.BadRequest
         }
       }
     }

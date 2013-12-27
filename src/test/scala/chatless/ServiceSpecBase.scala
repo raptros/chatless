@@ -12,11 +12,19 @@ import spray.routing.authentication.UserPass
 import org.json4s._
 import org.json4s.JsonDSL._
 import spray.httpx.Json4sSupport
+import spray.http.MediaTypes._
 import chatless.model.js.JDocSerializer
+import org.json4s.native.JsonMethods._
 
-trait ServiceSpecBase extends ScalatestRouteTest with Json4sSupport { this: Suite =>
+trait ServiceSpecBase extends ScalatestRouteTest { this: Suite =>
 
-  implicit val json4sFormats = DefaultFormats + (new JDocSerializer)
+  import chatless.model.js.formats
+  implicit val json4sFormats = formats
+
+  def parseJObject = parse(responseAs[String]).asInstanceOf[JObject]
+  def parseJVal = parse(responseAs[String])
+
+  def jsonEntity(d: String) = HttpEntity(`application/json`, d)
 
   def actorRefFactory = system
 

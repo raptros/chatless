@@ -8,7 +8,7 @@ import chatless._
 import com.google.inject.Inject
 import chatless.services.clientApi._
 import scalaz.syntax.semigroup._
-import chatless.db.{EventDAO, TopicDAO, UserDAO}
+import chatless.db.{MessageDAO, EventDAO, TopicDAO, UserDAO}
 import scalaz.std.function._
 import akka.actor.ActorLogging
 import chatless.ops.UserOps
@@ -19,7 +19,8 @@ class ClientApiActor @Inject() (
     val opsFactory: OpsFactory,
     val userDao: UserDAO,
     val topicDao: TopicDAO,
-    val eventDao: EventDAO)
+    val eventDao: EventDAO,
+    val messageDao: MessageDAO)
   extends HttpServiceActor
   with ActorLogging
   with AllApis {

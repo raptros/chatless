@@ -14,6 +14,7 @@ class DbModule extends AbstractModule with ScalaModule {
     val topicCollection = chatlessDb("topics")
     val eventCollection = chatlessDb("events")
     val sequenceCollection = chatlessDb("sequences")
+    val messageCollection = chatlessDb("messages")
 
     bind[MongoClient] toInstance mc
     bind[MongoDB].annotatedWith[ChatlessDb] toInstance chatlessDb
@@ -21,10 +22,12 @@ class DbModule extends AbstractModule with ScalaModule {
     bind[MongoCollection].annotatedWith[TopicCollection] toInstance topicCollection
     bind[MongoCollection].annotatedWith[EventCollection] toInstance eventCollection
     bind[MongoCollection].annotatedWith[SequenceCollection] toInstance sequenceCollection
+    bind[MongoCollection].annotatedWith[MessageCollection] toInstance messageCollection
 
     bind[UserDAO].to[SalatUserDAO].asEagerSingleton()
     bind[TopicDAO].to[SalatTopicDAO].asEagerSingleton()
     bind[EventDAO].to[SalatEventDAO].asEagerSingleton()
     bind[CounterDAO].to[SalatCounterDAO].asEagerSingleton()
+    bind[MessageDAO].to[SalatMessageDAO].asEagerSingleton()
   }
 }

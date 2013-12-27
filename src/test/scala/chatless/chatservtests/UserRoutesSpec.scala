@@ -4,13 +4,13 @@ import org.scalatest.WordSpec
 import spray.testkit.ScalatestRouteTest
 import spray.http.StatusCodes
 import chatless._
-import org.scalatest.matchers.ShouldMatchers
 import org.scalamock.scalatest.MockFactory
 import chatless.model.{JDoc, User}
 import chatless.db.UserDAO
 import spray.routing.{HttpService, Directives}
 import chatless.services.clientApi.UserApi
 import org.json4s._
+import org.scalatest.Matchers._
 import org.json4s.native.JsonMethods._
 import spray.httpx.Json4sSupport
 import akka.event.Logging
@@ -20,7 +20,6 @@ class UserRoutesSpec
   extends WordSpec
   with ServiceSpecBase
   with ScalatestRouteTest
-  with ShouldMatchers
   with MockFactory {
   import User.{allFields, callerOnlyFields, publicFields, nonPublicFields, followerFields}
 
@@ -80,9 +79,8 @@ class UserRoutesSpec
     val userOps = mock[UserOps]
     (userOps.getOrThrow(_: UserId)) expects targetOther.id repeated count returning targetOther
     val userApi = new UserApi {
-      val log = Logging(system, "userApi in UserRoutesSpec")
-      val userOps = self.userOps
       override val actorRefFactory = system
+      val userOps = self.userOps
     }
     val api = Directives.dynamic { userApi.userApi(userId) }
   }
@@ -91,7 +89,7 @@ class UserRoutesSpec
     "the requested user is the caller" should {
       "return every field for the object" in new Fixture(fakeCaller, 1) {
         mkGet() ~> api ~> check {
-          val obj = responseAs[JObject]
+          val obj = parseJObject
           val objFields = obj.values.keySet
           for (f <- allFields) {
             objFields should contain (f)
@@ -109,7 +107,7 @@ class UserRoutesSpec
     "the requested user is public" should {
       "return every follower-visible field for the object" in new Fixture(otherUser1, 1) {
         mkGet() ~> api ~> check {
-          val obj = responseAs[JObject]
+          val obj = parseJObject
           val objFields = obj.values.keySet
           for (f <- followerFields) {
             objFields should contain (f)
@@ -118,7 +116,7 @@ class UserRoutesSpec
       }
       "not return any non-follower-visible fields in the object" in new Fixture(otherUser1, 1) {
         mkGet() ~> api ~> check {
-          val obj = responseAs[JObject]
+          val obj = parseJObject
           val objFields = obj.values.keySet
           for (f <- callerOnlyFields) {
             objFields should not contain (f)
@@ -143,7 +141,7 @@ class UserRoutesSpec
     "the requested user is followed by the caller" should {
       "return every follower-visible field for the object" in new Fixture(otherUser2, 1) {
         mkGet() ~> api ~> check {
-          val obj = responseAs[JObject]
+          val obj = parseJObject
           val objFields = obj.values.keySet
           for (f <- followerFields) {
             objFields should contain (f)
@@ -152,7 +150,7 @@ class UserRoutesSpec
       }
       "not return any non-follower-visible fields in the object" in new Fixture(otherUser2, 1) {
         mkGet() ~> api ~> check {
-          val obj = responseAs[JObject]
+          val obj = parseJObject
           val objFields = obj.values.keySet
           for (f <- callerOnlyFields) {
             objFields should not contain (f)
@@ -177,7 +175,7 @@ class UserRoutesSpec
     "the requested user is not public and not followed" should {
       "return every publically visible field for the object" in new Fixture(otherUser3, 1) {
         mkGet() ~> api ~> check {
-          val obj = responseAs[JObject]
+          val obj = parseJObject
           val objFields = obj.values.keySet
           for (f <- publicFields) {
             objFields should contain (f)
@@ -186,7 +184,7 @@ class UserRoutesSpec
       }
       "not return any non-publically-visible fields in the object" in new Fixture(otherUser3, 1) {
         mkGet() ~> api ~> check {
-          val obj = responseAs[JObject]
+          val obj = parseJObject
           val objFields = obj.values.keySet
           for (f <- nonPublicFields) {
             objFields should not contain (f)

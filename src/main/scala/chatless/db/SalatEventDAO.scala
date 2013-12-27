@@ -10,8 +10,6 @@ import scalaz._
 import scalaz.\/.fromTryCatch
 import org.joda.time.DateTime
 import com.mongodb.casbah.query.dsl.QueryExpressionObject
-import com.mongodb.casbah.commons.Imports
-import com.mongodb.casbah
 
 class SalatEventDAO @Inject()(
     @EventCollection collection: MongoCollection,

@@ -11,17 +11,20 @@ import chatless.db.WriteStat
 import com.google.inject.Inject
 import chatless.model._
 import chatless.model.Event
-import chatless.model.Event.{userUpdate, topicUpdate, topicCreate}
+import chatless.model.Event.{userUpdate, topicUpdate, topicCreate, messageCreate}
 import scalaz._
+import scalaz.syntax.id._
 import scalaz.std.list._
 import com.google.inject.assistedinject.Assisted
 import chatless.responses.TopicNotFoundError
 import chatless.model.inits.TopicInit
 import scala.util.Random
+import org.joda.time.DateTime
 
 class TopicOpSequences @Inject() (
     val userDao: UserDAO,
     val topicDao: TopicDAO,
+    val messageDao: MessageDAO,
     @LocalEventReceiverSelection val eventActor: ActorSelection,
     @Assisted val senderRef: ActorRef)
   extends Sequencer
@@ -30,8 +33,13 @@ class TopicOpSequences @Inject() (
   def getOrThrow(tid: TopicId) = topicDao get tid getOrElse { throw TopicNotFoundError(tid) }
 
 
-  def createTopic(cid: UserId, init: TopicInit) = runSequence {
-    createTopicSequence(initTopicFrom(cid, init), init.invite)
+  def createTopic(cid: UserId, init: TopicInit) = {
+    val initTopic = initTopicFrom(cid, init)
+    runSequence {
+      createTopicSequence(initTopic, init.invite)
+    } flatMap { res =>
+      if (res) initTopic.id.right else "couldn't save topic!".left
+    }
   }
 
   def setTitle(cid: UserId, tid: TopicId, value: String) = runSequence {
@@ -81,6 +89,24 @@ class TopicOpSequences @Inject() (
   def removeTag(cid: UserId, tid: TopicId, tag: String) = runSequence {
     topicDao.addTag(tid, tag) withEvent topicUpdate(Action.REMOVE, cid, tid, Topic.TAGS, tag)
   }
+
+  def sendMessage(cid: UserId, tid: TopicId, body: JDoc) = {
+    val initMessage = initMessageFrom(cid, tid, body)
+    runSequence {
+      messageDao.saveNewMessage(initMessage) withEvent messageCreate(initMessage)
+    } flatMap { res =>
+      if (res) initMessage.id.right else "couldn't save message!".left
+    }
+  }
+
+  //todo fix this stuff!
+  def initMessageFrom(cid: UserId, tid: TopicId, body: JDoc) = Message(
+    id = tid + Random.nextString(10), //bad!
+    tid = tid,
+    uid = cid,
+    timestamp = DateTime.now(),
+    body = body
+  )
 
   //todo fix the heck out of this!
   def initTopicFrom(cid: UserId, init: TopicInit) = Topic(

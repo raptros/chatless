@@ -15,6 +15,7 @@ case class Event(
     cid: Option[UserId] = None,
     tid: Option[TopicId] = None,
     rid: Option[RequestId] = None,
+    mid: Option[MessageId] = None,
     field: Option[String] = None,
     value: ValueContainer) {
 
@@ -32,6 +33,7 @@ object Event {
   val TID       = "tid"
   val CID       = "cid"
   val RID       = "rid"
+  val MID       = "mid"
   val FIELD     = "field"
   val VALUE     = "value"
 
@@ -61,4 +63,14 @@ object Event {
     cid = Some(topic.op),
     tid = Some(topic.id),
     value = TopicVC(topic))
+
+  def messageCreate(message: Message) = Event(
+    kind = EventKind.MESSAGE,
+    action = Action.CREATE,
+    timestamp = Some(message.timestamp),
+    cid = Some(message.uid),
+    tid = Some(message.tid),
+    mid = Some(message.id),
+    value = JDocVC(message.body))
 }
+

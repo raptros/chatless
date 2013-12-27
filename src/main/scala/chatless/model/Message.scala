@@ -16,7 +16,7 @@ case class Message(
 }
 
 object Message {
-  val MID = "mid"
+  val ID = "id"
   val TID = "tid"
   val UID = "uid"
   val BODY = "body"
