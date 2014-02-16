@@ -25,12 +25,12 @@ trait MessagesApi extends ServiceBase {
     "after"  carry getIdAndCount buildQuery { messageDao.after(tid, _, _) }
   )
 
-  private def postCheck(cid: UserId, topic: Topic): Directive1[JDoc] = post & ConjunctionMagnet.fromDirective(
-      authorize(!topic.muted || topic.op == cid || (topic.sops contains cid) || (topic.voiced contains cid))
-    ) & ConjunctionMagnet.fromDirective(
-      entity(as[JObject]) map { jo => JDoc(jo.obj) }
-    )
+  private def checkAllowed(cid: UserId, topic: Topic): Directive0 =
+    authorize(!topic.muted || topic.op == cid || (topic.sops contains cid) || (topic.voiced contains cid))
 
+  private def extractJDoc: Directive1[JDoc] = entity(as[JObject]) map { jo => JDoc(jo.obj) }
+
+  private def postCheck(cid: UserId, topic: Topic): Directive1[JDoc] = post & checkAllowed(cid, topic) & extractJDoc
 
   val messagesApi: CallerRoute = cid =>
     pathPrefix(TOPIC_API_BASE / Segment / MESSAGE_API_BASE) map topicOps.getOrThrow apply { topic =>

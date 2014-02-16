@@ -58,8 +58,10 @@ trait HelperDirectives extends Directives with Json4sSupport {
     }
   }
 
-  /** completes with an operation that returns a writestat - i.e. something that updates the database
-    */
+  /** a tidyer way to use setCompletion*/
+  def completeWithContains(pathPairs: (String, Set[String])*): Route = setCompletion(pathPairs.toMap)
+
+  /** completes with an operation that returns a writestat - i.e. something that updates the database */
   def completeOp(res: => WriteStat)(implicit log: LoggingContext) = res match {
     case \/-(true) => respondWithHeader(RawHeader(X_UPDATED, "yes")) {
       complete(StatusCodes.NoContent)
@@ -70,6 +72,7 @@ trait HelperDirectives extends Directives with Json4sSupport {
       complete(StatusCodes.InternalServerError -> msg)
   }
 
+  /** completes with something that inserts into the database and returns the resulting id (or an error)*/
   def completeCreation(header: String)(res: => String \/ String)(implicit lc: LoggingContext) = res match {
     case \/-(id) => respondWithHeader(RawHeader(header, id)) {
       complete(StatusCodes.NoContent)
@@ -79,12 +82,14 @@ trait HelperDirectives extends Directives with Json4sSupport {
       complete(StatusCodes.InternalServerError -> msg)
   }
 
-  def completeWithContains(pathPairs: (String, Set[String])*): Route = setCompletion(pathPairs.toMap)
-
   def fromString[T](implicit deser: FromStringDeserializer[T]) = new FromRequestUnmarshaller[T] {
     def apply(v1: HttpRequest): Deserialized[T] = BasicUnmarshallers.StringUnmarshaller(v1.entity).right flatMap { deser }
   }
 
+  /** Maps path components (as prefixes) to CompleterCarriers and executes the route of whichever carrier is selected.
+    * @param carriers pairs of path components and completer carriers
+    * @return the route of whichever path is taken
+    */
   def routeCarriers(carriers: (String, CompleterCarrier)*): Route =
     pathPrefix(valueMap2PathMatcher(carriers.toMap)) { _.route }
 

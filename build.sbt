@@ -36,7 +36,10 @@ libraryDependencies ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "io.spray" % "spray-can" % sprayVersion.value,
+  "io.spray" % "spray-io" % sprayVersion.value withJavadoc(),
+  "io.spray" % "spray-can" % sprayVersion.value withJavadoc(),
+  "io.spray" % "spray-http" % sprayVersion.value withJavadoc(),
+  "io.spray" % "spray-httpx" % sprayVersion.value withJavadoc(),
   "io.spray" % "spray-routing" % sprayVersion.value withJavadoc(),
   "io.spray" % "spray-testkit" % sprayVersion.value % "test"
 )
