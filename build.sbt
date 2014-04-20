@@ -12,11 +12,11 @@ scalaVersion := "2.10.3"
 
 seq(Revolver.settings: _*)
 
-sprayVersion := "1.2.0"
+sprayVersion := "1.3.1"
 
 json4sVersion := "3.2.5"
 
-akkaVersion := "2.2.3"
+akkaVersion := "2.3.0"
 
 showCurrentGitBranch
 
@@ -50,6 +50,7 @@ libraryDependencies ++= Seq(
 )
 
 libraryDependencies ++= Seq(
+  "io.argonaut" %% "argonaut" % "6.0.3" withSources(), //taking a risk
   "org.scala-lang" % "scala-reflect" % scalaVersion.value,
   "org.mongodb" %% "casbah" % "2.6.4",
   "org.scalaz" %% "scalaz-core" % "7.0.5" withJavadoc(),

@@ -11,7 +11,4 @@ object JDoc {
 
   def unapply(jd: JDoc): Option[List[JField]] = Some(jd.obj)
 
-  implicit val containableJDoc = new ContainableValue[JDoc] {
-    def contain(a: JDoc) = JDocVC(a)
-  }
 }

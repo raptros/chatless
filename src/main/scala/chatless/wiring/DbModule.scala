@@ -23,11 +23,5 @@ class DbModule extends AbstractModule with ScalaModule {
     bind[MongoCollection].annotatedWith[EventCollection] toInstance eventCollection
     bind[MongoCollection].annotatedWith[SequenceCollection] toInstance sequenceCollection
     bind[MongoCollection].annotatedWith[MessageCollection] toInstance messageCollection
-
-    bind[UserDAO].to[SalatUserDAO].asEagerSingleton()
-    bind[TopicDAO].to[SalatTopicDAO].asEagerSingleton()
-    bind[EventDAO].to[SalatEventDAO].asEagerSingleton()
-    bind[CounterDAO].to[SalatCounterDAO].asEagerSingleton()
-    bind[MessageDAO].to[SalatMessageDAO].asEagerSingleton()
   }
 }

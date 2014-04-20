@@ -6,8 +6,6 @@ import akka.util.Timeout
 import scala.concurrent.ExecutionContext
 import akka.actor.{ActorRefFactory, ActorSelection, ActorSystem}
 import scala.concurrent.duration._
-import chatless.ops.{TopicOps, UserOps}
-import chatless.ops.sequencers.{TopicOpSequences, UserOpSequences}
 import scalaz.syntax.id._
 
 class SystemModule(val system: ActorSystem) extends DbModule {
@@ -25,9 +23,5 @@ class SystemModule(val system: ActorSystem) extends DbModule {
     bind[ActorSelection].annotatedWith[LocalEventReceiverSelection] toInstance
       system.actorSelection(system / ActorNames.LOCAL_EVENT_RECV)
 
-    FMB.
-      bindImpl[UserOps, UserOpSequences].
-      bindImpl[TopicOps, TopicOpSequences].
-      buildF[OpsFactory] |> install
   }
 }
