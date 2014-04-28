@@ -1,7 +1,7 @@
 package chatless.db
 
 import chatless._
-import chatless.model.{JDoc, User}
+import chatless.model.User
 import com.mongodb.casbah.Imports._
 import scalaz.\/
 

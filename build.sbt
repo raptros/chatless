@@ -44,25 +44,25 @@ libraryDependencies ++= Seq(
   "io.spray" % "spray-testkit" % sprayVersion.value % "test"
 )
 
-libraryDependencies ++= Seq(
-  "org.json4s" %% "json4s-native" % json4sVersion.value,
-  "org.json4s" %% "json4s-ext" % json4sVersion.value
-)
+//libraryDependencies ++= Seq(
+//  "org.json4s" %% "json4s-native" % json4sVersion.value,
+//  "org.json4s" %% "json4s-ext" % json4sVersion.value
+//)
 
 libraryDependencies ++= Seq(
+  "com.osinka.subset" %% "subset" % "2.1.2",
   "io.argonaut" %% "argonaut" % "6.0.3" withSources(), //taking a risk
   "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-  "org.mongodb" %% "casbah" % "2.6.4",
-  "org.scalaz" %% "scalaz-core" % "7.0.5" withJavadoc(),
+  "org.mongodb" %% "casbah" % "2.7.0",
+  "org.scalaz" %% "scalaz-core" % "7.0.6" withJavadoc(),
   "com.chuusai" %% "shapeless" % "1.2.4",
-  "com.novus" %% "salat" % "1.9.4",
   "ch.qos.logback" % "logback-classic" % "1.0.7",
   "net.codingwell" %% "scala-guice" % "4.0.0-beta",
   "com.google.inject.extensions" % "guice-assistedinject" % "4.0-beta"
 )
 
 libraryDependencies ++= Seq(
-  "org.scalatest" %% "scalatest" % "2.0" % "test",
+  "org.scalatest" %% "scalatest" % "2.1.4" % "test",
   "org.scalamock" %% "scalamock-scalatest-support" % "3.1.RC1" % "test"
 )
 

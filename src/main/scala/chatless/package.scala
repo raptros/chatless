@@ -1,4 +1,3 @@
-import chatless.db.JDocStringTransformer
 import org.joda.time.DateTime
 
 package object chatless {
@@ -15,15 +14,5 @@ package object chatless {
 
   type EventId = String
   type MessageId = String
-
-
-  import com.novus.salat.{ TypeHintFrequency, StringTypeHintStrategy, Context }
-
-
-  implicit val ctx = new Context() {
-    val name: String = "chatless"
-    registerCustomTransformer(JDocStringTransformer)
-    com.mongodb.casbah.commons.conversions.scala.RegisterJodaTimeConversionHelpers()
-  }
 
 }

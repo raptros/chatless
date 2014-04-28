@@ -15,6 +15,6 @@ case class User(
 }
 
 object User {
-  implicit def userCodecJson: CodecJson[User] = casecodec4(User.apply, User.unapply)("server", "id", "about", "pull")
+  implicit def userCodecJson = casecodec4(User.apply, User.unapply)("server", "id", "about", "pull")
 }
 

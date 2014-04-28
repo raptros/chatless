@@ -1,7 +1,8 @@
 package chatless.model
 
 import chatless._
-import argonaut.Json
+import argonaut._
+import Argonaut._
 
 case class Topic(
     server: ServerId,
@@ -15,5 +16,6 @@ case class Topic(
 }
 
 object Topic {
+  implicit def topicCodecJson = casecodec5(Topic.apply, Topic.unapply)("server", "user", "id", "banner", "info")
 }
 

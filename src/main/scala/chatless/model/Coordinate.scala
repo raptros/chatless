@@ -4,36 +4,33 @@ import argonaut._
 import Argonaut._
 
 sealed trait Coordinate {
-  def toList: List[String]
+  def idPart: String
 }
 
 case class ServerCoordinate(server: String) extends Coordinate{
-  lazy val toList: List[String] = List(server)
+  lazy val idPart = server
 
   def user(id: String) = UserCoordinate(server, id)
 }
 
 object ServerCoordinate {
-  implicit def encodeJson: EncodeJson[ServerCoordinate] = jencode1(_.toList)
-  implicit def decodeJson: DecodeJson[ServerCoordinate] = jdecode1(ServerCoordinate.apply)
+  implicit def codecJson = casecodec1(ServerCoordinate.apply, ServerCoordinate.unapply)("server")
 }
 
 case class UserCoordinate(server: String, user: String) extends Coordinate{
-  lazy val toList: List[String] = List(server, user)
+  lazy val idPart = user
 
   def topic(id: String) = TopicCoordinate(server, user, id)
 }
 
 object UserCoordinate {
-  implicit def encodeJson: EncodeJson[UserCoordinate] = jencode1(_.toList)
-  implicit def decodeJson: DecodeJson[UserCoordinate] = jdecode2(UserCoordinate.apply)
+  implicit def codecJson = casecodec2(UserCoordinate.apply, UserCoordinate.unapply)("server", "user")
 }
 
 case class TopicCoordinate(server: String, user: String, topic: String) extends Coordinate{
-  lazy val toList: List[String] = List(server, user, topic)
+  lazy val idPart = topic
 }
 
 object TopicCoordinate {
-  implicit def encodeJson: EncodeJson[TopicCoordinate] = jencode1(_.toList)
-  implicit def decodeJson: DecodeJson[TopicCoordinate] = jdecode3(TopicCoordinate.apply)
+  implicit def codecJson = casecodec3(TopicCoordinate.apply, TopicCoordinate.unapply)("server", "user", "topic")
 }

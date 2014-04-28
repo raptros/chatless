@@ -25,7 +25,7 @@ trait ClientApi extends HttpService {
       pathEndOrSingleSlash {
         get {
           complete {
-            topicDao.listUserTopics(caller.coordinate)
+            topicDao.listUserTopics(caller.coordinate).toList
           }
         } ~ (post & entity(as[Json])) { (j: Json) =>
         //create new topic, return url

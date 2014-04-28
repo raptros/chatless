@@ -2,13 +2,14 @@ package chatless.model
 
 import chatless._
 import org.joda.time.DateTime
+import argonaut.Json
 
 case class Message(
     id: MessageId,
     tid: TopicId,
     uid: UserId,
     timestamp: DateTime,
-    body: JDoc,
+    body: Json,
     pos: Option[Long] = None) {
 
 }

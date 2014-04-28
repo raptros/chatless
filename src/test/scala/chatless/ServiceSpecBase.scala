@@ -9,11 +9,8 @@ import spray.testkit.ScalatestRouteTest
 import scala.concurrent._
 import spray.routing.authentication.UserPass
 
-import org.json4s._
-import org.json4s.JsonDSL._
 import spray.httpx.Json4sSupport
 import spray.http.MediaTypes._
-import org.json4s.native.JsonMethods._
 
 trait ServiceSpecBase extends ScalatestRouteTest { this: Suite =>
 
