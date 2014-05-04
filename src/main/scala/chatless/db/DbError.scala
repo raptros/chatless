@@ -3,24 +3,14 @@ package chatless.db
 import chatless.model.{Coordinate, UserCoordinate, TopicCoordinate}
 
 sealed trait DbError {
-  def isServerError: Boolean
 }
 
-trait ServerError extends DbError {
-  val isServerError = true
-}
+case class IdAlreadyUsed(coord: Coordinate) extends DbError
 
-trait RequestError extends DbError {
-  val isServerError = false
-}
+case class GenerateIdFailed(what: String, parent: Coordinate, attempted: List[String]) extends DbError
 
-case class IdAlreadyUsed(coord: Coordinate) extends RequestError
+case class WriteFailure(t: Throwable) extends DbError
 
-case class GenerateIdFailed(parent: Coordinate, attempted: List[String]) extends ServerError
+case class DeserializationErrors(messages: List[String]) extends DbError
 
-case class WriteFailure(t: Throwable) extends ServerError
-
-case class DeserializationErrors(messages: List[String]) extends ServerError
-
-case class NoSuchTopic(topic: TopicCoordinate) extends RequestError
-
+case class NoSuchObject(c: Coordinate) extends DbError

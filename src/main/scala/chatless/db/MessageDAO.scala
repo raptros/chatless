@@ -7,7 +7,7 @@ import scalaz.\/
 trait MessageDAO {
   def get(id: MessageId): Option[Message]
 
-  def saveNewMessage(message: Message): WriteStat
+  def saveMessage(message: Message): DbError \/ String
 
   def rq(tid: TopicId, id: Option[MessageId], forward: Boolean, inclusive: Boolean, count: Int): Iterable[Message]
 

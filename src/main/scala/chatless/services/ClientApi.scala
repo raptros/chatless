@@ -1,20 +1,28 @@
 package chatless.services
 import chatless._
 import spray.routing._
-import chatless.db.{TopicDAO, UserDAO}
+import chatless.db.{DbError, TopicDAO, UserDAO}
 import spray.http._
 import spray.http.MediaTypes._
 import chatless.model.{Topic, TopicCoordinate, User}
 import spray.httpx.marshalling.Marshaller
 import argonaut._
 import Argonaut._
+import spray.httpx.unmarshalling.FromRequestUnmarshaller
+import scalaz.\/
 
 trait ClientApi extends HttpService {
+  import MarshallingImplicits._
 
   val userDao: UserDAO
   val topicDao: TopicDAO
 
   def localTopicRoute(caller: User, coordinate: TopicCoordinate): Route = complete { "no" }
+
+//  def newTopicRoute()
+
+
+  private def postedEntity[A](um: FromRequestUnmarshaller[A]): Directive1[A] = post & entity(um)
 
   def meRoute(caller: User): Route =
     pathEndOrSingleSlash {
@@ -27,7 +35,7 @@ trait ClientApi extends HttpService {
           complete {
             topicDao.listUserTopics(caller.coordinate).toList
           }
-        } ~ (post & entity(as[Json])) { (j: Json) =>
+        } ~ postedEntity(as[Json]) { (j: Json) =>
         //create new topic, return url
           val uri = Uri.apply("/me/topic/giarneingbe")
           complete {

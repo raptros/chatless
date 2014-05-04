@@ -1,4 +1,4 @@
-package chatless.dbtests
+package chatless.db
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, WordSpec, Matchers, fixture}
 import spray.testkit.ScalatestRouteTest
 import spray.routing._
@@ -6,7 +6,6 @@ import chatless._
 import scalaz._
 
 import org.scalamock.scalatest.MockFactory
-import chatless.db.{TopicDAO, UserDAO}
 import chatless.model._
 import spray.http.MediaTypes._
 import spray.httpx.Json4sSupport

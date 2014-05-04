@@ -16,6 +16,10 @@ case class Topic(
 }
 
 object Topic {
+  def apply(coord: TopicCoordinate, banner: String, info: Json): Topic = coord match {
+    case TopicCoordinate(server, user, topic) => Topic(server, user, topic, banner, info)
+  }
+
   implicit def topicCodecJson = casecodec5(Topic.apply, Topic.unapply)("server", "user", "id", "banner", "info")
 }
 
