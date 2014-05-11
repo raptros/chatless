@@ -1,26 +1,14 @@
 package chatless.db
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, WordSpec, Matchers, fixture}
-import spray.testkit.ScalatestRouteTest
-import spray.routing._
-import chatless._
+import org.scalatest.{Matchers, fixture}
 import scalaz._
 
 import org.scalamock.scalatest.MockFactory
 import chatless.model._
-import spray.http.MediaTypes._
-import spray.httpx.Json4sSupport
-import spray.httpx.marshalling.BasicMarshallers._
-import spray.httpx.unmarshalling.BasicUnmarshallers._
-import spray.http.{StatusCodes, StatusCode}
-import akka.event.{LoggingAdapter, Logging}
-import chatless.services.ClientApi
-import akka.actor.ActorRefFactory
 import com.mongodb.casbah.Imports._
 import chatless.db.mongo.{IdGenerator, MongoTopicDAO}
 import scala.util.Random
-import com.mongodb.casbah.Imports
 
-class MongoTopicDAOTests extends fixture.WordSpec
+class MongoTopicDAOTests extends fixture.FlatSpec
 with Matchers
 with MockFactory {
   import scala.language.reflectiveCalls
@@ -56,27 +44,35 @@ with MockFactory {
     }
   }
 
+  behavior of "the mongo topic dao"
 
-
-  "the mongo topic dao insert method" should {
-    "successfully insert a new topic" when {
-      "there is no conflict on the provided id" in { f =>
-        val res = f.dao.createLocalTopic("user", TopicInit(fixedId = Some("test")))
-        res should be (\/-("test"))
-      }
-      "it can generate an id" in { f =>
-        f.idGen.nexts = List("testt")
-        val res = f.dao.createLocalTopic("user", TopicInit())
-        res should be (\/-("testt"))
-      }
-      "it can generate an id after retry" in { f=>
-        f.idGen.nexts = List("t1", "t1", "t2")
-        val res1 = f.dao.createLocalTopic("user", TopicInit())
-        res1 should be (\/-("t1"))
-        val res2 = f.dao.createLocalTopic("user", TopicInit())
-        res2 should be (\/-("t2"))
-      }
-    }
+  it should "successfully insert a new topic" in { f =>
+    val res = f.dao.createLocal("user", TopicInit(fixedId = Some("test")))
+    res should be (\/-("test"))
   }
 
+  it should "generate an id and insert a new topic" in { f=>
+    f.idGen.nexts = List("testt")
+    val res = f.dao.createLocal("user", TopicInit())
+    res should be (\/-("testt"))
+  }
+
+  it should "retry the generate and insert successfully" in { f=>
+    f.idGen.nexts = List("t1", "t1", "t2")
+    val res1 = f.dao.createLocal("user", TopicInit())
+    res1 should be (\/-("t1"))
+    val res2 = f.dao.createLocal("user", TopicInit())
+    res2 should be (\/-("t2"))
+  }
+
+  it should "insert and then get a topic" in { f =>
+    val res = f.dao.createLocal("user", TopicInit(fixedId = Some("insert1")))
+    res should be (\/-("insert1"))
+    val res2 = f.dao.get(f.serverCoordinate.user("user").topic("insert1"))
+    val loadedTopic = res2.fold(err => fail(s"got some kind of error! $err"), identity)
+    loadedTopic should have (
+      'id ("insert1"),
+      'user ("user")
+    )
+  }
 }

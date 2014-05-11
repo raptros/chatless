@@ -39,8 +39,19 @@ case class TopicCoordinate(server: String, user: String, topic: String) extends 
   val idPart = topic
   lazy val parent = UserCoordinate(server, user)
 
+  def message(id: String) = MessageCoordinate(server, user, topic, id)
 }
 
 object TopicCoordinate {
   implicit def codecJson = casecodec3(TopicCoordinate.apply, TopicCoordinate.unapply)("server", "user", "topic")
+}
+
+case class MessageCoordinate(server: String, user: String, topic: String, message: String) extends Coordinate {
+  val idPart = message
+  lazy val parent = TopicCoordinate(server, user, topic)
+}
+
+object MessageCoordinate {
+  implicit def codecJson =
+    casecodec4(MessageCoordinate.apply, MessageCoordinate.unapply)("server", "user", "topic", "message")
 }

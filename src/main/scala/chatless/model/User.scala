@@ -5,11 +5,11 @@ import argonaut._
 import Argonaut._
 
 case class User(
-    server: ServerId,
-    id: UserId,
+    server: String,
+    id: String,
     about: TopicId,
-    pull: List[TopicCoordinate]
-  ) extends HasCoordinate[UserCoordinate] {
+    pull: List[TopicCoordinate])
+  extends HasCoordinate[UserCoordinate] {
 
   lazy val coordinate = UserCoordinate(server, id)
 }

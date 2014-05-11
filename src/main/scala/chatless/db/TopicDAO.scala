@@ -11,7 +11,7 @@ trait TopicDAO {
     * @param coordinate the coordinate specifies the topic to get
     * @return either the topic, or why not the topic
     */
-  def getTopic(coordinate: TopicCoordinate): DbError \/ Topic
+  def get(coordinate: TopicCoordinate): DbError \/ Topic
 
   /** gets all the available topic coordinates for the user specified
     * @param coordinate the coordinate of a user that should have topics in the instance's database
@@ -23,13 +23,13 @@ trait TopicDAO {
     * @param topic fully prepared topic
     * @return either the inserted topic id or an error
     */
-  def insertUniqueTopic(topic: Topic): DbError \/ String
+  def insertUnique(topic: Topic): DbError \/ String
 
   /** creates a topic and attempts to insert it. will perform retries if the init does not specify an ID.
     * @param user the ID string of a user local to this instance.
     * @param init the
     * @return
     */
-  def createLocalTopic(user: UserId, init: TopicInit): DbError \/ String
+  def createLocal(user: UserId, init: TopicInit): DbError \/ String
 
 }

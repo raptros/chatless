@@ -51,6 +51,7 @@ object MarshallingImplicits {
     case c: ServerCoordinate => c.asJson
     case c: UserCoordinate => c.asJson
     case c: TopicCoordinate => c.asJson
+    case c: MessageCoordinate => c.asJson
   }
 
   implicit def ArrayEncodeJson[A](implicit e: EncodeJson[List[A]]) = e.contramap[Array[A]] { _.toList }
@@ -77,6 +78,7 @@ object MarshallingImplicits {
     val ID_ALREADY_USED,
     GENERATE_ID_FAILED,
     WRITE_FAILURE,
+    MISSING_COUNTER,
     DESERIALIZATION_ERRORS = Value
   }
   import Errors._
@@ -94,15 +96,25 @@ object MarshallingImplicits {
       x_chatless_errors(GENERATE_ID_FAILED),
       ("parent" := parent) ->: ("attempted" := attempted) ->: jEmptyObject
       )
-    case WriteFailure(t) => (
+    case WriteFailure(what, t) => (
       StatusCodes.InternalServerError,
       x_chatless_errors(WRITE_FAILURE),
-      t.asJson
+      ("what" := what) ->: ("t" := t) ->: jEmptyObject
+      )
+    case WriteFailureWithCoordinate(what, coordinate, t) => (
+      StatusCodes.InternalServerError,
+      x_chatless_errors(WRITE_FAILURE),
+      ("what" := what) ->: ("coordinate" := coordinate) ->: ("t" := t) ->: jEmptyObject
       )
     case DeserializationErrors(messages) => (
       StatusCodes.InternalServerError,
       x_chatless_errors(DESERIALIZATION_ERRORS),
       messages.asJson
+      )
+    case MissingCounter(forWhat) => (
+      StatusCodes.InternalServerError,
+      x_chatless_errors(MISSING_COUNTER),
+      ("for" := forWhat) ->: jEmptyObject
       )
     case NoSuchObject(c) => (StatusCodes.NotFound, Nil, c.asJson)
   }
