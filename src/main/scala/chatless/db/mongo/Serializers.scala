@@ -44,7 +44,7 @@ object Serializers {
 
   implicit val JsonAsBson = BsonWritable[Json] { j => j.asJson.nospaces }
 
-  @implicitNotFound("could not fine a WritesToDBO instance for ${A}")
+  @implicitNotFound("could not find a WritesToDBO instance for ${A}")
   trait WritesToDBO[-A] {
     def write(a: A): DBObjectBuffer
   }
@@ -84,8 +84,23 @@ object Serializers {
     )
   }
 
+  @implicitNotFound("could not find WhatEver instance for ${A}")
+  trait WhatEver[-A] {
+    def something: String
+  }
 
-  implicit class GetDBOFor[A](a: A)(implicit w: WritesToDBO[A]) {
-    def getDBO: DBObject = w.write(a)()
+  def whatnot[A](a: A)(implicit wh: WhatEver[A]) = wh.something
+
+  implicit val coordinateWhatEver = new WhatEver[Coordinate] {
+    def something = "hlhksotk"
+  }
+
+  val anotherThing = whatnot(UserCoordinate("fake", "also fake"))
+
+
+
+  implicit class WritesToDBOWrapper[A](a: A)(implicit w: WritesToDBO[A]) {
+    def getBuffer: DBObjectBuffer = w.write(a)
+    def getDBO: DBObject = getBuffer()
   }
 }

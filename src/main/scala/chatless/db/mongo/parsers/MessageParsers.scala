@@ -14,15 +14,17 @@ trait MessageParsers { this: SomeFields with CoordinateParsers =>
 
   type MessageBuilding = DocParser[MessageBuilder => Message]
 
-  val postedMessageParser: MessageBuilding = poster ~ get[Json]("body") map {
+  def postedMessageParser: MessageBuilding = poster ~ get[Json]("body") map {
     case p ~ b => _.posted(p, b)
   }
 
-  val bannerChangedMessageParser: MessageBuilding = poster ~ str("banner") map {
+  def bannerChangedMessageParser: MessageBuilding = poster ~ str("banner") map {
     case p ~ b => _.bannerChanged(p, b)
   }
 
-  val userJoinedMessageParser: MessageBuilding = get[UserCoordinate]("joined") map { uc => _ userJoined uc }
+  def userJoinedMessageParser: MessageBuilding = get[UserCoordinate]("joined") map {
+    uc => _ userJoined uc
+  }
 
   val messageParser = for {
     builder <- messageBuilderParser

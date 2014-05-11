@@ -9,7 +9,7 @@ import com.mongodb.casbah.Imports._
 import org.joda.time.DateTime
 import java.util.Date
 
-trait SomeFields { this: CoordinateParsers =>
+trait SomeFields {
   implicit val jodaDateTime = Field[DateTime] {
     case dt: DateTime => dt
   }
@@ -20,8 +20,6 @@ trait SomeFields { this: CoordinateParsers =>
     }
   }
 
-  implicit val userCoordinateField = Field.fromParser(userCoordinateParser)
-
   import DocParser._
 
   //some fields
@@ -31,6 +29,5 @@ trait SomeFields { this: CoordinateParsers =>
   val message = str("message")
   val id = str("id")
   val timestamp = get[DateTime]("timestamp")
-  val poster = get[UserCoordinate]("poster")
 
 }

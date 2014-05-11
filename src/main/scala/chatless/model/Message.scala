@@ -12,7 +12,7 @@ sealed abstract class Message extends HasCoordinate[MessageCoordinate] {
   def id: String
   def timestamp: DateTime
 
-  lazy val coordinate = MessageCoordinate(server, topic, user, id)
+  lazy val coordinate = MessageCoordinate(server, user, topic, id)
 }
 
 case class PostedMessage(

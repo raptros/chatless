@@ -53,7 +53,7 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
     """.stripMargin
 
   it should "read all the fields" in {
-    Parse.decodeEither[TopicInit](init1) fold(s => fail(s"parse error: $s"), identity) should have (
+    Parse.decodeEither[TopicInit](init1) valueOr { s => fail(s"parse error: $s") } should have (
       fixedId (Some("wtf")),
       banner ("none"),
       info (("yo" := 33) ->: jEmptyObject),
@@ -65,7 +65,7 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
   }
 
   it should "read 3 fields successfully" in {
-    Parse.decodeEither[TopicInit](init2) fold(s => fail(s"parse error: $s"), identity) should have (
+    Parse.decodeEither[TopicInit](init2) valueOr { s => fail(s"parse error: $s") } should have (
       fixedId (None),
       banner ("none"),
       info (("yo" := 33) ->: jEmptyObject),
@@ -77,7 +77,7 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
   }
 
   it should "read just banner and info" in {
-    Parse.decodeEither[TopicInit](init3) fold(s => fail(s"parse error: $s"), identity) should have (
+    Parse.decodeEither[TopicInit](init3) valueOr { s => fail(s"parse error: $s") } should have (
       fixedId (None),
       banner ("none"),
       info (("yo" := 33) ->: jEmptyObject),
@@ -86,7 +86,7 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
   }
 
   it should "read just banner" in {
-    Parse.decodeEither[TopicInit](init4) fold(s => fail(s"parse error: $s"), identity) should have (
+    Parse.decodeEither[TopicInit](init4) valueOr { s => fail(s"parse error: $s") } should have (
       fixedId (None),
       banner ("none"),
       info (jEmptyObject),
@@ -95,7 +95,7 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
   }
 
   it should "read an empty object" in {
-    init5.decodeEither[TopicInit] fold(s => fail(s"parse error: $s"), identity) should have (
+    init5.decodeEither[TopicInit] valueOr { s => fail(s"parse error: $s") } should have (
       fixedId (None),
       banner (""),
       info (jEmptyObject),
@@ -115,7 +115,7 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
       | "banner": "yo",
       | "junk": 444
       |}
-    """.stripMargin.decodeEither[TopicInit] fold(s => fail(s"parse error: $s"), identity) should have (
+    """.stripMargin.decodeEither[TopicInit] valueOr { s => fail(s"parse error: $s") } should have (
       fixedId (None),
       banner ("yo"),
       info (jEmptyObject),

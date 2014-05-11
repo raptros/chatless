@@ -21,7 +21,7 @@ import akka.actor.ActorRefFactory
 class ApiTests extends WordSpec
   with ScalatestRouteTest
   with Matchers
-  with MockFactory {
+  with MockFactory2 {
 
   trait Fixture { self =>
     val uDao = mock[UserDAO]

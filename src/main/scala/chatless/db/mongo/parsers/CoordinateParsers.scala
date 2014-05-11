@@ -22,4 +22,8 @@ trait CoordinateParsers { this: SomeFields =>
     messageCoordinateParser | topicCoordinateParser | userCoordinateParser | serverCoordinateParser
   }
 
+  implicit val coordinateField: Field[Coordinate] = Field.fromParser(coordinateParser)
+  implicit val userCoordinateField = Field.fromParser(userCoordinateParser)
+
+  val poster = get[UserCoordinate]("poster")
 }

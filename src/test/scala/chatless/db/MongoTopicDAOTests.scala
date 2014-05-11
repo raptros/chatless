@@ -1,5 +1,5 @@
 package chatless.db
-import org.scalatest.{Matchers, fixture}
+import org.scalatest.{FlatSpec, Matchers, fixture}
 import scalaz._
 
 import org.scalamock.scalatest.MockFactory
@@ -7,38 +7,29 @@ import chatless.model._
 import com.mongodb.casbah.Imports._
 import chatless.db.mongo.{IdGenerator, MongoTopicDAO}
 import scala.util.Random
+import chatless.MockFactory2
 
-class MongoTopicDAOTests extends fixture.FlatSpec
-with Matchers
-with MockFactory {
+class MongoTopicDAOTests extends FlatSpec with Matchers with MockFactory2 {
   import scala.language.reflectiveCalls
 
   val mc = MongoClient()
   val testDB = mc("mongo-topic-dao-test")
 
-  trait FixtureParam {
+  trait DbFixture {
     val collection: MongoCollection
     val dao: MongoTopicDAO
-    val idGen = new IdGenerator {
-      var nexts: List[String] = Nil
-      def nextTopicId(): String = if (nexts.nonEmpty) {
-        val n = nexts.head
-        nexts = nexts.tail
-        n
-      } else throw new Exception("nextTopicId() probably wasn't supposed to be called")
-
-    }
+    val idGen = mock[IdGenerator]
     val serverCoordinate: ServerCoordinate = ServerCoordinate("fake")
   }
 
-  def withFixture(test: OneArgTest) = {
+  def withDb(test: DbFixture => Any) = {
     val coll = testDB(Random.nextString(10))
-    val fixture = new FixtureParam {
+    val fixture = new DbFixture {
       val collection = coll
       val dao = new MongoTopicDAO(serverCoordinate, coll, idGen)
     }
     try {
-      withFixture(test.toNoArgTest(fixture))
+      test(fixture)
     } finally {
       coll.drop()
     }
@@ -46,30 +37,33 @@ with MockFactory {
 
   behavior of "the mongo topic dao"
 
-  it should "successfully insert a new topic" in { f =>
+  it should "successfully insert a new topic" in withDb { f =>
     val res = f.dao.createLocal("user", TopicInit(fixedId = Some("test")))
     res should be (\/-("test"))
   }
 
-  it should "generate an id and insert a new topic" in { f=>
-    f.idGen.nexts = List("testt")
+  it should "generate an id and insert a new topic" in withDb { f=>
+    f.idGen.nextTopicId _ expects () returning "testt"
     val res = f.dao.createLocal("user", TopicInit())
     res should be (\/-("testt"))
   }
 
-  it should "retry the generate and insert successfully" in { f=>
-    f.idGen.nexts = List("t1", "t1", "t2")
+  it should "retry the generate and insert successfully" in withDb { f=>
+    inSequence {
+      f.idGen.nextTopicId _ expects () returning "t1"
+      f.idGen.nextTopicId _ expects () returning "t2"
+    }
     val res1 = f.dao.createLocal("user", TopicInit())
     res1 should be (\/-("t1"))
     val res2 = f.dao.createLocal("user", TopicInit())
     res2 should be (\/-("t2"))
   }
 
-  it should "insert and then get a topic" in { f =>
+  it should "insert and then get a topic" in withDb { f =>
     val res = f.dao.createLocal("user", TopicInit(fixedId = Some("insert1")))
     res should be (\/-("insert1"))
     val res2 = f.dao.get(f.serverCoordinate.user("user").topic("insert1"))
-    val loadedTopic = res2.fold(err => fail(s"got some kind of error! $err"), identity)
+    val loadedTopic = res2 valueOr { err => fail(s"got some kind of error! $err") }
     loadedTopic should have (
       'id ("insert1"),
       'user ("user")
