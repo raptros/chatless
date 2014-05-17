@@ -10,7 +10,7 @@ import scalaz.syntax.std.option._
 import scalaz.syntax.validation._
 import scalaz.syntax.id._
 
-import BuilderUtils._
+import builders.{DBO2, FieldAsDBOKey}
 import com.osinka.subset._
 import parsers._
 import scalaz.\/
@@ -28,8 +28,8 @@ class MongoMessageCounterDAO @Inject() (@CounterCollection collection: MongoColl
     s"ctr-${coordinate.server}-${coordinate.user}-${coordinate.topic}"
 
   private def atomicIncInner(id: String) = collection.findAndModify(
-    DBO2(Fields._id -> id)(),
-    fields = DBO2(Fields.counter -> 1)(),
+    DBO2(Fields._id --> id)(),
+    fields = DBO2(Fields.counter --> 1)(),
     sort = MongoDBObject(),
     remove = false,
     update = $inc(Fields.counter.toString -> 1l),

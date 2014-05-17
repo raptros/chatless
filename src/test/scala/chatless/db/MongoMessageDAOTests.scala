@@ -1,16 +1,19 @@
 package chatless.db
-import org.scalatest.{FlatSpec, Matchers, fixture}
+import org.scalatest.{WordSpec, FlatSpec, Matchers, fixture}
 import scalaz._
 
 import org.scalamock.scalatest._
 import chatless.model._
 import com.mongodb.casbah.Imports._
-import chatless.db.mongo.{MessageCounterDAO, MongoMessageDAO, IdGenerator, MongoTopicDAO}
+import chatless.db.mongo._
 import scala.util.Random
 import org.joda.time.DateTime
+import argonaut._
+import Argonaut._
 import chatless.MockFactory2
+import scala.collection.immutable.IndexedSeq
 
-class MongoMessageDAOTests extends FlatSpec with Matchers with MockFactory2 {
+class MongoMessageDAOTests extends WordSpec with Matchers with MockFactory2 {
   import scala.language.reflectiveCalls
 
   val mc = MongoClient()
@@ -18,19 +21,19 @@ class MongoMessageDAOTests extends FlatSpec with Matchers with MockFactory2 {
 
   val serverCoordinate = ServerCoordinate("fake-server")
   val userCoordinate = serverCoordinate.user("fake-user")
-  val topicCoordinate = userCoordinate.topic("fake-topic")
 
   trait DbFixture {
     val collection: MongoCollection
     val dao: MongoMessageDAO
-    val counterDao = mock[MessageCounterDAO]
     val idGen = mock[IdGenerator]
   }
 
   def withDb(test: DbFixture => Any) = {
-    val coll = testDB(Random.nextString(10))
+    val coll = testDB(Random.alphanumeric.take(10).mkString)
+    val counterColl = testDB("counter" + Random.alphanumeric.take(10).mkString)
     val fixture = new DbFixture {
       val collection = coll
+      val counterDao = new MongoMessageCounterDAO(counterColl)
       val dao = new MongoMessageDAO(serverCoordinate, coll, counterDao, idGen)
     }
     try {
@@ -39,28 +42,162 @@ class MongoMessageDAOTests extends FlatSpec with Matchers with MockFactory2 {
       coll.drop()
     }
   }
-
-  behavior of "the mongo message dao"
-
-  it should "be able to insert a unique message" in withDb { f =>
-    val mc = topicCoordinate.message("test-insert-0")
-    val mb = MessageBuilder(mc, DateTime.now())
-    val message = mb.bannerChanged(userCoordinate, "updated banner")
-    f.counterDao.inc _ expects topicCoordinate returning \/-(1l)
-    val res = f.dao.insertUnique(message) valueOr { err => fail(s"insert failed! $err") }
-    res should be (mc.idPart)
+  def prepMessages(tc: TopicCoordinate, dao: MessageDAO): IndexedSeq[Message] =  (0 until 10) map { i =>
+    val mc = tc.message(Random.alphanumeric take 5 append i.toString mkString "")
+    val json = ("index" := i) ->: jEmptyObject
+    val msg = MessageBuilder(mc, DateTime.now()).posted(userCoordinate, json)
+    val insertRes = dao.insertUnique(msg) valueOr { err => s"failed to insert $i: $err" }
+    insertRes shouldBe mc.idPart
+    msg
   }
 
-  it should "be able to insert and get" in withDb { f =>
-    val mc = topicCoordinate.message("test-insert-get-0")
-    val mb = MessageBuilder(mc, DateTime.now())
-    val message = mb.bannerChanged(userCoordinate, "updated banner")
-    f.counterDao.inc _ expects topicCoordinate returning \/-(1l)
-    val res = f.dao.insertUnique(message) valueOr { err => fail(s"insert failed! $err") }
-    res should be (mc.idPart)
-    val res2 = f.dao.get(mc) valueOr { err => fail(s"failed to get! $err") }
-    res2 should be (message)
+  "the mongo message dao" should {
+    "insert a unique message" in withDb { f =>
+      val topicCoordinate = userCoordinate.topic("topic0")
+      val mc = topicCoordinate.message("test-insert-0")
+      val mb = MessageBuilder(mc, DateTime.now())
+      val message = mb.bannerChanged(userCoordinate, "updated banner")
+      val res = f.dao.insertUnique(message) valueOr { err => fail(s"insert failed! $err") }
+      res should be (mc.idPart)
+    }
+    "insert and get" in withDb { f =>
+      val topicCoordinate = userCoordinate.topic("topic1")
+      val mc = topicCoordinate.message("test-insert-get-0")
+      val mb = MessageBuilder(mc, DateTime.now())
+      val message = mb.bannerChanged(userCoordinate, "updated banner")
+      val res = f.dao.insertUnique(message) valueOr { err => fail(s"insert failed! $err") }
+      res should be (mc.idPart)
+      val res2 = f.dao.get(mc) valueOr { err => fail(s"failed to get! $err") }
+      res2 should be (message)
+    }
+    "not insert" when {
+      "the message collides with an existing id" in withDb { f =>
+        val topicCoordinate = userCoordinate.topic("topic2")
+        val mc = topicCoordinate.message("test-duplicate")
+        val m1 = MessageBuilder(mc, DateTime.now()).bannerChanged(userCoordinate, "updated banner")
+        val res1 = f.dao.insertUnique(m1) valueOr { err => fail(s"insert failed! $err") }
+        res1 should be (mc.idPart)
+        val m2 = MessageBuilder(mc, DateTime.now()).posted(userCoordinate, jEmptyObject)
+        val res2: (DbError \/ String) = f.dao.insertUnique(m2)
+        res2 shouldBe -\/(IdAlreadyUsed(mc))
+      }
+    }
+    "return an error" when {
+      "an at query has a bad id" in withDb { f=>
+        val tc = userCoordinate.topic("topic2")
+        val msgs = prepMessages(tc, f.dao)
+        //bad "at" case: fail if we request for a bad id
+        f.dao.at(tc, "bogus", 2) shouldBe -\/(NoSuchObject(tc.message("bogus")))
+      }
+    }
+    "return messages in order" when {
+      "queried with 'first'" in withDb { f =>
+        /*
+        def first(topic: TopicCoordinate, count: Int = 1) =
+          rq(topic, id = None, forward = true, inclusive = true, count = count)
+        */
+        val tc = userCoordinate.topic("topic2")
+        val msgs = prepMessages(tc, f.dao)
+        val res = f.dao.first(tc,3) valueOr { err => fail(s"failed to get res: $err") }
+        res.toStream should contain inOrderOnly (msgs(0), msgs(1), msgs(2))
+
+        val res2 = f.dao.first(tc) valueOr { err => fail(s"failed to get res2: $err") }
+        res2.toStream should contain only msgs(0)
+      }
+      "queried with 'last'" in withDb { f =>
+        /*
+        def last(topic: TopicCoordinate, count: Int = 1) =
+          rq(topic, id = None, forward = false, inclusive = true, count = count)
+        */
+        val tc = userCoordinate.topic("topic2")
+        val msgs = prepMessages(tc, f.dao)
+        val res = f.dao.last(tc,3) valueOr { err => fail(s"failed to get res: $err") }
+        res.toStream should contain inOrderOnly (msgs(9), msgs(8), msgs(7))
+      }
+    }
+    "return messages in the correct order and include the requested id" when {
+      "queried with 'at'" in withDb { f =>
+        /*
+        def at(topic: TopicCoordinate, id: String, count: Int = 1) =
+          rq(topic, id = Some(id), forward = false, inclusive = true, count = count)
+        */
+        val tc = userCoordinate.topic("topic2")
+        val msgs = prepMessages(tc, f.dao)
+
+        val res = f.dao.at(tc, msgs(2).id, 3) valueOr { err => fail(s"failed to get res: $err") }
+        res.toStream should contain inOrderOnly (msgs(2), msgs(1), msgs(0))
+
+        val res2 = f.dao.at(tc, msgs(8).id) valueOr { err => fail(s"failed to get res2: $err") }
+        res2.toStream should contain only msgs(8)
+
+        val res3 = f.dao.at(tc, msgs(1).id, 3) valueOr { err => fail(s"failed to get res3: $err") }
+        res3.toStream should contain inOrderOnly (msgs(1), msgs(0))
+      }
+      "queried with 'from'" in withDb { f =>
+        /*
+        def from(topic: TopicCoordinate, id: String, count: Int = 1) =
+          rq(topic, id = Some(id), forward = true, inclusive = true, count = count)
+        */
+        val tc = userCoordinate.topic("topic2")
+        val msgs = prepMessages(tc, f.dao)
+
+        val res = f.dao.from(tc, msgs(5).id, 9) valueOr { err => fail(s"failed to get res: $err") }
+        res.toStream should contain inOrderOnly (msgs(5), msgs(6), msgs(7), msgs(8), msgs(9))
+
+        val res2 = f.dao.from(tc, msgs(9).id) valueOr { err => fail(s"failed to get res2: $err") }
+        res2.toStream should contain only msgs(9)
+
+        val res3 = f.dao.from(tc, msgs(8).id, 3) valueOr { err => fail(s"failed to get res3: $err") }
+        res3.toStream should contain inOrderOnly (msgs(8), msgs(9))
+      }
+    }
+    "return messages in the correct order but exclude the one with the requested id" when {
+      "queried with 'before'" in withDb { f =>
+        /*
+        def before(topic: TopicCoordinate, id: String, count: Int = 1) =
+          rq(topic, id = Some(id), forward = false, inclusive = false, count = count)
+         */
+        val tc = userCoordinate.topic("topic2")
+        val msgs = prepMessages(tc, f.dao)
+
+        val res = f.dao.before(tc, msgs(5).id, 10) valueOr { err => fail(s"failed to get res: $err") }
+        res.toStream should contain inOrderOnly (msgs(4), msgs(3), msgs(2), msgs(1), msgs(0))
+
+        val res2 = f.dao.before(tc, msgs(8).id) valueOr { err => fail(s"failed to get res2: $err") }
+        res2.toStream should contain only msgs(7)
+
+        val res3 = f.dao.before(tc, msgs(1).id, 2) valueOr { err => fail(s"failed to get res3: $err") }
+        res3.toStream should contain only msgs(0)
+
+        val res4 = f.dao.before(tc, msgs(0).id) valueOr { err => fail(s"failed to get res4: $err") }
+        res4.toStream shouldBe empty
+
+        val res5 = f.dao.before(tc, msgs(5).id, 3) valueOr { err => fail(s"failed to get res5: $err") }
+        res5.toStream should contain inOrderOnly (msgs(4), msgs(3), msgs(2))
+      }
+      "queried with 'after'" in withDb { f =>
+        /*
+        def after(topic: TopicCoordinate, id: String, count: Int = 1) =
+          rq(topic, id = Some(id), forward = true, inclusive = false, count = count)
+        */
+        val tc = userCoordinate.topic("topic2")
+        val msgs = prepMessages(tc, f.dao)
+
+        val res = f.dao.after(tc, msgs(4).id, 10) valueOr { err => fail(s"failed to get res: $err") }
+        res.toStream should contain inOrderOnly (msgs(5), msgs(6), msgs(7), msgs(8), msgs(9))
+
+        val res2 = f.dao.after(tc, msgs(7).id) valueOr { err => fail(s"failed to get res2: $err") }
+        res2.toStream should contain only msgs(8)
+
+        val res3 = f.dao.after(tc, msgs(8).id, 2) valueOr { err => fail(s"failed to get res3: $err") }
+        res3.toStream should contain only msgs(9)
+
+        val res4 = f.dao.after(tc, msgs(9).id) valueOr { err => fail(s"failed to get res4: $err") }
+        res4.toStream shouldBe empty
+
+        val res5 = f.dao.after(tc, msgs(1).id, 3) valueOr { err => fail(s"failed to get res5: $err") }
+        res5.toStream should contain inOrderOnly (msgs(2), msgs(3), msgs(4))
+      }
+    }
   }
-
-
 }

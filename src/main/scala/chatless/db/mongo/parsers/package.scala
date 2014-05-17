@@ -1,8 +1,5 @@
 package chatless.db.mongo
 
-import chatless.db.DbError
-
-
 package object parsers {
 
   import com.osinka.subset._
@@ -16,11 +13,7 @@ package object parsers {
   import com.mongodb.casbah.Imports._
 
   import com.mongodb.casbah.commons.conversions.scala._
-
   RegisterJodaTimeConversionHelpers()
-
-
-  object Parsers extends SomeFields with CoordinateParsers with MessageParsers with TopicParsers
 
   implicit val messageParser: DocParser[Message] = Parsers.messageParser
 

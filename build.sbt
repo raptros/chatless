@@ -51,7 +51,7 @@ libraryDependencies ++= Seq(
 
 libraryDependencies ++= Seq(
   "com.osinka.subset" %% "subset" % "2.1.3",
-  "io.argonaut" %% "argonaut" % "6.0.3" withSources(),
+  "io.argonaut" %% "argonaut" % "6.0.4" withSources(),
   "org.scala-lang" % "scala-reflect" % scalaVersion.value,
   "org.mongodb" %% "casbah" % "2.7.0",
   "org.scalaz" %% "scalaz-core" % "7.0.6" withJavadoc(),

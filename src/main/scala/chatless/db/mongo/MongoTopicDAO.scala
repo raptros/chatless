@@ -16,8 +16,8 @@ import chatless.db._
 import com.mongodb.DuplicateKeyException
 
 import com.osinka.subset._
-import BuilderUtils._
-import Serializers._
+import builders._
+import FilteredRetry._
 
 import parsers._
 
@@ -28,7 +28,7 @@ class MongoTopicDAO @Inject() (
   extends TopicDAO {
 
   def get(coordinate: TopicCoordinate): DbError \/ Topic = for {
-    dbo <- collection.findOne(coordinateQuery(coordinate)) \/> NoSuchObject(coordinate)
+    dbo <- collection.findOne(coordinate.asQuery) \/> NoSuchObject(coordinate)
     topic <- dbo.parseAs[Topic]
   } yield topic
 
@@ -72,7 +72,7 @@ class MongoTopicDAO @Inject() (
   private def setup() {
     //todo: indexes
     collection.ensureIndex(
-      DBO2(Fields.server -> 1, Fields.user -> 1, Fields.id -> 1)(),
+      DBO2(Fields.server --> 1, Fields.user --> 1, Fields.id --> 1)(),
       DBO("unique" -> true)()
     )
   }
