@@ -2,6 +2,7 @@ package chatless.model
 
 import org.scalatest.matchers.{HavePropertyMatchResult, HavePropertyMatcher}
 import argonaut.Json
+import chatless.model.topic.{TopicMode, TopicInit}
 
 trait TopicInitMatchers {
   def fixedId(expectedValue: Option[String]) = new HavePropertyMatcher[TopicInit, Option[String]] {
@@ -22,5 +23,10 @@ trait TopicInitMatchers {
   def invite(expectedValue: List[UserCoordinate]) = new HavePropertyMatcher[TopicInit, List[UserCoordinate]] {
     override def apply(ti: TopicInit) =
       HavePropertyMatchResult(ti.invite == expectedValue, "invite", expectedValue, ti.invite)
+  }
+
+  def mode(expectedValue: TopicMode) = new HavePropertyMatcher[TopicInit, TopicMode] {
+    override def apply(ti: TopicInit) =
+      HavePropertyMatchResult(ti.mode == expectedValue, "mode", expectedValue, ti.mode)
   }
 }

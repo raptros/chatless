@@ -4,6 +4,7 @@ import chatless._
 import chatless.model._
 import com.mongodb.casbah.Imports._
 import scalaz._
+import chatless.model.topic.{TopicInit, Topic}
 
 trait TopicDAO {
 
@@ -27,8 +28,8 @@ trait TopicDAO {
 
   /** creates a topic and attempts to insert it. will perform retries if the init does not specify an ID.
     * @param user the ID string of a user local to this instance.
-    * @param init the
-    * @return
+    * @param init an init object
+    * @return the new topic's id, or an error
     */
   def createLocal(user: UserId, init: TopicInit): DbError \/ String
 

@@ -46,6 +46,10 @@ object MarshallingImplicits {
     val canUnmarshalFrom: Seq[ContentTypeRange] = `application/json` :: Nil
   }
 
+  implicit def delegateFromJson[A: DecodeJson] = Unmarshaller.delegate[Json, A](`application/json`) { j: Json =>
+    j.as[A].fold((m, h) => throw new IllegalArgumentException(m), identity)
+  }
+
   implicit def CoordinateEncodeJson = EncodeJson[Coordinate] {
     case RootCoordinate => jEmptyObject
     case c: ServerCoordinate => c.asJson

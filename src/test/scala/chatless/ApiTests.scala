@@ -4,6 +4,7 @@ import spray.testkit.ScalatestRouteTest
 import spray.routing._
 import chatless._
 import scalaz._
+import scalaz.syntax.id._
 
 import org.scalamock.scalatest.MockFactory
 import chatless.db.{TopicDAO, UserDAO}
@@ -40,7 +41,7 @@ class ApiTests extends WordSpec
   "client api meRoute" when {
     "handling a GET to /me/topic" should {
       "return json" in  new Fixture {
-        uDao.get _ expects user1.id once() returning Some(user1)
+        uDao.get _ expects user1.id once() returning user1.right
         tDao.listUserTopics _ expects * once() returning List(TopicCoordinate("test", "one", "fake"))
         Get("/me/topic/") ~> api.authedApi(user1.id) ~> check {
           mediaType === `application/json`

@@ -200,4 +200,47 @@ class MongoMessageDAOTests extends WordSpec with Matchers with MockFactory2 {
       }
     }
   }
+  it when {
+    "creating new messages" should {
+      "successfully insert" in withDb { f =>
+        val tc = userCoordinate.topic("topic3")
+        f.idGen.nextMessageId _ expects() once() returning "fake1"
+        val response = f.dao.createNew(MessageBuilder(tc).posted(userCoordinate, jEmptyObject).apply(""))
+        val res = response valueOr { err => fail(s"failed to insert new message: $err") }
+        res shouldBe "pst-fake1"
+      }
+      "retry and suceeed" in withDb { f =>
+        val tc = userCoordinate.topic("topic3")
+        inSequence {
+          f.idGen.nextMessageId _ expects() twice() returning "fake1"
+          f.idGen.nextMessageId _ expects() once() returning "fake2"
+        }
+        val response1 = f.dao.createNew(MessageBuilder(tc).posted(userCoordinate, jEmptyObject).apply(""))
+        val res1 = response1 valueOr { err => fail(s"failed to insert new message: $err") }
+        res1 shouldBe "pst-fake1"
+
+        val response2 = f.dao.createNew(MessageBuilder(tc).posted(userCoordinate, jEmptyObject).apply(""))
+        val res2 = response2 valueOr { err => fail(s"failed to insert new message: $err") }
+        res2 shouldBe "pst-fake2"
+      }
+      "retry and give up" in withDb { f =>
+        val tc = userCoordinate.topic("topic3")
+        inSequence {
+          f.idGen.nextMessageId _ expects() repeat 4 returning "fake1"
+        }
+        val response1 = f.dao.createNew(MessageBuilder(tc).posted(userCoordinate, jEmptyObject)(""))
+        val res1 = response1 valueOr { err => fail(s"failed to insert new message: $err") }
+        res1 shouldBe "pst-fake1"
+        val response2 = f.dao.createNew(MessageBuilder(tc).posted(userCoordinate, jEmptyObject)(""))
+        val res2 = response2.swap valueOr { x => fail(s"somehow inserted $x!") }
+        res2 shouldBe a [GenerateIdFailed]
+        val err = res2.asInstanceOf[GenerateIdFailed]
+        err.what shouldBe "message"
+        err.parent shouldBe tc
+        err.attempted should contain only "pst-fake1"
+        err.attempted should have length 3
+
+      }
+    }
+  }
 }

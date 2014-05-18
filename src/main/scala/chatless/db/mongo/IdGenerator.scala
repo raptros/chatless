@@ -6,4 +6,5 @@ trait IdGenerator {
 
   def nextTopicId(): String
 
+  def nextMessageId(): String
 }

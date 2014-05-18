@@ -18,24 +18,24 @@ import chatless.db.mongo.parsers._
 import com.mongodb.DuplicateKeyException
 import chatless.db.mongo.builders.CoordinateAsQuery
 import com.mongodb.casbah.query.dsl.QueryExpressionObject
+import FilteredRetry._
+import com.typesafe.scalalogging.Logging
+import com.typesafe.scalalogging.slf4j.LazyLogging
 
 class MongoMessageDAO @Inject() (
     @ServerIdParam serverId: ServerCoordinate,
     @MessageCollection collection: MongoCollection,
     counterDao: MessageCounterDAO,
     idGenerator: IdGenerator)
-  extends MessageDAO {
+  extends MessageDAO
+  with LazyLogging {
 
   def get(coord: MessageCoordinate) = for {
     dbo <- collection.findOne(coord.asQuery) \/> NoSuchObject(coord)
     message <- dbo.parseAs[Message]
   } yield message
 
-  /** attempts to insert the message as a unique message
-    * @param message a message
-    * @return id or failure
-    */
-  override def insertUnique(message: Message): DbError \/ String = for {
+  def insertUnique(message: Message): DbError \/ String = for {
     nextPos <- counterDao.inc(message.coordinate.parent)
     id <- insertUniqueInner(message, nextPos)
   } yield id
@@ -49,6 +49,18 @@ class MongoMessageDAO @Inject() (
     case t: Throwable => WriteFailureWithCoordinate("message", message.coordinate, t).left
   }
 
+  def createNew(m: Message): DbError \/ String = insertRetry(m, 3, Nil)
+
+  private def insertRetry(m: Message, tries: Int, tried: List[String]): DbError \/ String =
+    if (tries <= 0)
+      GenerateIdFailed("message", m.coordinate.parent, tried).left
+    else
+      (idGenerator.nextMessageId() |> { m.change(_) } |> insertUnique) attemptLeft  {
+        case IdAlreadyUsed(c) => c.idPart
+      } thenTry { last =>
+        insertRetry(m, tries - 1, last :: tried)
+      }
+
   def rq(topic: TopicCoordinate, id: Option[String], forward: Boolean, inclusive: Boolean, count: Int): DbError \/ Iterable[Message] = for {
     q <- buildQuery(topic.getDBO: DBObject, forward, inclusive) { id map { topic.message } }
     cursor = runRQ(q, forward, count)
@@ -58,7 +70,7 @@ class MongoMessageDAO @Inject() (
   private def parseMessages(cursor: MongoCursor): Iterable[Message] = cursor.toStream flatMap { dbo =>
     val parseRes = dbo.parseAs[Message]
     cursor.size
-    parseRes leftMap { err => "" } //todo logging
+    parseRes leftMap { err => logger.error("could not parse message: {}", err) }
     parseRes.toStream
   }
 
@@ -85,6 +97,7 @@ class MongoMessageDAO @Inject() (
   }
 
   private def setup() {
+    logger.debug("setup()")
     //todo: indexes
     collection.ensureIndex(
       DBO2(Fields.server --> 1, Fields.user --> 1, Fields.topic --> 1, Fields.id --> 1)(),
@@ -95,7 +108,8 @@ class MongoMessageDAO @Inject() (
       DBO("unique" -> true)()
     )
   }
-
   setup()
+
+
 }
 

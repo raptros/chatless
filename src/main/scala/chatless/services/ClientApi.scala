@@ -4,15 +4,16 @@ import spray.routing._
 import chatless.db.{DbError, TopicDAO, UserDAO}
 import spray.http._
 import spray.http.MediaTypes._
-import chatless.model.{Topic, TopicCoordinate, User}
+import chatless.model.{TopicCoordinate, User}
 import spray.httpx.marshalling.Marshaller
 import argonaut._
 import Argonaut._
 import spray.httpx.unmarshalling.FromRequestUnmarshaller
 import scalaz.\/
+import MarshallingImplicits._
+import chatless.model.topic.TopicInit
 
 trait ClientApi extends HttpService {
-  import MarshallingImplicits._
 
   val userDao: UserDAO
   val topicDao: TopicDAO
@@ -35,7 +36,7 @@ trait ClientApi extends HttpService {
           complete {
             topicDao.listUserTopics(caller.coordinate).toList
           }
-        } ~ postedEntity(as[Json]) { (j: Json) =>
+        } ~ postedEntity(as[TopicInit]) { (ti: TopicInit) =>
         //create new topic, return url
           val uri = Uri.apply("/me/topic/giarneingbe")
           complete {

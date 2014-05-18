@@ -56,7 +56,8 @@ libraryDependencies ++= Seq(
   "org.mongodb" %% "casbah" % "2.7.0",
   "org.scalaz" %% "scalaz-core" % "7.0.6" withJavadoc(),
   "com.chuusai" %% "shapeless" % "1.2.4",
-  "ch.qos.logback" % "logback-classic" % "1.0.7",
+  "ch.qos.logback" % "logback-classic" % "1.1.2",
+  "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
   "net.codingwell" %% "scala-guice" % "4.0.0-beta",
   "com.google.inject.extensions" % "guice-assistedinject" % "4.0-beta"
 )

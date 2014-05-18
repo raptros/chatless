@@ -5,44 +5,68 @@ import org.joda.time.DateTime
 import argonaut._
 import Argonaut._
 
-sealed abstract class Message extends HasCoordinate[MessageCoordinate] {
+import scala.language.experimental.macros
+
+sealed abstract class Message(shortName: String) extends HasCoordinate[MessageCoordinate] {
   def server: String
-  def topic: String
   def user: String
+  def topic: String
   def id: String
   def timestamp: DateTime
 
   lazy val coordinate = MessageCoordinate(server, user, topic, id)
+
+  def change(part: String, timestamp: DateTime = DateTime.now()) =
+    modify(id = s"$shortName-$part", timestamp = timestamp)
+
+  def modify(
+    server: String = server,
+    user: String = user,
+    topic: String = topic,
+    id: String = id,
+    timestamp: DateTime = timestamp): Message
 }
 
 case class PostedMessage(
     server: String,
-    topic: String,
     user: String,
+    topic: String,
     id: String,
     timestamp: DateTime,
     poster: UserCoordinate,
     body: Json)
-  extends Message
+  extends Message("pst") {
+
+  def modify(server: String, user: String, topic: String, id: String, timestamp: DateTime) =
+    copy(server = server, user = user, topic = topic, id = id, timestamp = timestamp)
+}
 
 case class BannerChangedMessage(
     server: String,
-    topic: String,
     user: String,
+    topic: String,
     id: String,
     timestamp: DateTime,
     poster: UserCoordinate,
     banner: String)
-  extends Message
+  extends Message("bnr") {
+
+  def modify(server: String, user: String, topic: String, id: String, timestamp: DateTime) =
+    copy(server = server, user = user, topic = topic, id = id, timestamp = timestamp)
+}
 
 case class UserJoinedMessage(
     server: String,
-    topic: String,
     user: String,
+    topic: String,
     id: String,
     timestamp: DateTime,
     joined: UserCoordinate)
-  extends Message
+  extends Message("jnd") {
+
+  def modify(server: String, user: String, topic: String, id: String, timestamp: DateTime) =
+    copy(server = server, user = user, topic = topic, id = id, timestamp = timestamp)
+}
 
 
 
@@ -50,8 +74,8 @@ object Message {
   implicit def messageEncodeJson(implicit dte: EncodeJson[DateTime]) = EncodeJson[Message] { m =>
     extend {
       ("server" := m.server) ->:
-        ("topic" := m.topic) ->:
         ("user" := m.user) ->:
+        ("topic" := m.topic) ->:
         ("id" := m.id) ->:
         ("timestamp" := m.timestamp) ->:
         jEmptyObject

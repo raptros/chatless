@@ -1,5 +1,7 @@
 package chatless.db.mongo
 
+import chatless.model.topic.Topic
+
 package object parsers {
 
   import com.osinka.subset._

@@ -8,6 +8,7 @@ import com.mongodb.casbah.Imports._
 import chatless.db.mongo.{IdGenerator, MongoTopicDAO}
 import scala.util.Random
 import chatless.MockFactory2
+import chatless.model.topic.TopicInit
 
 class MongoTopicDAOTests extends FlatSpec with Matchers with MockFactory2 {
   import scala.language.reflectiveCalls
@@ -23,7 +24,7 @@ class MongoTopicDAOTests extends FlatSpec with Matchers with MockFactory2 {
   }
 
   def withDb(test: DbFixture => Any) = {
-    val coll = testDB(Random.nextString(10))
+    val coll = testDB(Random.alphanumeric.take(10).mkString)
     val fixture = new DbFixture {
       val collection = coll
       val dao = new MongoTopicDAO(serverCoordinate, coll, idGen)
@@ -57,6 +58,18 @@ class MongoTopicDAOTests extends FlatSpec with Matchers with MockFactory2 {
     res1 should be (\/-("t1"))
     val res2 = f.dao.createLocal("user", TopicInit())
     res2 should be (\/-("t2"))
+  }
+  it should "retry 3 times and give up" in withDb { f =>
+    f.idGen.nextTopicId _ expects () repeat 4 returning "t1"
+    val res1 = f.dao.createLocal("user", TopicInit())
+    res1 should be (\/-("t1"))
+    val res2 = ~f.dao.createLocal("user", TopicInit()) valueOr { x => fail(s"somehow managed to insert $x") }
+    res2 shouldBe a [GenerateIdFailed]
+    val err = res2.asInstanceOf[GenerateIdFailed]
+    err.what shouldBe "topic"
+    err.parent shouldBe f.serverCoordinate.user("user")
+    err.attempted should have length 3
+    err.attempted should contain only "t1"
   }
 
   it should "insert and then get a topic" in withDb { f =>

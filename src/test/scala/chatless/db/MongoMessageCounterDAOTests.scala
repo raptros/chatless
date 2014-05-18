@@ -4,7 +4,7 @@ import org.scalatest.{Matchers, FlatSpec}
 import chatless.MockFactory2
 import com.mongodb.casbah.Imports._
 import chatless.db.mongo.{MessageCounterDAO, MongoMessageCounterDAO}
-import chatless.model.{TopicCoordinate, TopicInit, UserCoordinate}
+import chatless.model.{TopicCoordinate, UserCoordinate}
 import scala.util.Random
 
 class MongoMessageCounterDAOTests extends FlatSpec with Matchers with MockFactory2 {

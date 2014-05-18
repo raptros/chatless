@@ -7,7 +7,8 @@ import scalaz.\/
 
 trait UserDAO {
 
-  def get(id: UserId): Option[User]
+  def get(id: UserId): DbError \/ User
 
+  def insertUnique(user: User): DbError \/ String
 
 }

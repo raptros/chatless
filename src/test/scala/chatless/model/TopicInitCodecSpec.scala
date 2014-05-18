@@ -2,6 +2,7 @@ package chatless.model
 import argonaut._
 import Argonaut._
 import org.scalatest.{Matchers, FlatSpec}
+import chatless.model.topic.{TopicMode, TopicInit}
 
 class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
   behavior of "the topic init codec"
@@ -12,6 +13,7 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
       | "fix-id": "wtf",
       | "banner": "none",
       | "info": {"yo": 33},
+      | "mode": {"public": false, "muted": true},
       | "invite": [
       | {"server": "a", "user": "one"},
       | {"server": "b", "user": "two"},
@@ -60,7 +62,8 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
       invite (UserCoordinate("a", "one") ::
         UserCoordinate("b", "two") ::
         UserCoordinate("a", "three") ::
-        Nil)
+        Nil),
+      mode (TopicMode(muted = true, public = false))
     )
   }
 
@@ -72,7 +75,8 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
       invite (UserCoordinate("a", "one") ::
         UserCoordinate("b", "two") ::
         UserCoordinate("a", "three") ::
-        Nil)
+        Nil),
+      mode (TopicMode(muted = false, public = true))
     )
   }
 
@@ -81,7 +85,8 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
       fixedId (None),
       banner ("none"),
       info (("yo" := 33) ->: jEmptyObject),
-      invite (Nil)
+      invite (Nil),
+      mode (TopicMode(muted = false, public = true))
     )
   }
 
@@ -90,7 +95,8 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
       fixedId (None),
       banner ("none"),
       info (jEmptyObject),
-      invite (Nil)
+      invite (Nil),
+      mode (TopicMode(muted = false, public = true))
     )
   }
 
@@ -99,7 +105,8 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
       fixedId (None),
       banner (""),
       info (jEmptyObject),
-      invite (Nil)
+      invite (Nil),
+      mode (TopicMode(muted = false, public = true))
     )
   }
 
@@ -119,7 +126,8 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
       fixedId (None),
       banner ("yo"),
       info (jEmptyObject),
-      invite (Nil)
+      invite (Nil),
+      mode (TopicMode(muted = false, public = true))
     )
   }
 }
