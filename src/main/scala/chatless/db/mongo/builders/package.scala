@@ -18,13 +18,13 @@ package object builders {
     def attach(kvs: DBOKV[_]*): DBObjectBuffer = (kvs foldRight buf) { _ write _ }
   }
 
-  implicit class WritesToDBOWrapper[-A](a: A)(implicit w: WritesToDBO[A]) {
+  implicit class WritesToDBOWrapper[A](a: A)(implicit w: WritesToDBO[A]) {
     def getBuffer: DBObjectBuffer = w.write(a)
     def getDBO: DBObject = getBuffer()
   }
 
   implicit class CoordinateAsQuery(c: Coordinate) {
-    def asQuery = Builders.buildDBOForCoordinate(c.parent).attach(Fields.id --> c.idPart).apply()
+    def asQuery: DBObject = Builders.buildDBOForCoordinate(c.parent).attach(Fields.id --> c.id).apply()
   }
 
   implicit val coordinateWritable = Builders.coordinateWritesToDBO

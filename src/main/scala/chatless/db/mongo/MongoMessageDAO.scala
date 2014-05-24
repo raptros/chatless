@@ -56,7 +56,7 @@ class MongoMessageDAO @Inject() (
       GenerateIdFailed("message", m.coordinate.parent, tried).left
     else
       (idGenerator.nextMessageId() |> { m.change(_) } |> insertUnique) attemptLeft  {
-        case IdAlreadyUsed(c) => c.idPart
+        case IdAlreadyUsed(c) => c.id
       } thenTry { last =>
         insertRetry(m, tries - 1, last :: tried)
       }

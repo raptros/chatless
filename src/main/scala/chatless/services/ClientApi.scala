@@ -4,17 +4,20 @@ import spray.routing._
 import chatless.db.{DbError, TopicDAO, UserDAO}
 import spray.http._
 import spray.http.MediaTypes._
-import chatless.model.{TopicCoordinate, User}
-import spray.httpx.marshalling.Marshaller
+import chatless.model._
+import spray.httpx.marshalling.{ToResponseMarshaller, Marshaller}
 import argonaut._
 import Argonaut._
 import spray.httpx.unmarshalling.FromRequestUnmarshaller
 import scalaz.\/
 import MarshallingImplicits._
 import chatless.model.topic.TopicInit
+import shapeless._
+import shapeless.::
 
 trait ClientApi extends HttpService {
 
+  val serverId: ServerCoordinate
   val userDao: UserDAO
   val topicDao: TopicDAO
 
@@ -22,8 +25,23 @@ trait ClientApi extends HttpService {
 
 //  def newTopicRoute()
 
-
   private def postedEntity[A](um: FromRequestUnmarshaller[A]): Directive1[A] = post & entity(um)
+
+  private val localTopicMatcher: PathMatcher1[TopicCoordinate] = ("user" / Segment / "topic" / Segment) hmap {
+    case uid :: tid :: HNil => serverId.user(uid).topic(tid) :: HNil
+  }
+
+  def created[A: ToResponseMarshaller](uri: Uri, a: A) = (StatusCodes.Created, HttpHeaders.Location(uri) :: Nil, a)
+
+
+  import Uri.Path
+  private def createTopic(user: User): Route = postedEntity(as[TopicInit]) { ti: TopicInit =>
+    complete {
+      topicDao.createLocal(user.id, ti) map { topic =>
+        created(Uri(path = Path / "me" / "topic" / topic.id), topic)
+      }
+    }
+  }
 
   def meRoute(caller: User): Route =
     pathEndOrSingleSlash {
@@ -33,16 +51,8 @@ trait ClientApi extends HttpService {
     } ~ pathPrefix("topic") {
       pathEndOrSingleSlash {
         get {
-          complete {
-            topicDao.listUserTopics(caller.coordinate).toList
-          }
-        } ~ postedEntity(as[TopicInit]) { (ti: TopicInit) =>
-        //create new topic, return url
-          val uri = Uri.apply("/me/topic/giarneingbe")
-          complete {
-            (StatusCodes.Created, HttpHeaders.Location(uri) :: Nil, Json("this" := "fake"))
-          }
-        }
+          complete(topicDao.listUserTopics(caller.coordinate).toList)
+        } ~ createTopic(caller)
       } ~ pathPrefix(Segment) { topicId =>
         localTopicRoute(caller, caller.coordinate.topic(topicId))
       }
@@ -67,7 +77,8 @@ trait ClientApi extends HttpService {
       meRoute(caller)
     } ~ pathPrefix("user") {
       localUserRoute(caller)
+    } ~ pathPrefix("server") {
+      complete {"no"}
     }
   }
-
 }

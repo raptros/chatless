@@ -7,8 +7,8 @@ import Argonaut._
 import chatless.model.topic.{TopicMode, Topic}
 
 trait TopicParsers { this: SomeFields =>
-  implicit val topicModeParser = bool("muted") ~ bool("public") map {
-    case m ~ p => TopicMode(muted = m, public = p)
+  implicit val topicModeParser = bool("muted") ~ bool("open") ~ bool("public") map {
+    case m ~ o ~ p => TopicMode(muted = m, open = o, public = p)
   }
 
   val topicParser = server ~ user ~ id ~ str("banner") ~ get[Json]("info") ~ get[TopicMode]("mode") map {

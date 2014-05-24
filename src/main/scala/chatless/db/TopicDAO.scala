@@ -5,6 +5,7 @@ import chatless.model._
 import com.mongodb.casbah.Imports._
 import scalaz._
 import chatless.model.topic.{TopicInit, Topic}
+import argonaut._
 
 trait TopicDAO {
 
@@ -22,15 +23,30 @@ trait TopicDAO {
 
   /** attempts to insert a topic into the collection.
     * @param topic fully prepared topic
-    * @return either the inserted topic id or an error
+    * @return either the inserted topic or an error
     */
-  def insertUnique(topic: Topic): DbError \/ String
+  def insertUnique(topic: Topic): DbError \/ Topic
 
   /** creates a topic and attempts to insert it. will perform retries if the init does not specify an ID.
     * @param user the ID string of a user local to this instance.
     * @param init an init object
-    * @return the new topic's id, or an error
+    * @return the new topic, or an error
     */
-  def createLocal(user: UserId, init: TopicInit): DbError \/ String
+  def createLocal(user: String, init: TopicInit): DbError \/ Topic
 
+  /** updates a currently existing topic
+    * @param topic a topic that currently exists within the database (i.e. the topic coordinate can be gotten)
+    * @return an error or the saved version of the topic.
+    */
+  def save(topic: Topic): DbError \/ Topic
+
+  protected def modify(tc: TopicCoordinate, adjust: Topic => Topic): DbError \/ Topic = for {
+    topic <- get(tc)
+    newTopic = adjust(topic)
+    saved <- save(newTopic)
+  } yield saved
+
+  def setBanner(tc: TopicCoordinate, banner: String): DbError \/ Topic = modify(tc, _.copy(banner = banner))
+
+  def setInfo(tc: TopicCoordinate, info: Json): DbError \/ Topic = modify(tc, _.copy(info = info))
 }

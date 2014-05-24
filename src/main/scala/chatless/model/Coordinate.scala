@@ -4,17 +4,17 @@ import argonaut._
 import Argonaut._
 
 sealed trait Coordinate {
-  def idPart: String
+  def id: String
   def parent: Coordinate
 }
 
 case object RootCoordinate extends Coordinate {
-  lazy val idPart = ""
+  lazy val id = ""
   val parent = RootCoordinate
 }
 
 case class ServerCoordinate(server: String) extends Coordinate{
-  val idPart = server
+  val id = server
   lazy val parent = RootCoordinate
 
   def user(id: String) = UserCoordinate(server, id)
@@ -25,7 +25,7 @@ object ServerCoordinate {
 }
 
 case class UserCoordinate(server: String, user: String) extends Coordinate{
-  val idPart = user
+  val id = user
   lazy val parent = ServerCoordinate(server)
 
   def topic(id: String) = TopicCoordinate(server, user, id)
@@ -36,7 +36,7 @@ object UserCoordinate {
 }
 
 case class TopicCoordinate(server: String, user: String, topic: String) extends Coordinate{
-  val idPart = topic
+  val id = topic
   lazy val parent = UserCoordinate(server, user)
 
   def message(id: String) = MessageCoordinate(server, user, topic, id)
@@ -47,7 +47,7 @@ object TopicCoordinate {
 }
 
 case class MessageCoordinate(server: String, user: String, topic: String, message: String) extends Coordinate {
-  val idPart = message
+  val id = message
   lazy val parent = TopicCoordinate(server, user, topic)
 }
 

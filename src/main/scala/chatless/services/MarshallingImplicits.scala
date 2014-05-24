@@ -25,6 +25,7 @@ import chatless.db.GenerateIdFailed
 import chatless.db.DeserializationErrors
 import chatless.db.IdAlreadyUsed
 import chatless.db.WriteFailure
+import scalaz.\/
 
 object MarshallingImplicits {
   implicit val jsonMarshaller = Marshaller.delegate[Json, String](`application/json`) { (j: Json) => j.nospaces }
@@ -126,6 +127,11 @@ object MarshallingImplicits {
   implicit def dbErrorResponseMarshaller: ToResponseMarshaller[DbError] = 
     ToResponseMarshaller.delegate[DbError, (StatusCode, Seq[HttpHeader], Json)](`application/json`) {
       produceResponseForError _
+    }
+
+  implicit def scalazEitherToResMarshaller[A, B](implicit ma: ToResponseMarshaller[A], mb: ToResponseMarshaller[B]) =
+    ToResponseMarshaller[A \/ B] { (value, ctx) =>
+      value.fold(ma(_, ctx), mb(_, ctx))
     }
 
 

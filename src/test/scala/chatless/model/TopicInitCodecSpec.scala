@@ -13,7 +13,7 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
       | "fix-id": "wtf",
       | "banner": "none",
       | "info": {"yo": 33},
-      | "mode": {"public": false, "muted": true},
+      | "mode": {"public": false, "muted": true, "open": false},
       | "invite": [
       | {"server": "a", "user": "one"},
       | {"server": "b", "user": "two"},
@@ -63,7 +63,7 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
         UserCoordinate("b", "two") ::
         UserCoordinate("a", "three") ::
         Nil),
-      mode (TopicMode(muted = true, public = false))
+      mode (TopicMode(muted = true, open = false, public = false))
     )
   }
 
@@ -76,7 +76,7 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
         UserCoordinate("b", "two") ::
         UserCoordinate("a", "three") ::
         Nil),
-      mode (TopicMode(muted = false, public = true))
+      mode (TopicMode(muted = false, open = true, public = false))
     )
   }
 
@@ -86,7 +86,7 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
       banner ("none"),
       info (("yo" := 33) ->: jEmptyObject),
       invite (Nil),
-      mode (TopicMode(muted = false, public = true))
+      mode (TopicMode(muted = false, open = true, public = false))
     )
   }
 
@@ -96,7 +96,7 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
       banner ("none"),
       info (jEmptyObject),
       invite (Nil),
-      mode (TopicMode(muted = false, public = true))
+      mode (TopicMode(muted = false, open = true, public = false))
     )
   }
 
@@ -106,7 +106,7 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
       banner (""),
       info (jEmptyObject),
       invite (Nil),
-      mode (TopicMode(muted = false, public = true))
+      mode (TopicMode(muted = false, open = true, public = false))
     )
   }
 
@@ -127,7 +127,7 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
       banner ("yo"),
       info (jEmptyObject),
       invite (Nil),
-      mode (TopicMode(muted = false, public = true))
+      mode (TopicMode(muted = false, open = true, public = false))
     )
   }
 }

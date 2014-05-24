@@ -19,6 +19,7 @@ object Fields extends Enumeration {
   info,
   muted,
   public,
+  open,
   counter,
   mode = Value
 }

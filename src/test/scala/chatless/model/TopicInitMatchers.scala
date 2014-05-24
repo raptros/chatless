@@ -5,28 +5,23 @@ import argonaut.Json
 import chatless.model.topic.{TopicMode, TopicInit}
 
 trait TopicInitMatchers {
-  def fixedId(expectedValue: Option[String]) = new HavePropertyMatcher[TopicInit, Option[String]] {
-    override def apply(ti: TopicInit) =
-      HavePropertyMatchResult(ti.fixedId == expectedValue, "fixedId", expectedValue, ti.fixedId)
+  def fixedId(expectedValue: Option[String]) = HavePropertyMatcher { ti: TopicInit =>
+    HavePropertyMatchResult(ti.fixedId == expectedValue, "fixedId", expectedValue, ti.fixedId)
   }
 
-  def banner(expectedValue: String) = new HavePropertyMatcher[TopicInit, String] {
-    override def apply(ti: TopicInit) =
-      HavePropertyMatchResult(ti.banner == expectedValue, "banner", expectedValue, ti.banner)
+  def banner(expectedValue: String) = HavePropertyMatcher { ti: TopicInit =>
+    HavePropertyMatchResult(ti.banner == expectedValue, "banner", expectedValue, ti.banner)
   }
 
-  def info(expectedValue: Json) = new HavePropertyMatcher[TopicInit, Json] {
-    override def apply(ti: TopicInit) =
-      HavePropertyMatchResult(ti.info == expectedValue, "info", expectedValue, ti.info)
+  def info(expectedValue: Json) = HavePropertyMatcher { ti: TopicInit =>
+    HavePropertyMatchResult(ti.info == expectedValue, "info", expectedValue, ti.info)
   }
 
-  def invite(expectedValue: List[UserCoordinate]) = new HavePropertyMatcher[TopicInit, List[UserCoordinate]] {
-    override def apply(ti: TopicInit) =
-      HavePropertyMatchResult(ti.invite == expectedValue, "invite", expectedValue, ti.invite)
+  def invite(expectedValue: List[UserCoordinate]) = HavePropertyMatcher { ti: TopicInit =>
+    HavePropertyMatchResult(ti.invite == expectedValue, "invite", expectedValue, ti.invite)
   }
 
-  def mode(expectedValue: TopicMode) = new HavePropertyMatcher[TopicInit, TopicMode] {
-    override def apply(ti: TopicInit) =
-      HavePropertyMatchResult(ti.mode == expectedValue, "mode", expectedValue, ti.mode)
+  def mode(expectedValue: TopicMode) = HavePropertyMatcher { ti: TopicInit =>
+    HavePropertyMatchResult(ti.mode == expectedValue, "mode", expectedValue, ti.mode)
   }
 }

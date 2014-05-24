@@ -5,8 +5,8 @@ import chatless.wiring.params.{ServerIdParam, TopicCollection}
 import com.mongodb.casbah.Imports._
 import chatless.model._
 import scalaz._
-import scalaz.syntax.std.either._
 import scalaz.syntax.std.option._
+import scalaz.syntax.std.boolean._
 import scalaz.syntax.id._
 
 import argonaut._
@@ -46,7 +46,7 @@ class MongoTopicDAO @Inject() (
 
   def insertUnique(topic: Topic) = try {
     collection.insert(topic.getDBO)
-    topic.id.right
+    topic.right
   } catch {
     case dup: DuplicateKeyException => IdAlreadyUsed(topic.coordinate).left
     case t: Throwable => WriteFailureWithCoordinate("topic", topic.coordinate, t).left
@@ -60,18 +60,25 @@ class MongoTopicDAO @Inject() (
     initLocalTopic(user, id, init) |> insertUnique
   }
 
-  private def insertRetry(user: String, init: TopicInit, tries: Int, tried: List[String]): DbError \/ String =
+  private def insertRetry(user: String, init: TopicInit, tries: Int, tried: List[String]): DbError \/ Topic =
     if (tries <= 0)
       GenerateIdFailed("topic", serverId.user(user), tried).left
     else
       (idGenerator.nextTopicId() |> { initLocalTopic(user, _, init) } |> insertUnique) attemptLeft {
-        case IdAlreadyUsed(c) => c.idPart
+        case IdAlreadyUsed(c) => c.id
       } thenTry { last =>
         insertRetry(user, init, tries - 1, last :: tried)
       }
 
   private def initLocalTopic(user: String, id: String, init: TopicInit) =
     Topic(serverId.user(user).topic(id), init.banner, init.info, init.mode)
+
+  def save(topic: Topic): DbError \/ Topic = try {
+    val writeResult = collection.update(topic.coordinate.asQuery: DBObject, topic.getDBO: DBObject)
+    (!writeResult.isUpdateOfExisting) either NoSuchObject(topic.coordinate) or topic
+  } catch {
+    case e: MongoException => WriteFailureWithCoordinate("topic", topic.coordinate, e).left
+  }
 
   private def setup() {
     logger.debug("setup()")
@@ -81,7 +88,7 @@ class MongoTopicDAO @Inject() (
       DBO("unique" -> true)()
     )
   }
-
   setup()
+
 }
 

@@ -8,9 +8,13 @@ import chatless._
 import com.google.inject.Inject
 import chatless.db.{MessageDAO, TopicDAO, UserDAO}
 import akka.actor.ActorLogging
+import chatless.wiring.params.ServerIdParam
+import chatless.model.ServerCoordinate
 
 /** this is the actor for the chatless service. */
 class ClientApiActor @Inject() (
+    @ServerIdParam
+    val serverId: ServerCoordinate,
     val userDao: UserDAO,
     val topicDao: TopicDAO,
     val messageDao: MessageDAO)

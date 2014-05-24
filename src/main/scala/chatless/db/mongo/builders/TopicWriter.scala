@@ -10,6 +10,7 @@ trait TopicWriter { this: BasicWritables =>
   implicit val topicModeWritable = BsonWritable[TopicMode] { m =>
     DBO2(
       Fields.muted --> m.muted,
+      Fields.open --> m.open,
       Fields.public --> m.public
     )()
   }
