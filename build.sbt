@@ -8,19 +8,19 @@ name := "chatless"
 
 version := "0.1-SNAPSHOT"
 
-scalaVersion := "2.10.3"
+scalaVersion := "2.11.1"
 
 seq(Revolver.settings: _*)
 
-sprayVersion := "1.3.1"
+sprayVersion := "1.3.1-20140423"
 
 json4sVersion := "3.2.5"
 
-akkaVersion := "2.3.0"
+akkaVersion := "2.3.3"
 
 showCurrentGitBranch
 
-scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
+scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature", "-Ymacro-debug-lite")
 
 resolvers ++= Seq(
   "spray repo" at "http://repo.spray.io",
@@ -36,12 +36,12 @@ libraryDependencies ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "io.spray" % "spray-io" % sprayVersion.value withJavadoc(),
-  "io.spray" % "spray-can" % sprayVersion.value withJavadoc(),
-  "io.spray" % "spray-http" % sprayVersion.value withJavadoc(),
-  "io.spray" % "spray-httpx" % sprayVersion.value withJavadoc(),
-  "io.spray" % "spray-routing" % sprayVersion.value withJavadoc(),
-  "io.spray" % "spray-testkit" % sprayVersion.value % "test"
+  "io.spray" %% "spray-io" % sprayVersion.value withJavadoc(),
+  "io.spray" %% "spray-can" % sprayVersion.value withJavadoc(),
+  "io.spray" %% "spray-http" % sprayVersion.value withJavadoc(),
+  "io.spray" %% "spray-httpx" % sprayVersion.value withJavadoc(),
+  "io.spray" %% "spray-routing" % sprayVersion.value withJavadoc(),
+  "io.spray" %% "spray-testkit" % sprayVersion.value % "test"
 )
 
 //libraryDependencies ++= Seq(
@@ -52,18 +52,21 @@ libraryDependencies ++= Seq(
 libraryDependencies ++= Seq(
   "io.argonaut" %% "argonaut" % "6.0.4" withSources(),
   "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-  "org.mongodb" %% "casbah" % "2.7.0",
+//  "org.scalamacros" %% "quasiquotes" % "2.0.0",
+  "org.mongodb" %% "casbah" % "2.7.2",
   "org.scalaz" %% "scalaz-core" % "7.0.6" withJavadoc(),
   "com.chuusai" %% "shapeless" % "1.2.4",
   "ch.qos.logback" % "logback-classic" % "1.1.2",
   "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
-  "net.codingwell" %% "scala-guice" % "4.0.0-beta",
+  "net.codingwell" %% "scala-guice" % "4.0.0-beta4",
   "com.google.inject.extensions" % "guice-assistedinject" % "4.0-beta",
   "io.github.raptros" %% "the-bson" % "0.1-SNAPSHOT" changing()
 )
 
+//addCompilerPlugin("org.scalamacros" % "paradise" % "2.0.0" cross CrossVersion.full)
+
 libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.1.5" % "test",
-  "org.scalamock" %% "scalamock-scalatest-support" % "3.0.1" % "test"
+  "org.scalamock" %% "scalamock-scalatest-support" % "3.1.1" % "test"
 )
 
