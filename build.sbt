@@ -50,7 +50,6 @@ libraryDependencies ++= Seq(
 //)
 
 libraryDependencies ++= Seq(
-  "com.osinka.subset" %% "subset" % "2.1.3",
   "io.argonaut" %% "argonaut" % "6.0.4" withSources(),
   "org.scala-lang" % "scala-reflect" % scalaVersion.value,
   "org.mongodb" %% "casbah" % "2.7.0",
@@ -59,7 +58,8 @@ libraryDependencies ++= Seq(
   "ch.qos.logback" % "logback-classic" % "1.1.2",
   "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
   "net.codingwell" %% "scala-guice" % "4.0.0-beta",
-  "com.google.inject.extensions" % "guice-assistedinject" % "4.0-beta"
+  "com.google.inject.extensions" % "guice-assistedinject" % "4.0-beta",
+  "io.github.raptros" %% "the-bson" % "0.1-SNAPSHOT" changing()
 )
 
 libraryDependencies ++= Seq(

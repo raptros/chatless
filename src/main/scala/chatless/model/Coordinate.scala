@@ -6,11 +6,18 @@ import Argonaut._
 sealed trait Coordinate {
   def id: String
   def parent: Coordinate
+
+  /** this is safe as long as there are no loops in the coordinate heirarchy, which there should never be.
+    * as long as every coordinate below the root has strictly more parameters than that coordinate's parent, it is fine.
+    */
+  def walk: List[Coordinate] = this :: { parent.walk }
 }
 
 case object RootCoordinate extends Coordinate {
   lazy val id = ""
   val parent = RootCoordinate
+
+  override def walk: List[Coordinate] = Nil
 }
 
 case class ServerCoordinate(server: String) extends Coordinate{

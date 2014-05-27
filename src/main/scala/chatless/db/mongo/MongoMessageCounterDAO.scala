@@ -10,29 +10,28 @@ import scalaz.syntax.std.option._
 import scalaz.syntax.validation._
 import scalaz.syntax.id._
 
-import builders.{DBO2, FieldAsDBOKey}
-import com.osinka.subset._
-import parsers._
 import scalaz.\/
 import chatless.db.MissingCounter
+import io.github.raptros.bson._
+import Bson._
 
 class MongoMessageCounterDAO @Inject() (@CounterCollection collection: MongoCollection) extends MessageCounterDAO {
 
   def inc(topic: TopicCoordinate): DbError \/ Long = for {
     res <- runOperation(topic) { atomicIncInner(topicCounterId(topic)) }
     dbo <- res \/> MissingCounter(topic) //hopefully we won't run into these
-    count <- dbo.getField[Long](Fields.counter)
+    count <- dbo.field[Long]("counter") leftMap { wrapDecodeErrors }
   } yield count
 
   private def topicCounterId(coordinate: TopicCoordinate) =
     s"ctr-${coordinate.server}-${coordinate.user}-${coordinate.topic}"
 
   private def atomicIncInner(id: String) = collection.findAndModify(
-    DBO2(Fields._id --> id)(),
-    fields = DBO2(Fields.counter --> 1)(),
-    sort = MongoDBObject(),
+    DBO("_id" :> id),
+    fields = DBO("counter" :> 1),
+    sort = DBO(),
     remove = false,
-    update = $inc(Fields.counter.toString -> 1l),
+    update = $inc("counter" -> 1l),
     returnNew = true,
     upsert = true
   )

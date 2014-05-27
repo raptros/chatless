@@ -7,7 +7,7 @@ import scalaz._
 import scalaz.syntax.id._
 import chatless.services.MarshallingImplicits._
 
-import chatless.db.{TopicDAO, UserDAO}
+import chatless.db.{NoSuchObject, TopicDAO, UserDAO}
 import chatless.model._
 import spray.http.MediaTypes._
 import chatless.services.ClientApi
@@ -47,6 +47,9 @@ class ApiTests extends FlatSpec
     Get("/me/topic/") ~> api.authedApi(user1.id) ~> check {
       mediaType === `application/json`
       entity should not be empty
+      val coords = responseAs[List[TopicCoordinate]]
+      coords should not be empty
+      coords(0) should have ('id ("fake"))
     }
   }
 
@@ -62,6 +65,30 @@ class ApiTests extends FlatSpec
       header[Location].get.uri.toString should include (topic.id)
       entity should not be empty
       responseAs[Topic] shouldBe topic
+    }
+  }
+
+  it should "get a local topic" in new Fixture {
+    uDao.get _ expects user1.id once() returning user1.right
+    val topic = Topic(user1.coordinate.topic("test2-id"), banner = "test2", jEmptyObject, TopicMode.default)
+    tDao.get _ expects topic.coordinate once() returning topic.right
+    Get("/me/topic/test2-id") ~> api.authedApi(user1.id) ~> check {
+      mediaType === `application/json`
+      status shouldBe StatusCodes.OK
+      entity should not be empty
+      responseAs[Topic] shouldBe topic
+    }
+  }
+
+  it should "return the proper error if the topic is not found" in new Fixture {
+    uDao.get _ expects user1.id once() returning user1.right
+    val tc = user1.coordinate.topic("test-notfound")
+    tDao.get _ expects tc once() returning NoSuchObject(tc).left
+    Get(s"/me/topic/${tc.id}") ~> api.authedApi(user1.id) ~> check {
+      mediaType === `application/json`
+      status shouldBe StatusCodes.NotFound
+      entity should not be empty
+      responseAs[TopicCoordinate] shouldBe tc
     }
   }
 }

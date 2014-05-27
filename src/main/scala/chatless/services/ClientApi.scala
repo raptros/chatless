@@ -11,7 +11,7 @@ import Argonaut._
 import spray.httpx.unmarshalling.FromRequestUnmarshaller
 import scalaz.\/
 import MarshallingImplicits._
-import chatless.model.topic.TopicInit
+import chatless.model.topic.{Topic, TopicInit}
 import shapeless._
 import shapeless.::
 
@@ -21,7 +21,18 @@ trait ClientApi extends HttpService {
   val userDao: UserDAO
   val topicDao: TopicDAO
 
-  def localTopicRoute(caller: User, coordinate: TopicCoordinate): Route = complete { "no" }
+  def withTopic(tc: TopicCoordinate): Directive1[Topic] =
+    topicDao.get(tc) map { provide } valueOr { err => complete(err) }
+
+  def localTopicRoute(caller: User, coordinate: TopicCoordinate): Route = withTopic(coordinate) { topic =>
+    pathEndOrSingleSlash {
+      get {
+        complete {
+          topic
+        }
+      }
+    }
+  }
 
 //  def newTopicRoute()
 
@@ -47,7 +58,9 @@ trait ClientApi extends HttpService {
     pathEndOrSingleSlash {
       get { complete(caller) }
     } ~ pathPrefix("about") {
-      localTopicRoute(caller, caller.coordinate.topic(caller.about))
+      dynamic { //dangit
+        localTopicRoute(caller, caller.coordinate.topic(caller.about))
+      }
     } ~ pathPrefix("topic") {
       pathEndOrSingleSlash {
         get {
@@ -55,6 +68,8 @@ trait ClientApi extends HttpService {
         } ~ createTopic(caller)
       } ~ pathPrefix(Segment) { topicId =>
         localTopicRoute(caller, caller.coordinate.topic(topicId))
+      } ~ pathPrefix("pull") {
+        complete { "no" }
       }
     }
 
