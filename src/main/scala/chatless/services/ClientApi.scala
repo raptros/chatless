@@ -73,7 +73,7 @@ trait ClientApi extends HttpService {
       }
     }
 
-  def loadLocalUser(userId: String) = userDao.get(userId) getOrElse {
+  def loadLocalUser(userId: String) = userDao.get(serverId.user(userId)) getOrElse {
     throw new IllegalRequestException(StatusCodes.NotFound, s"could not find local user with id $userId")
   }
 
@@ -85,7 +85,7 @@ trait ClientApi extends HttpService {
     }
 
   def authedApi(callerId: UserId): Route = {
-    val caller = userDao.get(callerId) getOrElse {
+    val caller = userDao.get(serverId.user(callerId)) getOrElse {
       throw new RequestProcessingException(StatusCodes.InternalServerError)
     }
     pathPrefix("me") {

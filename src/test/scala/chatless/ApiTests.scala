@@ -42,7 +42,7 @@ class ApiTests extends FlatSpec
   behavior of "the client api"
 
   it should "handle a get to /me/topic by returning json" in new Fixture {
-    uDao.get _ expects user1.id once() returning user1.right
+    uDao.get _ expects user1.coordinate once() returning user1.right
     tDao.listUserTopics _ expects * once() returning List(TopicCoordinate("test", "one", "fake"))
     Get("/me/topic/") ~> api.authedApi(user1.id) ~> check {
       mediaType === `application/json`
@@ -54,7 +54,7 @@ class ApiTests extends FlatSpec
   }
 
   it should "create a topic for a post to /me/topic/" in new Fixture {
-    uDao.get _ expects user1.id once() returning user1.right
+    uDao.get _ expects user1.coordinate once() returning user1.right
     val ti = TopicInit(banner = "test1")
     val topic = Topic(user1.coordinate.topic("test1-id"), banner = "test1", jEmptyObject, TopicMode.default)
     tDao.createLocal _ expects (user1.id, ti) once() returning topic.right
@@ -69,7 +69,7 @@ class ApiTests extends FlatSpec
   }
 
   it should "get a local topic" in new Fixture {
-    uDao.get _ expects user1.id once() returning user1.right
+    uDao.get _ expects user1.coordinate once() returning user1.right
     val topic = Topic(user1.coordinate.topic("test2-id"), banner = "test2", jEmptyObject, TopicMode.default)
     tDao.get _ expects topic.coordinate once() returning topic.right
     Get("/me/topic/test2-id") ~> api.authedApi(user1.id) ~> check {
@@ -81,7 +81,7 @@ class ApiTests extends FlatSpec
   }
 
   it should "return the proper error if the topic is not found" in new Fixture {
-    uDao.get _ expects user1.id once() returning user1.right
+    uDao.get _ expects user1.coordinate once() returning user1.right
     val tc = user1.coordinate.topic("test-notfound")
     tDao.get _ expects tc once() returning NoSuchObject(tc).left
     Get(s"/me/topic/${tc.id}") ~> api.authedApi(user1.id) ~> check {

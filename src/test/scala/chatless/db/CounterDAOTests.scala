@@ -3,19 +3,19 @@ package chatless.db
 import org.scalatest.{Matchers, FlatSpec}
 import chatless.MockFactory2
 import com.mongodb.casbah.Imports._
-import chatless.db.mongo.{MessageCounterDAO, MongoMessageCounterDAO}
+import chatless.db.mongo.{CounterDAO, MongoCounterDAO}
 import chatless.model.{TopicCoordinate, UserCoordinate}
 import scala.util.Random
 
-class MongoMessageCounterDAOTests extends FlatSpec with Matchers with MockFactory2 {
+class CounterDAOTests extends FlatSpec with Matchers with MockFactory2 {
   import scala.language.reflectiveCalls
 
   val mc = MongoClient()
-  val testDB = mc("mongo-message-counter-dao-test")
+  val testDB = mc("mongo-counter-dao-test")
 
   trait DbFixture {
     val collection: MongoCollection
-    val dao: MongoMessageCounterDAO
+    val dao: MongoCounterDAO
     val userCoord = UserCoordinate("fake", "test")
   }
 
@@ -23,7 +23,7 @@ class MongoMessageCounterDAOTests extends FlatSpec with Matchers with MockFactor
     val coll = testDB(Random.nextString(10))
     val fixture = new DbFixture {
       val collection = coll
-      val dao = new MongoMessageCounterDAO(coll)
+      val dao = new MongoCounterDAO(coll)
     }
     try {
       test(fixture)
@@ -32,8 +32,8 @@ class MongoMessageCounterDAOTests extends FlatSpec with Matchers with MockFactor
     }
   }
 
-  def incOrFail(dao: MessageCounterDAO, tc: TopicCoordinate) = {
-    dao.inc(tc) valueOr { err => fail(s"failed to increment for $tc: $err")}
+  def incOrFail(dao: CounterDAO, tc: TopicCoordinate) = {
+    dao.inc("test", tc) valueOr { err => fail(s"failed to increment for $tc: $err")}
   }
 
   behavior of "the mongo message counter dao"

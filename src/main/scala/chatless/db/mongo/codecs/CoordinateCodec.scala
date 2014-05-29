@@ -18,9 +18,12 @@ trait CoordinateCodec {
   implicit def MessageCoordinateDecodeBson: DecodeBson[MessageCoordinate] =
     BsonMacros.deriveCaseDecodeBson[MessageCoordinate]
 
-  implicit def CoordinateDecodeBson: DecodeBson[Coordinate] = {
-    ServerCoordinateDecodeBson ||| UserCoordinateDecodeBson ||| TopicCoordinateDecodeBson ||| MessageCoordinateDecodeBson
-  }
+  //remember to keep these in decreasing-arity order
+  implicit def CoordinateDecodeBson: DecodeBson[Coordinate] =
+    MessageCoordinateDecodeBson |||
+      TopicCoordinateDecodeBson |||
+      UserCoordinateDecodeBson |||
+      ServerCoordinateDecodeBson
 
   def getKVForId(c: Coordinate): Option[DBOKV[String]] = c match {
     case RootCoordinate => None

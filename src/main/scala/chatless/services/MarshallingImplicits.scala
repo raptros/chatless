@@ -82,6 +82,7 @@ object MarshallingImplicits {
     type Error = Value
     val ID_ALREADY_USED,
     GENERATE_ID_FAILED,
+    READ_FAILURE,
     WRITE_FAILURE,
     MISSING_COUNTER,
     DESERIALIZATION_ERRORS = Value
@@ -116,12 +117,22 @@ object MarshallingImplicits {
       x_chatless_errors(DESERIALIZATION_ERRORS),
       messages.asJson
       )
-    case MissingCounter(forWhat) => (
+    case MissingCounter(purpose, coordinate) => (
       StatusCodes.InternalServerError,
       x_chatless_errors(MISSING_COUNTER),
-      ("for" := forWhat) ->: jEmptyObject
+      ("purpose" := purpose) ->: ("coordinate" := coordinate) ->: jEmptyObject
       )
     case NoSuchObject(c) => (StatusCodes.NotFound, Nil, c.asJson)
+    case ReadFailure(what, t) => (
+      StatusCodes.InternalServerError,
+      x_chatless_errors(READ_FAILURE),
+      ("what" := what) ->: ("t" := t) ->: jEmptyObject
+      )
+    case ReadFailureWithCoordinate(what, coordinate, t) => (
+      StatusCodes.InternalServerError,
+      x_chatless_errors(READ_FAILURE),
+      ("what" := what) ->: ("coordinate" := coordinate) ->: ("t" := t) ->: jEmptyObject
+      )
   }
 
   implicit def dbErrorResponseMarshaller: ToResponseMarshaller[DbError] = 

@@ -6,6 +6,8 @@ import argonaut._
 import Argonaut._
 
 import scala.language.experimental.macros
+import chatless.macros.JsonMacros
+import chatless.model.topic.MemberMode
 
 sealed abstract class Message(shortName: String) extends HasCoordinate[MessageCoordinate] {
   def server: String
@@ -41,6 +43,11 @@ case class PostedMessage(
     copy(server = server, user = user, topic = topic, id = id, timestamp = timestamp)
 }
 
+object PostedMessage {
+  implicit def codecJson(implicit dte: EncodeJson[DateTime], dtd: DecodeJson[DateTime]) =
+    JsonMacros.deriveCaseCodecJson[PostedMessage]
+}
+
 case class BannerChangedMessage(
     server: String,
     user: String,
@@ -55,55 +62,63 @@ case class BannerChangedMessage(
     copy(server = server, user = user, topic = topic, id = id, timestamp = timestamp)
 }
 
+object BannerChangedMessage {
+  implicit def codecJson(implicit dte: EncodeJson[DateTime], dtd: DecodeJson[DateTime]) =
+    JsonMacros.deriveCaseCodecJson[BannerChangedMessage]
+}
+
 case class UserJoinedMessage(
     server: String,
     user: String,
     topic: String,
     id: String,
     timestamp: DateTime,
-    joined: UserCoordinate)
+    joined: UserCoordinate,
+    mode: MemberMode)
   extends Message("jnd") {
 
   def modify(server: String, user: String, topic: String, id: String, timestamp: DateTime) =
     copy(server = server, user = user, topic = topic, id = id, timestamp = timestamp)
 }
 
+object UserJoinedMessage {
+  implicit def codecJson(implicit dte: EncodeJson[DateTime], dtd: DecodeJson[DateTime]) =
+    JsonMacros.deriveCaseCodecJson[UserJoinedMessage]
+}
 
+case class MemberModeChangedMessage(
+    server: String,
+    user: String,
+    topic: String,
+    id: String,
+    timestamp: DateTime,
+    member: UserCoordinate,
+    changer: UserCoordinate,
+    mode: MemberMode
+  ) extends Message("mdc") {
+
+  def modify(server: String, user: String, topic: String, id: String, timestamp: DateTime) =
+    copy(server = server, user = user, topic = topic, id = id, timestamp = timestamp)
+}
+
+object MemberModeChangedMessage {
+  implicit def codecJson(implicit dte: EncodeJson[DateTime], dtd: DecodeJson[DateTime]) =
+    JsonMacros.deriveCaseCodecJson[MemberModeChangedMessage]
+}
 
 object Message {
-  implicit def messageEncodeJson(implicit dte: EncodeJson[DateTime]) = EncodeJson[Message] { m =>
-    extend {
-      ("server" := m.server) ->:
-        ("user" := m.user) ->:
-        ("topic" := m.topic) ->:
-        ("id" := m.id) ->:
-        ("timestamp" := m.timestamp) ->:
-        jEmptyObject
-    } apply m
-  }
 
-  private def extend(json: Json): Message => Json = {
-    case m: PostedMessage => ("poster" := m.poster) ->: ("body" := m.body) ->: json
-    case m: BannerChangedMessage => ("poster" := m.poster) ->: ("banner" := m.banner) ->: json
-    case m: UserJoinedMessage => ("joined" := m.joined) ->: json
-  }
+  implicit def messageDecodeJson(implicit dte: EncodeJson[DateTime], dtd: DecodeJson[DateTime]): DecodeJson[Message] =
+    PostedMessage.codecJson orElse
+      BannerChangedMessage.codecJson orElse
+      UserJoinedMessage.codecJson orElse
+      MemberModeChangedMessage.codecJson
 
-  implicit def messageDecodeJson(implicit dtd: DecodeJson[DateTime]): DecodeJson[Message] = for {
-    mb <- MessageBuilder.messageBuilderDecodeJson
-    f <- decodeBannerChanged ||| decodePostedMessage ||| decodeUserJoined
-  } yield f(mb)
-
-  private def posterDecode = jdecode1L(identity[UserCoordinate])("poster")
-
-  private def decodePostedMessage = (posterDecode &&& jdecode1L(identity[Json])("body")) map {
-    getMessage { _ postedT _ }
-  }
-
-  private def decodeBannerChanged = (posterDecode &&& jdecode1L(identity[String])("banner")) map {
-    getMessage { _ bannerChangedT _ }
-  }
-
-  private def decodeUserJoined = jdecode1L(identity[UserCoordinate])("joined") map { getMessage { _ userJoined _} }
-
-  private def getMessage[A](f: (MessageBuilder, A) => Message)(a:A)(mb: MessageBuilder): Message = f(mb, a)
+  implicit def messageEncodeJson(implicit dte: EncodeJson[DateTime], dtd: DecodeJson[DateTime]): EncodeJson[Message] =
+    EncodeJson {
+      case m: PostedMessage => m.asJson
+      case m: BannerChangedMessage => m.asJson
+      case m: UserJoinedMessage => m.asJson
+      case m: MemberModeChangedMessage => m.asJson
+    }
 }

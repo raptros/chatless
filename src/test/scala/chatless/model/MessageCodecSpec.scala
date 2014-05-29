@@ -4,6 +4,7 @@ import argonaut._
 import Argonaut._
 import org.scalatest.{Matchers, FlatSpec}
 import org.joda.time.DateTime
+import chatless.model.topic.MemberMode
 
 class MessageCodecSpec extends FlatSpec with Matchers {
   implicit def dateTimeEncodeJson = EncodeJson[DateTime] { dt => jString(dt.toString) }
@@ -40,7 +41,7 @@ class MessageCodecSpec extends FlatSpec with Matchers {
   }
 
   it should "decode a user joined message properly" in {
-    val m = MessageBuilder.at(tc.message("decodeUserJoined"), DateTime.now()).userJoined(uc)
+    val m = MessageBuilder.at(tc.message("decodeUserJoined"), DateTime.now()).userJoined(uc, MemberMode(true, true, true))
     val json = m.asJson
     println(json.spaces2)
     val decoded = json.jdecode[Message] getOr fail(s"could not decode this json: ${json.spaces2}")

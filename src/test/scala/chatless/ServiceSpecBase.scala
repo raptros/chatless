@@ -23,7 +23,7 @@ trait ServiceSpecBase extends ScalatestRouteTest { this: Suite =>
 
   /**fake auth stuff for testing*/
   val upa: UserPassAuthenticator[UserId] = { (oup: Option[UserPass]) =>
-    future {
+    Future {
       for {
         UserPass(uid, pass) <- oup
         if uid == userId && pass == password

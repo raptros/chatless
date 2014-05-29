@@ -23,7 +23,7 @@ import com.typesafe.scalalogging.slf4j.LazyLogging
 class MongoMessageDAO @Inject() (
     @ServerIdParam serverId: ServerCoordinate,
     @MessageCollection collection: MongoCollection,
-    counterDao: MessageCounterDAO,
+    counterDao: CounterDAO,
     idGenerator: IdGenerator)
   extends MessageDAO
   with LazyLogging {
@@ -34,7 +34,7 @@ class MongoMessageDAO @Inject() (
   } yield message
 
   def insertUnique(message: Message): DbError \/ String = for {
-    nextPos <- counterDao.inc(message.coordinate.parent)
+    nextPos <- counterDao.inc("msgs", message.coordinate.parent)
     id <- insertUniqueInner(message, nextPos)
   } yield id
 
@@ -72,6 +72,7 @@ class MongoMessageDAO @Inject() (
     parseRes.toStream
   }
 
+  //todo: what if find throws an exception?
   private def runRQ(q: DBObject, forward: Boolean, count: Int): MongoCursor =
     collection.find(q) sort DBO("pos" :> (forward ? 1 | -1)) limit count
 
