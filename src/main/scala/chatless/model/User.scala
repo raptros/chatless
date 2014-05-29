@@ -3,6 +3,7 @@ package chatless.model
 import chatless._
 import argonaut._
 import Argonaut._
+import chatless.macros.JsonMacros
 
 case class User(
     server: String,
@@ -15,6 +16,6 @@ case class User(
 }
 
 object User {
-  implicit def userCodecJson = casecodec4(User.apply, User.unapply)("server", "id", "about", "pull")
+  implicit def userCodecJson = JsonMacros.deriveCaseCodecJson[User]
 }
 

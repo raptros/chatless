@@ -7,16 +7,16 @@ import com.mongodb.DBObject
 
 trait CoordinateCodec {
   implicit def ServerCoordinateDecodeBson: DecodeBson[ServerCoordinate] =
-    bdecode1f(ServerCoordinate.apply)("server")
+    BsonMacros.deriveCaseDecodeBson[ServerCoordinate]
 
   implicit def UserCoordinateDecodeBson: DecodeBson[UserCoordinate] =
-    bdecode2f(UserCoordinate.apply)("server", "user")
+    BsonMacros.deriveCaseDecodeBson[UserCoordinate]
 
   implicit def TopicCoordinateDecodeBson: DecodeBson[TopicCoordinate] =
-    bdecode3f(TopicCoordinate.apply)("server", "user", "topic")
+    BsonMacros.deriveCaseDecodeBson[TopicCoordinate]
 
   implicit def MessageCoordinateDecodeBson: DecodeBson[MessageCoordinate] =
-    bdecode4f(MessageCoordinate.apply)("server", "user", "topic", "message")
+    BsonMacros.deriveCaseDecodeBson[MessageCoordinate]
 
   implicit def CoordinateDecodeBson: DecodeBson[Coordinate] = {
     ServerCoordinateDecodeBson ||| UserCoordinateDecodeBson ||| TopicCoordinateDecodeBson ||| MessageCoordinateDecodeBson

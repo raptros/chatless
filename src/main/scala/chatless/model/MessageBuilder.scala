@@ -21,7 +21,7 @@ case class MessageBuilder(server: String, user: String, topic: String, message: 
 }
 
 class ReverseMessageBuilder(tc: TopicCoordinate, build: MessageBuilder => Message) {
-  def apply(id: String, timestamp: DateTime = DateTime.now()) = MessageBuilder(tc message id, timestamp) |> build
+  def apply(id: String, timestamp: DateTime = DateTime.now()) = MessageBuilder.at(tc message id, timestamp) |> build
 }
 
 class RMBBuilder(tc: TopicCoordinate) {
@@ -34,12 +34,14 @@ class RMBBuilder(tc: TopicCoordinate) {
 }
 
 object MessageBuilder {
-  def apply(coord: MessageCoordinate, timestamp: DateTime) =
+  def at(coord: MessageCoordinate, timestamp: DateTime) =
     new MessageBuilder(coord.server, coord.user, coord.topic, coord.message, timestamp)
 
   implicit def messageBuilderDecodeJson(implicit dtd: DecodeJson[DateTime]): DecodeJson[MessageBuilder] =
     jdecode5L(MessageBuilder.apply)("server", "user", "topic", "id", "timestamp")
   
-  def apply(tc: TopicCoordinate) = new RMBBuilder(tc)
+  def reverse(tc: TopicCoordinate) = new RMBBuilder(tc)
+
+  val tupled = (MessageBuilder.apply _).tupled
 }
 

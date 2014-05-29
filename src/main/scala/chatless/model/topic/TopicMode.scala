@@ -1,6 +1,7 @@
 package chatless.model.topic
 import argonaut._
 import Argonaut._
+import chatless.macros.JsonMacros
 
 /**
   * @param muted only the owner and voiced members can post
@@ -15,7 +16,7 @@ case class TopicMode(
 
 /** contains default etc modes for topics, along with json codec*/
 object TopicMode {
-  implicit val topicModeCodec = casecodec3(TopicMode.apply, TopicMode.unapply)("muted", "open", "public")
+  implicit val topicModeCodec = JsonMacros.deriveCaseCodecJson[TopicMode]
 
   /** a good default for the kinds of topics most users will create */
   lazy val default = TopicMode(

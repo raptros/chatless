@@ -7,9 +7,12 @@ import chatless.model.topic._
 import chatless.model.TopicCoordinate
 
 trait TopicCodecs { this: CoordinateCodec with JsonCodec =>
-  implicit val topicModeCodecBson: CodecBson[TopicMode] = BsonMacros.deriveCaseCodecBson[TopicMode]
-//    bsonCaseCodec3(TopicMode.apply, TopicMode.unapply)("muted", "open", "public")
+  implicit val memberModeCodecBson = BsonMacros.deriveCaseCodecBson[MemberMode]
 
-  implicit def topicCodecBson: CodecBson[Topic] = BsonMacros.deriveCaseCodecBson[Topic]
-//    bsonCaseCodec6(Topic.apply, Topic.unapply)("server", "user", "id", "banner", "info", "mode")
+  implicit val memberCodecBson = BsonMacros.deriveCaseCodecBson[Member]
+
+  implicit val topicModeCodecBson: CodecBson[TopicMode] = BsonMacros.deriveCaseCodecBson[TopicMode]
+
+  /**this must be a def or a lazy val, otherwise it NPEs when trying to encode Json */
+  implicit lazy val topicCodecBson: CodecBson[Topic] = BsonMacros.deriveCaseCodecBson[Topic]
 }

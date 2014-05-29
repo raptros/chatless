@@ -2,6 +2,7 @@ package chatless.model
 
 import argonaut._
 import Argonaut._
+import chatless.macros.JsonMacros
 
 sealed trait Coordinate {
   def id: String
@@ -28,7 +29,7 @@ case class ServerCoordinate(server: String) extends Coordinate{
 }
 
 object ServerCoordinate {
-  implicit def codecJson = casecodec1(ServerCoordinate.apply, ServerCoordinate.unapply)("server")
+  implicit def codecJson = JsonMacros.deriveCaseCodecJson[ServerCoordinate]
 }
 
 case class UserCoordinate(server: String, user: String) extends Coordinate{
@@ -39,7 +40,7 @@ case class UserCoordinate(server: String, user: String) extends Coordinate{
 }
 
 object UserCoordinate {
-  implicit def codecJson = casecodec2(UserCoordinate.apply, UserCoordinate.unapply)("server", "user")
+  implicit def codecJson = JsonMacros.deriveCaseCodecJson[UserCoordinate]
 }
 
 case class TopicCoordinate(server: String, user: String, topic: String) extends Coordinate{
@@ -50,7 +51,7 @@ case class TopicCoordinate(server: String, user: String, topic: String) extends 
 }
 
 object TopicCoordinate {
-  implicit def codecJson = casecodec3(TopicCoordinate.apply, TopicCoordinate.unapply)("server", "user", "topic")
+  implicit def codecJson = JsonMacros.deriveCaseCodecJson[TopicCoordinate]
 }
 
 case class MessageCoordinate(server: String, user: String, topic: String, message: String) extends Coordinate {
@@ -59,6 +60,6 @@ case class MessageCoordinate(server: String, user: String, topic: String, messag
 }
 
 object MessageCoordinate {
-  implicit def codecJson =
-    casecodec4(MessageCoordinate.apply, MessageCoordinate.unapply)("server", "user", "topic", "message")
+  implicit def codecJson = JsonMacros.deriveCaseCodecJson[MessageCoordinate]
 }
+

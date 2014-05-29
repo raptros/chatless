@@ -8,6 +8,9 @@ import chatless.model._
 import org.joda.time.DateTime
 
 trait MessageCodecs { this: CoordinateCodec with JsonCodec =>
+
+  def messageBuilderEncodeBson = BsonMacros.deriveCaseEncodeBson[MessageBuilder]
+
   implicit def messageEncodeBson: EncodeBson[Message] =
     EncodeBson[Message] { msg =>
       val b = DBO(
@@ -24,30 +27,19 @@ trait MessageCodecs { this: CoordinateCodec with JsonCodec =>
       }
     }
 
-  def messageBuilderDecodeBson = DecodeBson[MessageBuilder] { dbo =>
-    ApD.apply5(
-      dbo.field[String]("server"),
-      dbo.field[String]("user"),
-      dbo.field[String]("topic"),
-      dbo.field[String]("id"),
-      dbo.field[DateTime]("timestamp")
-    )(MessageBuilder.apply)
-  }
+  def messageBuilderDecodeBson =
+    bdecodeTuple5[String, String, String, String, DateTime]("server", "user", "topic", "id", "timestamp") map {
+      MessageBuilder.tupled
+    }
 
   def getM[A](f: (MessageBuilder, A) => Message)(a: A)(mb: MessageBuilder) = f(mb, a)
 
-  def postedMessageDecoding = DecodeBson[MessageBuilder => Message] { dbo =>
-    ApD.tuple2(
-      dbo.field[UserCoordinate]("poster"),
-      dbo.field[Json]("body")
-    ) map { getM { _ postedT _ } }
+  def postedMessageDecoding = bdecodeTuple2[UserCoordinate, Json]("poster", "body") map {
+    getM { _ postedT _ }
   }
 
-  def bannerChangedDecoding = DecodeBson[MessageBuilder => Message] { dbo =>
-    ApD.tuple2(
-      dbo.field[UserCoordinate]("poster"),
-      dbo.field[String]("banner")
-    ) map { getM { _ bannerChangedT _ } }
+  def bannerChangedDecoding = bdecodeTuple2[UserCoordinate, String]("poster", "banner") map {
+    getM { _ bannerChangedT _ }
   }
 
   def userJoinedDecoding = DecodeBson[MessageBuilder => Message] { dbo =>

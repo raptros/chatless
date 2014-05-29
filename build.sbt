@@ -20,7 +20,7 @@ akkaVersion := "2.3.3"
 
 showCurrentGitBranch
 
-scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature", "-Ymacro-debug-lite")
+scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
 
 resolvers ++= Seq(
   "spray repo" at "http://repo.spray.io",

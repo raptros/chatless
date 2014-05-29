@@ -45,7 +45,7 @@ class MongoMessageDAOTests extends WordSpec with Matchers with MockFactory2 {
   def prepMessages(tc: TopicCoordinate, dao: MessageDAO): IndexedSeq[Message] =  (0 until 10) map { i =>
     val mc = tc.message(Random.alphanumeric take 5 append i.toString mkString "")
     val json = ("index" := i) ->: jEmptyObject
-    val msg = MessageBuilder(mc, DateTime.now()).posted(userCoordinate, json)
+    val msg = MessageBuilder.at(mc, DateTime.now()).posted(userCoordinate, json)
     val insertRes = dao.insertUnique(msg) valueOr opFailed("insert")
     insertRes shouldBe mc.id
     msg
@@ -55,7 +55,7 @@ class MongoMessageDAOTests extends WordSpec with Matchers with MockFactory2 {
     "insert a unique message" in withDb { f =>
       val topicCoordinate = userCoordinate.topic("topic0")
       val mc = topicCoordinate.message("test-insert-0")
-      val mb = MessageBuilder(mc, DateTime.now())
+      val mb = MessageBuilder.at(mc, DateTime.now())
       val message = mb.bannerChanged(userCoordinate, "updated banner")
       val res = f.dao.insertUnique(message) valueOr opFailed("insert")
       res should be (mc.id)
@@ -64,7 +64,7 @@ class MongoMessageDAOTests extends WordSpec with Matchers with MockFactory2 {
     "insert and get" in withDb { f =>
       val topicCoordinate = userCoordinate.topic("topic1")
       val mc = topicCoordinate.message("test-insert-get-0")
-      val mb = MessageBuilder(mc, DateTime.now())
+      val mb = MessageBuilder.at(mc, DateTime.now())
       val message = mb.bannerChanged(userCoordinate, "updated banner")
       val res = f.dao.insertUnique(message) valueOr opFailed("insert")
       res should be (mc.id)
@@ -75,10 +75,10 @@ class MongoMessageDAOTests extends WordSpec with Matchers with MockFactory2 {
       "the message collides with an existing id" in withDb { f =>
         val topicCoordinate = userCoordinate.topic("topic2")
         val mc = topicCoordinate.message("test-duplicate")
-        val m1 = MessageBuilder(mc, DateTime.now()).bannerChanged(userCoordinate, "updated banner")
+        val m1 = MessageBuilder.at(mc, DateTime.now()).bannerChanged(userCoordinate, "updated banner")
         val res1 = f.dao.insertUnique(m1) valueOr opFailed("insert")
         res1 should be (mc.id)
-        val m2 = MessageBuilder(mc, DateTime.now()).posted(userCoordinate, jEmptyObject)
+        val m2 = MessageBuilder.at(mc, DateTime.now()).posted(userCoordinate, jEmptyObject)
         val res2: (DbError \/ String) = f.dao.insertUnique(m2)
         res2 shouldBe -\/(IdAlreadyUsed(mc))
       }
@@ -206,7 +206,7 @@ class MongoMessageDAOTests extends WordSpec with Matchers with MockFactory2 {
       "successfully insert" in withDb { f =>
         val tc = userCoordinate.topic("topic3")
         f.idGen.nextMessageId _ expects() once() returning "fake1"
-        val response = f.dao.createNew(MessageBuilder(tc).posted(userCoordinate, jEmptyObject).apply(""))
+        val response = f.dao.createNew(MessageBuilder.reverse(tc).posted(userCoordinate, jEmptyObject).apply(""))
         val res = response valueOr opFailed("insert")
         res shouldBe "pst-fake1"
       }
@@ -216,11 +216,11 @@ class MongoMessageDAOTests extends WordSpec with Matchers with MockFactory2 {
           f.idGen.nextMessageId _ expects() twice() returning "fake1"
           f.idGen.nextMessageId _ expects() once() returning "fake2"
         }
-        val response1 = f.dao.createNew(MessageBuilder(tc).posted(userCoordinate, jEmptyObject).apply(""))
+        val response1 = f.dao.createNew(MessageBuilder.reverse(tc).posted(userCoordinate, jEmptyObject).apply(""))
         val res1 = response1 valueOr opFailed("insert")
         res1 shouldBe "pst-fake1"
 
-        val response2 = f.dao.createNew(MessageBuilder(tc).posted(userCoordinate, jEmptyObject).apply(""))
+        val response2 = f.dao.createNew(MessageBuilder.reverse(tc).posted(userCoordinate, jEmptyObject).apply(""))
         val res2 = response2 valueOr opFailed("insert")
         res2 shouldBe "pst-fake2"
       }
@@ -229,10 +229,10 @@ class MongoMessageDAOTests extends WordSpec with Matchers with MockFactory2 {
         inSequence {
           f.idGen.nextMessageId _ expects() repeat 4 returning "fake1"
         }
-        val response1 = f.dao.createNew(MessageBuilder(tc).posted(userCoordinate, jEmptyObject)(""))
+        val response1 = f.dao.createNew(MessageBuilder.reverse(tc).posted(userCoordinate, jEmptyObject)(""))
         val res1 = response1 valueOr opFailed("insert")
         res1 shouldBe "pst-fake1"
-        val response2 = f.dao.createNew(MessageBuilder(tc).posted(userCoordinate, jEmptyObject)(""))
+        val response2 = f.dao.createNew(MessageBuilder.reverse(tc).posted(userCoordinate, jEmptyObject)(""))
         val res2 = response2.swap valueOr { x => fail(s"somehow inserted $x!") }
         res2 shouldBe a [GenerateIdFailed]
         val err = res2.asInstanceOf[GenerateIdFailed]

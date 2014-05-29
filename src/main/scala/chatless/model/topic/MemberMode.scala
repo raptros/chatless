@@ -1,5 +1,8 @@
 package chatless.model.topic
 
+import argonaut._
+import chatless.macros.JsonMacros
+
 /** the mode of a [[Member]] of a topic
   * @param voiced as long as `write`, if the topic is `muted`, this member can still post messages
   * @param read when false, a user cannot see any of the topic's resources - no messages, no docs, no files,
@@ -10,3 +13,7 @@ case class MemberMode(
   voiced: Boolean,
   read: Boolean,
   write: Boolean)
+
+object MemberMode {
+  implicit val memberModeCodecJson = JsonMacros.deriveCaseCodecJson[MemberMode]
+}

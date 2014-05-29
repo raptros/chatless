@@ -20,6 +20,7 @@ import Bson._
 import codecs.Codecs._
 import com.typesafe.scalalogging.slf4j.LazyLogging
 import chatless.model.topic.{TopicInit, Topic}
+import com.mongodb
 
 class MongoTopicDAO @Inject() (
     @ServerIdParam serverId: ServerCoordinate,
@@ -42,11 +43,12 @@ class MongoTopicDAO @Inject() (
 
 
   def insertUnique(topic: Topic) = try {
-    collection.insert(topic.asBson)
+    val bson = topic.asBson
+    collection.insert(bson)
     topic.right
   } catch {
     case dup: DuplicateKeyException => IdAlreadyUsed(topic.coordinate).left
-    case t: Throwable => WriteFailureWithCoordinate("topic", topic.coordinate, t).left
+    case t: MongoException => WriteFailureWithCoordinate("topic", topic.coordinate, t).left
   }
 
   def createLocal(user: String, init: TopicInit) = init.fixedId.fold {

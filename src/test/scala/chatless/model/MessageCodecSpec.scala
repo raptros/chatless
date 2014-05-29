@@ -25,14 +25,14 @@ class MessageCodecSpec extends FlatSpec with Matchers {
   val uc = UserCoordinate("test", "poster")
 
   it should "encode a posted message properly" in {
-    val m = MessageBuilder(tc.message("encodePosted"), DateTime.now()).posted(uc, jEmptyObject)
+    val m = MessageBuilder.at(tc.message("encodePosted"), DateTime.now()).posted(uc, jEmptyObject)
     val js = m.asJson
     val fields = js.objectFieldsOrEmpty
     fields should contain allOf ("server", "topic", "id", "poster", "body")
   }
 
   it should "decode a posted message properly" in {
-    val m = MessageBuilder(tc.message("decodePosted"), DateTime.now()).posted(uc, jEmptyObject)
+    val m = MessageBuilder.at(tc.message("decodePosted"), DateTime.now()).posted(uc, jEmptyObject)
     val json = m.asJson
     println(json.spaces2)
     val decoded = json.jdecode[Message] getOr fail(s"could not decode this json: ${json.spaces2}")
@@ -40,7 +40,7 @@ class MessageCodecSpec extends FlatSpec with Matchers {
   }
 
   it should "decode a user joined message properly" in {
-    val m = MessageBuilder(tc.message("decodeUserJoined"), DateTime.now()).userJoined(uc)
+    val m = MessageBuilder.at(tc.message("decodeUserJoined"), DateTime.now()).userJoined(uc)
     val json = m.asJson
     println(json.spaces2)
     val decoded = json.jdecode[Message] getOr fail(s"could not decode this json: ${json.spaces2}")
@@ -48,7 +48,7 @@ class MessageCodecSpec extends FlatSpec with Matchers {
   }
 
   it should "decode a banner changed message properly" in {
-    val m = MessageBuilder(tc.message("decodeBannerChanged"), DateTime.now()).bannerChanged(uc, "new banner")
+    val m = MessageBuilder.at(tc.message("decodeBannerChanged"), DateTime.now()).bannerChanged(uc, "new banner")
     val json = m.asJson
     println(json.spaces2)
     val decoded = json.jdecode[Message] getOr fail(s"could not decode this json: ${json.spaces2}")
