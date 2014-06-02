@@ -15,5 +15,30 @@ case class MemberMode(
   write: Boolean)
 
 object MemberMode {
+  /** this is the mode given to the creating member of a topic */
+  lazy val creator = MemberMode(
+    voiced = true,
+    read = true,
+    write = true
+  )
+
+  lazy val joinedPrivate = MemberMode(
+    voiced = false,
+    read = false,
+    write = false
+  )
+
+  //todo
+  def joinerMode(topicMode: TopicMode): MemberMode =
+    MemberMode(
+      voiced = false,
+      read = topicMode.readable,
+      write = topicMode.writable
+    )
+
+  //todo
+  def invitedMode(topicMode: TopicMode): MemberMode =
+    MemberMode(voiced = false, read = true, write = true)
+
   implicit val memberModeCodecJson = JsonMacros.deriveCaseCodecJson[MemberMode]
 }

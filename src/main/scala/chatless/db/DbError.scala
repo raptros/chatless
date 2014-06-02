@@ -1,11 +1,14 @@
 package chatless.db
 
 import chatless.model.{Coordinate, UserCoordinate, TopicCoordinate}
+import chatless.macros.JsonMacros.deriveCaseEncodeJson
+import argonaut._
+import Argonaut._
+import chatless.services.throwableEncodeJson
 
-sealed trait DbError {
-}
+sealed trait DbError
 
-case class IdAlreadyUsed(coord: Coordinate) extends DbError
+case class IdAlreadyUsed(coordinate: Coordinate) extends DbError
 
 case class GenerateIdFailed(what: String, parent: Coordinate, attempted: List[String]) extends DbError
 
@@ -15,7 +18,7 @@ case class WriteFailure(what: String, t: Throwable) extends DbError {
 
 case class WriteFailureWithCoordinate(what: String, coordinate: Coordinate, t: Throwable) extends DbError
 
-case class DeserializationErrors(messages: List[String]) extends DbError
+case class DecodeFailure(what: String, coordinate: Coordinate, causes: List[String]) extends DbError
 
 case class NoSuchObject(c: Coordinate) extends DbError
 

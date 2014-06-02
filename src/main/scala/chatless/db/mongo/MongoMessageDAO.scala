@@ -10,6 +10,8 @@ import scalaz.syntax.std.option._
 import scalaz.syntax.std.boolean._
 import scalaz._
 import scalaz.syntax.id._
+import scalaz.syntax.traverse._
+import scalaz.std.list._
 
 import io.github.raptros.bson._
 import Bson._
@@ -19,72 +21,66 @@ import com.mongodb.DuplicateKeyException
 import com.mongodb.casbah.query.dsl.QueryExpressionObject
 import FilteredRetry._
 import com.typesafe.scalalogging.slf4j.LazyLogging
+import chatless.model.ids._
 
 class MongoMessageDAO @Inject() (
+    @MessageCollection val collection: MongoCollection,
     @ServerIdParam serverId: ServerCoordinate,
-    @MessageCollection collection: MongoCollection,
     counterDao: CounterDAO,
     idGenerator: IdGenerator)
   extends MessageDAO
-  with LazyLogging {
+  with LazyLogging
+  with MongoSafe {
+
+  import MongoSafe.{StringAsLocation, writeMongo}
 
   def get(coord: MessageCoordinate) = for {
-    dbo <- collection.findOne(coord.query) \/> NoSuchObject(coord)
-    message <- dbo.decode[Message] leftMap { wrapDecodeErrors }
-  } yield message
+    res <- safeFindOne("message" atCoord coord)(coord.query)
+    dbo <- res \/> NoSuchObject(coord)
+    msg <- dbo.decode[Message] leftMap wrapDecodeErrors("messsage", coord)
+  } yield msg
 
-  def insertUnique(message: Message): DbError \/ String = for {
+  def insertUnique(message: Message): DbResult[String @@ MessageId] = for {
     nextPos <- counterDao.inc("msgs", message.coordinate.parent)
     id <- insertUniqueInner(message, nextPos)
   } yield id
 
-  private def insertUniqueInner(message: Message, pos: Long): DbError \/ String = try {
-    val messageDBO = message.asBson +@+ ("pos" :> pos)
-    collection.insert(messageDBO)
-    message.id.right
-  } catch {
-    case dup: DuplicateKeyException => IdAlreadyUsed(message.coordinate).left
-    case t: Throwable => WriteFailureWithCoordinate("message", message.coordinate, t).left
-  }
+  private def insertUniqueInner(message: Message, pos: Long): DbResult[String @@ MessageId] =
+    writeMongo("message" atCoord message.coordinate) {
+      val messageDBO = message.asBson +@+ ("pos" :> pos)
+      collection.insert(messageDBO)
+      message.id
+    }
 
-  def createNew(m: Message): DbError \/ String = insertRetry(m, 3, Nil)
+  def createNew(m: Message): DbResult[String @@ MessageId] = insertRetry(m, 3, Nil)
 
-  private def insertRetry(m: Message, tries: Int, tried: List[String]): DbError \/ String =
+  private def insertRetry(m: Message, tries: Int, tried: List[String]): DbResult[String @@ MessageId] =
     if (tries <= 0)
       GenerateIdFailed("message", m.coordinate.parent, tried).left
     else
       (idGenerator.nextMessageId() |> { m.change(_) } |> insertUnique) attemptLeft  {
-        case IdAlreadyUsed(c) => c.id
+        case IdAlreadyUsed(c) => c.id.asInstanceOf[String]
       } thenTry { last =>
         insertRetry(m, tries - 1, last :: tried)
       }
 
-  def rq(topic: TopicCoordinate, id: Option[String], forward: Boolean, inclusive: Boolean, count: Int): DbError \/ Iterable[Message] = for {
-    q <- buildQuery(topic.asBson, forward, inclusive) { id map { topic.message } }
-    cursor = runRQ(q, forward, count)
-    stream = parseMessages(cursor)
-  } yield stream
-
-  private def parseMessages(cursor: MongoCursor): Iterable[Message] = cursor.toStream flatMap { dbo =>
-    val parseRes = dbo.decode[Message] leftMap { wrapDecodeErrors }
-    cursor.size
-    parseRes leftMap { err => logger.error("could not parse message: {}", err) }
-    parseRes.toStream
-  }
-
-  //todo: what if find throws an exception?
-  private def runRQ(q: DBObject, forward: Boolean, count: Int): MongoCursor =
-    collection.find(q) sort DBO("pos" :> (forward ? 1 | -1)) limit count
+  def rq(topic: TopicCoordinate, id: Option[String @@ MessageId], forward: Boolean, inclusive: Boolean, count: Int): DbResult[Iterable[Message]] = for {
+    query <- buildQuery(topic.asBson, forward, inclusive) { id map { topic.message } }
+    //todo: what about streaming instead?
+    dbos <- safeFindList("messages" atCoord topic)(query, limit = count.some, orderBy = DBO("pos" :> (forward ? 1 | -1)))
+    msgs <- dbos.traverse[DbResult, Message] { _.decode[Message] leftMap wrapDecodeErrors("message", topic) }
+  } yield msgs
 
   private def buildQuery(baseQ: DBObject, forward: Boolean, inclusive: Boolean)
-                        (omc: Option[MessageCoordinate]): DbError \/ DBObject =
+                        (omc: Option[MessageCoordinate]): DbResult[DBObject] =
     (omc fold baseQ.right[DbError]) { getPositionQuery(baseQ, forward, inclusive) }
 
   private def getPositionQuery(baseQ: DBObject, forward: Boolean, inclusive: Boolean)(mc: MessageCoordinate) = for {
     //find the message object at the coordinate, and get the position field from it
-    position <- collection.findOne(mc.query, fields = DBO("pos" :> 1)) \/> NoSuchObject(mc)
+    res <- safeFindOne("message" atCoord mc)(mc.query, DBO("pos" :> 1))
+    dbo <- res \/> NoSuchObject(mc)
     //get the position and turn it into a query
-    posQ <- position.field[Long]("pos") leftMap { wrapDecodeErrors } map { relMatch(forward, inclusive) }
+    posQ <- dbo.field[Long]("pos") leftMap wrapDecodeErrors("message.pos", mc) map relMatch(forward, inclusive)
   } yield $and(baseQ, posQ)
 
   /** takes forward, inclusive, and then position */

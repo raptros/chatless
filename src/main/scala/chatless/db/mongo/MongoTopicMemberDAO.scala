@@ -18,7 +18,7 @@ import scalaz.std.list._
 import com.typesafe.scalalogging.slf4j.LazyLogging
 import chatless.db.WriteFailureWithCoordinate
 
-import MongoSafe.{StringAsLocation, catchMongo}
+import MongoSafe.{StringAsLocation, writeMongo}
 
 class MongoTopicMemberDAO @Inject() (@TopicMemberCollection val collection: MongoCollection)
   extends TopicMemberDAO
@@ -28,26 +28,24 @@ class MongoTopicMemberDAO @Inject() (@TopicMemberCollection val collection: Mong
   def get(topic: TopicCoordinate, user: UserCoordinate) = innerGet(topic, user).run
 
   def innerGet(topic: TopicCoordinate, user: UserCoordinate): OptionT[DbResult, Member] = for {
-    res <- optionT[DbResult](safeFindOne(DBO("topic" :> topic, "user" :> user), "member" atCoord topic ))
-    decoded = res.decode[Member] leftMap { wrapDecodeErrors }
+    res <- optionT[DbResult](safeFindOne("member" atCoord topic)(DBO("topic" :> topic, "user" :> user)))
+    decoded = res.decode[Member] leftMap wrapDecodeErrors("member", topic)
     member <- decoded.liftM[OptionT]
   } yield member
 
 
-  def set(topic: TopicCoordinate, user: UserCoordinate, mode: MemberMode): DbResult[Member] = catchMongo {
-    collection.update(
-      q = DBO("topic" :> topic, "user" :> user),
-      o = $set("mode" -> mode.asBson),
-      upsert = true
-    )
-    Member(topic, user, mode)
-  } leftMap { e =>
-    WriteFailureWithCoordinate("member", topic, e)
-  }
+  def set(topic: TopicCoordinate, user: UserCoordinate, mode: MemberMode): DbResult[Member] =
+    writeMongo("member" atCoord topic) {
+      collection.update(
+        q = DBO("topic" :> topic, "user" :> user),
+        o = $set("mode" -> mode.asBson),
+        upsert = true)
+      Member(topic, user, mode)
+    }
 
   def list(topic: TopicCoordinate): DbResult[Seq[Member]] = for {
-    items <- safeFindList(DBO("topic" :> topic), "members" atCoord topic)
-    results <- items.traverse[DbResult, Member] { _.decode[Member] leftMap { wrapDecodeErrors} }
+    items <- safeFindList("members" atCoord topic)(DBO("topic" :> topic))
+    results <- items.traverse[DbResult, Member] { _.decode[Member] leftMap wrapDecodeErrors("member", topic) }
   } yield results
 
   private def setup() {

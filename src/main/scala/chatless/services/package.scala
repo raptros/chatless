@@ -1,6 +1,6 @@
 package chatless
 
-import scalaz.Semigroup
+import scalaz.{\/, Semigroup}
 import spray.routing.Route
 import spray.routing.RouteConcatenation._
 import org.joda.time.DateTime
@@ -14,20 +14,18 @@ import scalaz.std.option._
 
 import spray.http.MediaTypes._
 import chatless.model.{Coordinate, TopicCoordinate, User}
-import spray.httpx.marshalling.Marshaller
+import spray.httpx.marshalling.{ToResponseMarshaller, Marshaller}
 import argonaut._
 import Argonaut._
 import spray.httpx.unmarshalling.{ContentExpected, SimpleUnmarshaller, MalformedContent, Unmarshaller}
 
 package object services {
 
-  type CallerRoute = UserId => Route
+  type CallerRoute = String => Route
 
   implicit def routeSemigroup: Semigroup[Route] = new Semigroup[Route] {
     def append(r1: Route, r2: => Route) = r1 ~ r2
   }
-
-
 
   val ME_API_BASE = "me"
   val TOPIC_API_BASE = "topic"
@@ -36,11 +34,48 @@ package object services {
   val TAGGED_API_BASE = "tagged"
   val EVENT_API_BASE = "events"
 
-  def Header(name: String): String = s"x-chatless-$name"
+  implicit val jsonMarshaller = Marshaller.delegate[Json, String](`application/json`) { (j: Json) => j.nospaces }
 
-  val X_UPDATED = Header("updated")
-  val X_CREATED_TOPIC = Header("created-topic")
-  val X_CREATED_MESSAGE = Header("created-message")
+  implicit def delegateToJson[A: EncodeJson] = Marshaller.delegate[A, Json](`application/json`) { (a: A) => a.asJson }
 
+  implicit def listMarshaller[A: EncodeJson] = Marshaller.delegate[List[A], Json](`application/json`) {
+    l: List[A] => l.asJson
+  }
 
+  implicit def jsonUnmarshaller: Unmarshaller[Json] = new SimpleUnmarshaller[Json] {
+    def unmarshal(entity: HttpEntity) = entity match {
+      case HttpEntity.NonEmpty(ctype, data) => Parse.parse(data.asString).toEither.left map { MalformedContent(_: String) }
+      case _ => Left(ContentExpected)
+    }
+
+    val canUnmarshalFrom: Seq[ContentTypeRange] = `application/json` :: Nil
+  }
+
+  implicit def delegateFromJson[A: DecodeJson] = Unmarshaller.delegate[Json, A](`application/json`) { j: Json =>
+    j.as[A].fold((m, h) => throw new IllegalArgumentException(m), identity)
+  }
+
+  implicit def ArrayEncodeJson[A](implicit e: EncodeJson[List[A]]) = e.contramap[Array[A]] { _.toList }
+
+  implicit def stackTraceElementEncodeJson = EncodeJson[StackTraceElement] { ste =>
+    ("class" :=? Option(ste.getClassName)) ->?: // according to the docs, class and method should never be null
+      ("method" :=? Option(ste.getMethodName)) ->?: //but it doesn't hurt to check, right?
+      ("file" :=? Option(ste.getFileName)) ->?:
+      ("line" := ste.getLineNumber) ->:
+      jEmptyObject
+  }
+
+  /** needs explicit type annotation because it recursively encodes throwables. */
+  implicit def throwableEncodeJson: EncodeJson[Throwable] = EncodeJson[Throwable] { t =>
+    ("type" := t.getClass.toString) ->:
+      ("message" :=? Option(t.getMessage)) ->?:
+      ("trace" := t.getStackTrace ?? Array()) ->:
+      ("cause" :=? Option(t.getCause)) ->?:
+      jEmptyObject
+  }
+
+  implicit def scalazEitherToResMarshaller[A, B](implicit ma: ToResponseMarshaller[A], mb: ToResponseMarshaller[B]) =
+    ToResponseMarshaller[A \/ B] { (value, ctx) =>
+      value.fold(ma(_, ctx), mb(_, ctx))
+    }
 }

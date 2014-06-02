@@ -5,7 +5,7 @@ import Bson._
 import chatless.model._
 import com.mongodb.DBObject
 
-trait CoordinateCodec {
+trait CoordinateCodec { this: IdCodecs =>
   implicit def ServerCoordinateDecodeBson: DecodeBson[ServerCoordinate] =
     BsonMacros.deriveCaseDecodeBson[ServerCoordinate]
 

@@ -4,10 +4,15 @@ import com.google.inject.Inject
 import chatless.wiring.params.{ServerIdParam, TopicCollection}
 import com.mongodb.casbah.Imports._
 import chatless.model._
+import chatless.model.ids._
 import scalaz._
 import scalaz.syntax.std.option._
 import scalaz.syntax.std.boolean._
 import scalaz.syntax.id._
+import scalaz.std.list._
+import scalaz.syntax.traverse._
+import scalaz.syntax.bifunctor._
+import scalaz.syntax.applicative._
 
 import argonaut._
 import Argonaut._
@@ -20,38 +25,40 @@ import Bson._
 import codecs.Codecs._
 import com.typesafe.scalalogging.slf4j.LazyLogging
 import chatless.model.topic.{TopicInit, Topic}
-import com.mongodb
 
 class MongoTopicDAO @Inject() (
+    @TopicCollection val collection: MongoCollection,
     @ServerIdParam serverId: ServerCoordinate,
-    @TopicCollection collection: MongoCollection,
     idGenerator: IdGenerator)
   extends TopicDAO
-  with LazyLogging {
+  with LazyLogging
+  with MongoSafe {
+
+  import MongoSafe.{StringAsLocation, catchMongo, writeMongo}
 
   def get(coordinate: TopicCoordinate): DbError \/ Topic = for {
-    dbo <- collection.findOne(coordinate.query) \/> NoSuchObject(coordinate)
-    topic <- dbo.decode[Topic] leftMap { wrapDecodeErrors }
+    res <- safeFindOne("topic" atCoord coordinate)(coordinate.query)
+    dbo <- res \/> NoSuchObject(coordinate)
+    topic <- dbo.decode[Topic] leftMap wrapDecodeErrors("topic", coordinate)
   } yield topic
 
   def find[A <% DBObject, B <% DBObject](ref: A, keys: B = DBO()) = collection.find(ref, keys).toIterable
 
-  def listUserTopics(coordinate: UserCoordinate): Iterable[TopicCoordinate] = for {
-    res <- find(coordinate.asBson, DBO("id" :> 1))
-    id <- res.field[String]("id").toOption
-  } yield coordinate.topic(id)
+  def listUserTopics(coordinate: UserCoordinate): DbResult[List[TopicCoordinate]] = for {
+    res <- safeFindList("topics" atCoord coordinate)(coordinate.asBson, fields = DBO("id" :> 1))
+    ids <- res.traverse[DbResult, TopicCoordinate] {
+      _.field[String @@ TopicId]("id") leftMap wrapDecodeErrors("topic.id", coordinate) map coordinate.topic
+    }
+  } yield ids
 
 
-  def insertUnique(topic: Topic) = try {
+  def insertUnique(topic: Topic) = writeMongo("topic", topic.coordinate.some) {
     val bson = topic.asBson
     collection.insert(bson)
-    topic.right
-  } catch {
-    case dup: DuplicateKeyException => IdAlreadyUsed(topic.coordinate).left
-    case t: MongoException => WriteFailureWithCoordinate("topic", topic.coordinate, t).left
+    topic
   }
 
-  def createLocal(user: String, init: TopicInit) = init.fixedId.fold {
+  def createLocal(user: String @@ UserId, init: TopicInit) = init.fixedId.fold {
     //when no id is provided, we can make several attempts to generate an ID and insert the topic.
     insertRetry(user, init, 3, Nil)
   } { id =>
@@ -59,25 +66,23 @@ class MongoTopicDAO @Inject() (
     initLocalTopic(user, id, init) |> insertUnique
   }
 
-  private def insertRetry(user: String, init: TopicInit, tries: Int, tried: List[String]): DbError \/ Topic =
+  private def insertRetry(user: String @@ UserId, init: TopicInit, tries: Int, tried: List[String]): DbResult[Topic] =
     if (tries <= 0)
       GenerateIdFailed("topic", serverId.user(user), tried).left
     else
       (idGenerator.nextTopicId() |> { initLocalTopic(user, _, init) } |> insertUnique) attemptLeft {
-        case IdAlreadyUsed(c) => c.id
+        case IdAlreadyUsed(c) => c.id.asInstanceOf[String]
       } thenTry { last =>
         insertRetry(user, init, tries - 1, last :: tried)
       }
 
-  private def initLocalTopic(user: String, id: String, init: TopicInit) =
+  private def initLocalTopic(user: String @@ UserId, id: String @@ TopicId, init: TopicInit) =
     Topic(serverId.user(user).topic(id), init.banner, init.info, init.mode)
 
-  def save(topic: Topic): DbError \/ Topic = try {
-    val writeResult = collection.update(topic.coordinate.query, topic.asBson)
-    (!writeResult.isUpdateOfExisting) either NoSuchObject(topic.coordinate) or topic
-  } catch {
-    case e: MongoException => WriteFailureWithCoordinate("topic", topic.coordinate, e).left
-  }
+  def save(topic: Topic): DbResult[Topic] = for {
+    wr <- writeMongo("topic" atCoord topic.coordinate) { collection.update(topic.coordinate.query, topic.asBson) }
+    _ <- NoSuchObject(topic.coordinate).left unlessM wr.isUpdateOfExisting
+  } yield topic
 
   private def setup() {
     logger.debug("setup()")

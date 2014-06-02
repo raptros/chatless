@@ -13,24 +13,20 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
       | "fix-id": "wtf",
       | "banner": "none",
       | "info": {"yo": 33},
-      | "mode": {"public": false, "muted": true, "open": false},
-      | "invite": [
-      | {"server": "a", "user": "one"},
-      | {"server": "b", "user": "two"},
-      | {"server": "a", "user": "three"}
-      | ]
+      | "mode": {
+      |  "readable": false,
+      |  "writable": true,
+      |  "muted": true,
+      |  "members": true,
+      |  "authenticated": true
+      | }
       |}
     """.stripMargin
   val init2 =
     """
       |{
       | "banner": "none",
-      | "info": {"yo": 33},
-      | "invite": [
-      | {"server": "a", "user": "one"},
-      | {"server": "b", "user": "two"},
-      | {"server": "a", "user": "three"}
-      | ]
+      | "info": {"yo": 33}
       |}
     """.stripMargin
 
@@ -59,11 +55,7 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
       fixedId (Some("wtf")),
       banner ("none"),
       info (("yo" := 33) ->: jEmptyObject),
-      invite (UserCoordinate("a", "one") ::
-        UserCoordinate("b", "two") ::
-        UserCoordinate("a", "three") ::
-        Nil),
-      mode (TopicMode(muted = true, open = false, public = false))
+      mode (TopicMode(muted = true, readable = false, writable = true, members = true, authenticated = true))
     )
   }
 
@@ -72,11 +64,7 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
       fixedId (None),
       banner ("none"),
       info (("yo" := 33) ->: jEmptyObject),
-      invite (UserCoordinate("a", "one") ::
-        UserCoordinate("b", "two") ::
-        UserCoordinate("a", "three") ::
-        Nil),
-      mode (TopicMode(muted = false, open = true, public = false))
+      mode (TopicMode.default)
     )
   }
 
@@ -85,8 +73,7 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
       fixedId (None),
       banner ("none"),
       info (("yo" := 33) ->: jEmptyObject),
-      invite (Nil),
-      mode (TopicMode(muted = false, open = true, public = false))
+      mode (TopicMode.default)
     )
   }
 
@@ -95,8 +82,7 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
       fixedId (None),
       banner ("none"),
       info (jEmptyObject),
-      invite (Nil),
-      mode (TopicMode(muted = false, open = true, public = false))
+      mode (TopicMode.default)
     )
   }
 
@@ -105,8 +91,7 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
       fixedId (None),
       banner (""),
       info (jEmptyObject),
-      invite (Nil),
-      mode (TopicMode(muted = false, open = true, public = false))
+      mode (TopicMode.default)
     )
   }
 
@@ -126,8 +111,7 @@ class TopicInitCodecSpec extends FlatSpec with Matchers with TopicInitMatchers {
       fixedId (None),
       banner ("yo"),
       info (jEmptyObject),
-      invite (Nil),
-      mode (TopicMode(muted = false, open = true, public = false))
+      mode (TopicMode.default)
     )
   }
 }

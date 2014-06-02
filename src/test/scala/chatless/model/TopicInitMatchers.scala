@@ -17,10 +17,6 @@ trait TopicInitMatchers {
     HavePropertyMatchResult(ti.info == expectedValue, "info", expectedValue, ti.info)
   }
 
-  def invite(expectedValue: List[UserCoordinate]) = HavePropertyMatcher { ti: TopicInit =>
-    HavePropertyMatchResult(ti.invite == expectedValue, "invite", expectedValue, ti.invite)
-  }
-
   def mode(expectedValue: TopicMode) = HavePropertyMatcher { ti: TopicInit =>
     HavePropertyMatchResult(ti.mode == expectedValue, "mode", expectedValue, ti.mode)
   }

@@ -6,8 +6,9 @@ import com.mongodb.casbah.Imports._
 import chatless.db.mongo.{CounterDAO, MongoCounterDAO}
 import chatless.model.{TopicCoordinate, UserCoordinate}
 import scala.util.Random
+import chatless.model.ids._
 
-class CounterDAOTests extends FlatSpec with Matchers with MockFactory2 {
+class CounterDAOSpec extends FlatSpec with Matchers with MockFactory2 {
   import scala.language.reflectiveCalls
 
   val mc = MongoClient()
@@ -16,7 +17,7 @@ class CounterDAOTests extends FlatSpec with Matchers with MockFactory2 {
   trait DbFixture {
     val collection: MongoCollection
     val dao: MongoCounterDAO
-    val userCoord = UserCoordinate("fake", "test")
+    val userCoord = UserCoordinate("fake".serverId, "test".userId)
   }
 
   def withDb(test: DbFixture => Any) = {
@@ -39,25 +40,25 @@ class CounterDAOTests extends FlatSpec with Matchers with MockFactory2 {
   behavior of "the mongo message counter dao"
 
   it should "increment once" in withDb { f =>
-    val res = incOrFail(f.dao, f.userCoord.topic("test1"))
+    val res = incOrFail(f.dao, f.userCoord.topic("test1".topicId))
     res shouldBe 1l
   }
 
   it should "increment two things separately" in withDb { f=>
-    incOrFail(f.dao, f.userCoord.topic("test2-a")) shouldBe 1l
-    incOrFail(f.dao, f.userCoord.topic("test2-b")) shouldBe 1l
-    incOrFail(f.dao, f.userCoord.topic("test2-a")) shouldBe 2l
+    incOrFail(f.dao, f.userCoord.topic("test2-a".topicId)) shouldBe 1l
+    incOrFail(f.dao, f.userCoord.topic("test2-b".topicId)) shouldBe 1l
+    incOrFail(f.dao, f.userCoord.topic("test2-a".topicId)) shouldBe 2l
   }
 
   it should "increment a hundred times properly" in withDb { f =>
     for (i <- 0 until 100) {
-      incOrFail(f.dao, f.userCoord.topic("test3")) shouldBe (i + 1).toLong
+      incOrFail(f.dao, f.userCoord.topic("test3".topicId)) shouldBe (i + 1).toLong
     }
   }
 
   it should "increment two separate counters properly 100 times" in withDb { f=>
-    val t1 = f.userCoord.topic("test4-a")
-    val t2 = f.userCoord.topic("test4-b")
+    val t1 = f.userCoord.topic("test4-a".topicId)
+    val t2 = f.userCoord.topic("test4-b".topicId)
     incOrFail(f.dao, t1) shouldBe 1l
     incOrFail(f.dao, t1) shouldBe 2l
     incOrFail(f.dao, t2) shouldBe 1l

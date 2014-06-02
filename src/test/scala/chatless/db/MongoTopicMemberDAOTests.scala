@@ -5,6 +5,7 @@ import scalaz._
 
 import org.scalamock.scalatest.MockFactory
 import chatless.model._
+import chatless.model.ids._
 import com.mongodb.casbah.Imports._
 import chatless.db.mongo.{MongoTopicMemberDAO, IdGenerator, MongoTopicDAO}
 import scala.util.Random
@@ -40,16 +41,16 @@ class MongoTopicMemberDAOTests extends FlatSpec with Matchers {
   behavior of "the mongo topic member dao"
 
   it should "return none when no members" in withDb { f =>
-    val topic = ServerCoordinate("s1").user("u1").topic("t1")
-    val user = ServerCoordinate("s2").user("u2")
+    val topic = ServerCoordinate("s1".serverId).user("u1".userId).topic("t1".topicId)
+    val user = ServerCoordinate("s2".serverId).user("u2".userId)
     val mode = MemberMode(voiced = false, read = false, write = false)
     val res = f.dao.get(topic, user) valueOr opFailed("get")
     res shouldBe empty
   }
 
   it should "insert a new member" in withDb { f =>
-    val topic = ServerCoordinate("s1").user("u1").topic("t1")
-    val user = ServerCoordinate("s2").user("u2")
+    val topic = ServerCoordinate("s1".serverId).user("u1".userId).topic("t1".topicId)
+    val user = ServerCoordinate("s2".serverId).user("u2".userId)
     val mode = MemberMode(voiced = false, read = false, write = false)
     val res = f.dao.set(topic, user, mode) valueOr opFailed("insert")
     res should have (
@@ -60,28 +61,28 @@ class MongoTopicMemberDAOTests extends FlatSpec with Matchers {
   }
 
   it should "not find a user in some other topic" in withDb { f =>
-    val topic = ServerCoordinate("s1").user("u1").topic("t1")
-    val user = ServerCoordinate("s2").user("u2")
+    val topic = ServerCoordinate("s1".serverId).user("u1".userId).topic("t1".topicId)
+    val user = ServerCoordinate("s2".serverId).user("u2".userId)
     val mode = MemberMode(voiced = false, read = false, write = false)
     val res = f.dao.set(topic, user, mode) valueOr opFailed("insert")
-    val topic2 = ServerCoordinate("s1").user("u1").topic("t2")
+    val topic2 = ServerCoordinate("s1".serverId).user("u1".userId).topic("t2".topicId)
     val res2 = f.dao.get(topic2, user) valueOr opFailed("get")
     res2 shouldBe empty
   }
 
   it should "not pull in a user who is in the topic for one that isn't" in withDb { f =>
-    val topic = ServerCoordinate("s1").user("u1").topic("t1")
-    val user = ServerCoordinate("s2").user("u2")
+    val topic = ServerCoordinate("s1".serverId).user("u1".userId).topic("t1".topicId)
+    val user = ServerCoordinate("s2".serverId).user("u2".userId)
     val mode = MemberMode(voiced = false, read = false, write = false)
     val res = f.dao.set(topic, user, mode) valueOr opFailed("insert")
-    val user2 = ServerCoordinate("s2").user("u3")
+    val user2 = ServerCoordinate("s2".serverId).user("u3".userId)
     val res2 = f.dao.get(topic, user2) valueOr opFailed("get")
     res2 shouldBe empty
   }
 
   it should "insert and then get" in withDb { f =>
-    val topic = ServerCoordinate("s1").user("u1").topic("t1")
-    val user = ServerCoordinate("s2").user("u2")
+    val topic = ServerCoordinate("s1".serverId).user("u1".userId).topic("t1".topicId)
+    val user = ServerCoordinate("s2".serverId).user("u2".userId)
     val mode = MemberMode(voiced = false, read = false, write = false)
     val res = f.dao.set(topic, user, mode) valueOr opFailed("insert")
     res.mode shouldBe mode
@@ -95,8 +96,8 @@ class MongoTopicMemberDAOTests extends FlatSpec with Matchers {
   }
 
   it should "insert, get, and update" in withDb { f =>
-    val topic = ServerCoordinate("s1").user("u1").topic("t1")
-    val user = ServerCoordinate("s2").user("u2")
+    val topic = ServerCoordinate("s1".serverId).user("u1".userId).topic("t1".topicId)
+    val user = ServerCoordinate("s2".serverId).user("u2".userId)
     val mode = MemberMode(voiced = false, read = false, write = false)
     val res = f.dao.set(topic, user, mode) valueOr opFailed("insert")
     res.mode shouldBe mode
@@ -126,14 +127,14 @@ class MongoTopicMemberDAOTests extends FlatSpec with Matchers {
   }
 
   it should "correctly list the members of a topic" in withDb { f =>
-    val topic1 = TopicCoordinate("s1", "u1", "t1")
-    val topic2 = TopicCoordinate("s2", "u2", "t2")
-    val topic3 = TopicCoordinate("s2", "u2", "t3")
-    val user1 = UserCoordinate("s1", "u1")
-    val user2 = UserCoordinate("s2", "u2")
-    val user3 = UserCoordinate("s1", "u3")
-    val user4 = UserCoordinate("s2", "u4")
-    val user5 = UserCoordinate("s4", "u5")
+    val topic1 = TopicCoordinate("s1".serverId, "u1".userId, "t1".topicId)
+    val topic2 = TopicCoordinate("s2".serverId, "u2".userId, "t2".topicId)
+    val topic3 = TopicCoordinate("s2".serverId, "u2".userId, "t3".topicId)
+    val user1 = UserCoordinate("s1".serverId, "u1".userId)
+    val user2 = UserCoordinate("s2".serverId, "u2".userId)
+    val user3 = UserCoordinate("s1".serverId, "u3".userId)
+    val user4 = UserCoordinate("s2".serverId, "u4".userId)
+    val user5 = UserCoordinate("s4".serverId, "u5".userId)
     val mode1 = MemberMode(voiced = false, read = true, write = false)
     val mode2 = MemberMode(voiced = false, read = true, write = true)
     val m1 = f.dao.set(topic1, user1, mode1) valueOr opFailed("insert")

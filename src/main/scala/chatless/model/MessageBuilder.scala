@@ -1,12 +1,20 @@
 package chatless.model
 
 import org.joda.time.DateTime
+import scalaz._
 import argonaut._
 import Argonaut._
 import scalaz.syntax.id._
 import chatless.model.topic.MemberMode
+import ids._
 
-case class MessageBuilder(server: String, user: String, topic: String, message: String, timestamp: DateTime) {
+case class MessageBuilder(
+  server: String @@ ServerId,
+  user: String @@ UserId,
+  topic: String @@ TopicId,
+  message: String @@ MessageId,
+  timestamp: DateTime) {
+
   def posted(poster: UserCoordinate, body: Json) =
     PostedMessage(server, user, topic, message, timestamp, poster, body)
 
@@ -28,6 +36,6 @@ object MessageBuilder {
   def at(coord: MessageCoordinate, timestamp: DateTime) =
     new MessageBuilder(coord.server, coord.user, coord.topic, coord.message, timestamp)
 
-  def blank(tc: TopicCoordinate) = new MessageBuilder(tc.server, tc.user, tc.topic, "", DateTime.now())
+  def blank(tc: TopicCoordinate) = new MessageBuilder(tc.server, tc.user, tc.topic, "".messageId, DateTime.now())
 }
 

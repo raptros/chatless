@@ -1,10 +1,11 @@
 package chatless.db.mongo
 
-import chatless.model.{TopicCoordinate, UserCoordinate}
+import scalaz._
+import chatless.model.ids._
 
 trait IdGenerator {
 
-  def nextTopicId(): String
+  def nextTopicId(): String @@ TopicId
 
-  def nextMessageId(): String
+  def nextMessageId(): String @@ MessageId
 }

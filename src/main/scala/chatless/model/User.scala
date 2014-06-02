@@ -4,11 +4,13 @@ import chatless._
 import argonaut._
 import Argonaut._
 import chatless.macros.JsonMacros
+import scalaz._
+import ids._
 
 case class User(
-    server: String,
-    id: String,
-    about: TopicId,
+    server: String @@ ServerId,
+    id: String @@ UserId,
+    about: String @@ TopicId,
     pull: List[TopicCoordinate])
   extends HasCoordinate[UserCoordinate] {
 

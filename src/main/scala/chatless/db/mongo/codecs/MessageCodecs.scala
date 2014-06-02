@@ -7,7 +7,8 @@ import Argonaut._
 import chatless.model._
 import org.joda.time.DateTime
 
-trait MessageCodecs { this: CoordinateCodec with JsonCodec with TopicCodecs =>
+trait MessageCodecs { this: IdCodecs with CoordinateCodec with JsonCodec with TopicCodecs =>
+  import Bson.stringDecodeField
   def postedMessageCodec = BsonMacros.deriveCaseCodecBson[PostedMessage]
 
   def bannerChangedCodec = BsonMacros.deriveCaseCodecBson[BannerChangedMessage]

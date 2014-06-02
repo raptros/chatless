@@ -9,38 +9,45 @@ import scala.language.experimental.macros
 import chatless.macros.JsonMacros
 import chatless.model.topic.MemberMode
 
+import scalaz._
+import chatless.model.ids._
+
 sealed abstract class Message(shortName: String) extends HasCoordinate[MessageCoordinate] {
-  def server: String
-  def user: String
-  def topic: String
-  def id: String
+  def server: String @@ ServerId
+  def user: String @@ UserId
+  def topic: String @@ TopicId
+  def id: String @@ MessageId
   def timestamp: DateTime
 
   lazy val coordinate = MessageCoordinate(server, user, topic, id)
 
   def change(part: String, timestamp: DateTime = DateTime.now()) =
-    modify(id = s"$shortName-$part", timestamp = timestamp)
+    modify(id = MessageId(s"$shortName-$part"), timestamp = timestamp)
 
   def modify(
-    server: String = server,
-    user: String = user,
-    topic: String = topic,
-    id: String = id,
+    server: String @@ ServerId = server,
+    user: String @@ UserId = user,
+    topic: String @@ TopicId = topic,
+    id: String @@ MessageId = id,
     timestamp: DateTime = timestamp): Message
 }
 
 case class PostedMessage(
-    server: String,
-    user: String,
-    topic: String,
-    id: String,
+    server: String @@ ServerId,
+    user: String @@ UserId,
+    topic: String @@ TopicId,
+    id: String @@ MessageId,
     timestamp: DateTime,
     poster: UserCoordinate,
     body: Json)
   extends Message("pst") {
 
-  def modify(server: String, user: String, topic: String, id: String, timestamp: DateTime) =
-    copy(server = server, user = user, topic = topic, id = id, timestamp = timestamp)
+  def modify(
+    server: String @@ ServerId,
+    user: String @@ UserId,
+    topic: String @@ TopicId,
+    id: String @@ MessageId,
+    timestamp: DateTime) = copy(server = server, user = user, topic = topic, id = id, timestamp = timestamp)
 }
 
 object PostedMessage {
@@ -49,17 +56,21 @@ object PostedMessage {
 }
 
 case class BannerChangedMessage(
-    server: String,
-    user: String,
-    topic: String,
-    id: String,
+    server: String @@ ServerId,
+    user: String @@ UserId,
+    topic: String @@ TopicId,
+    id: String @@ MessageId,
     timestamp: DateTime,
     poster: UserCoordinate,
     banner: String)
   extends Message("bnr") {
 
-  def modify(server: String, user: String, topic: String, id: String, timestamp: DateTime) =
-    copy(server = server, user = user, topic = topic, id = id, timestamp = timestamp)
+  def modify(
+    server: String @@ ServerId,
+    user: String @@ UserId,
+    topic: String @@ TopicId,
+    id: String @@ MessageId,
+    timestamp: DateTime) = copy(server = server, user = user, topic = topic, id = id, timestamp = timestamp)
 }
 
 object BannerChangedMessage {
@@ -68,17 +79,21 @@ object BannerChangedMessage {
 }
 
 case class UserJoinedMessage(
-    server: String,
-    user: String,
-    topic: String,
-    id: String,
+    server: String @@ ServerId,
+    user: String @@ UserId,
+    topic: String @@ TopicId,
+    id: String @@ MessageId,
     timestamp: DateTime,
     joined: UserCoordinate,
     mode: MemberMode)
   extends Message("jnd") {
 
-  def modify(server: String, user: String, topic: String, id: String, timestamp: DateTime) =
-    copy(server = server, user = user, topic = topic, id = id, timestamp = timestamp)
+  def modify(
+    server: String @@ ServerId,
+    user: String @@ UserId,
+    topic: String @@ TopicId,
+    id: String @@ MessageId,
+    timestamp: DateTime) = copy(server = server, user = user, topic = topic, id = id, timestamp = timestamp)
 }
 
 object UserJoinedMessage {
@@ -87,18 +102,22 @@ object UserJoinedMessage {
 }
 
 case class MemberModeChangedMessage(
-    server: String,
-    user: String,
-    topic: String,
-    id: String,
+    server: String @@ ServerId,
+    user: String @@ UserId,
+    topic: String @@ TopicId,
+    id: String @@ MessageId,
     timestamp: DateTime,
     member: UserCoordinate,
     changer: UserCoordinate,
     mode: MemberMode
   ) extends Message("mdc") {
 
-  def modify(server: String, user: String, topic: String, id: String, timestamp: DateTime) =
-    copy(server = server, user = user, topic = topic, id = id, timestamp = timestamp)
+  def modify(
+    server: String @@ ServerId,
+    user: String @@ UserId,
+    topic: String @@ TopicId,
+    id: String @@ MessageId,
+    timestamp: DateTime) = copy(server = server, user = user, topic = topic, id = id, timestamp = timestamp)
 }
 
 object MemberModeChangedMessage {

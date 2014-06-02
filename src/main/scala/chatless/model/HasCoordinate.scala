@@ -1,5 +1,5 @@
 package chatless.model
 
-trait HasCoordinate[Coord] {
-  def coordinate: Coord
+trait HasCoordinate[+C <: Coordinate] {
+  def coordinate: C
 }

@@ -2,15 +2,16 @@ package chatless.model.topic
 
 import argonaut._
 import Argonaut._
+import scalaz._
+import chatless.model._
+import ids._
 
 import chatless.macros._
 
-import chatless.model.{TopicCoordinate, HasCoordinate}
-
 case class Topic(
-    server: String,
-    user: String,
-    id: String,
+    server: String @@ ServerId,
+    user: String @@ UserId,
+    id: String @@ TopicId,
     banner: String,
     info: Json,
     mode: TopicMode)
@@ -24,8 +25,6 @@ object Topic {
     case TopicCoordinate(server, user, topic) => Topic(server, user, topic, banner, info, mode)
   }
 
-//  implicit def topicCodecJson = casecodec6(Topic.apply, Topic.unapply)("server", "user", "id", "banner", "info", "mode")
-    implicit def topicCodecJson = JsonMacros.deriveCaseCodecJson[Topic]
-
+  implicit def topicCodecJson = JsonMacros.deriveCaseCodecJson[Topic]
 }
 

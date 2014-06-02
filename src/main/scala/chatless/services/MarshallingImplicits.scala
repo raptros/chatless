@@ -1,149 +1,69 @@
 package chatless.services
 
-import spray.routing.Route
-import spray.routing.RouteConcatenation._
-import org.joda.time.DateTime
 import spray.http._
-import shapeless.HList
-
-import scalaz.syntax.id._
-import scalaz.syntax.std.boolean._
-import scalaz.syntax.std.option._
-import scalaz.std.option._
-
 import spray.http.MediaTypes._
 import chatless.model._
 import spray.httpx.marshalling.{ToResponseMarshaller, Marshaller}
 import argonaut._
 import Argonaut._
-import spray.httpx.unmarshalling.{ContentExpected, SimpleUnmarshaller, MalformedContent, Unmarshaller}
 import chatless.db._
-import chatless.db.GenerateIdFailed
-import chatless.db.IdAlreadyUsed
-import chatless.db.WriteFailure
-import chatless.db.GenerateIdFailed
-import chatless.db.DeserializationErrors
-import chatless.db.IdAlreadyUsed
-import chatless.db.WriteFailure
-import scalaz.\/
+import scalaz.syntax.std.boolean._
+import scalaz.syntax.std.option._
+import chatless.ops._
+import spray.http.HttpHeaders.Location
+import chatless.ops.Created
 
 object MarshallingImplicits {
-  implicit val jsonMarshaller = Marshaller.delegate[Json, String](`application/json`) { (j: Json) => j.nospaces }
+  val debug = true
 
-  implicit def delegateToJson[A: EncodeJson] = Marshaller.delegate[A, Json](`application/json`) { (a: A) => a.asJson }
-
-  //  implicit val userMarshaller = delegateToJson[User]
-
-  implicit def listMarshaller[A: EncodeJson] = Marshaller.delegate[List[A], Json](`application/json`) {
-    l: List[A] => l.asJson
+  implicit def DbErrorReporter = UnifiedErrorReporter[DbError] {
+    case NoSuchObject(c) =>
+      new CoordinateProblem(StatusCodes.NotFound, "MISSING", c)
+    case IdAlreadyUsed(coordinate) =>
+      new CoordinateProblem(StatusCodes.BadRequest, "ALREADY_USED", coordinate)
+    case MissingCounter(purpose, coordinate) =>
+      new CoordinateProblem(StatusCodes.InternalServerError, "COUNTER_MISSING", coordinate, purpose.some)
+    case GenerateIdFailed(what, parent, attempted) =>
+      new IdGenerationProblem(what, parent, attempted)
+    case WriteFailure(what, t) =>
+      new DbOpFailure("WRITE_FAILED", what, None, debug option t)
+    case WriteFailureWithCoordinate(what, coordinate, t) =>
+      new DbOpFailure("WRITE_FAILED", what, coordinate.some, debug option t)
+    case ReadFailure(what, t) =>
+      new DbOpFailure("READ_FAILED", what, None, debug option t)
+    case ReadFailureWithCoordinate(what, coordinate, t) =>
+      new DbOpFailure("READ_FAILED", what, coordinate.some, debug option t)
+    case DecodeFailure(what, coordinate, causes) =>
+      new DbOpListedFailure("DECODE_FAILED", what, coordinate.some, causes)
   }
 
-  implicit def jsonUnmarshaller: Unmarshaller[Json] = new SimpleUnmarshaller[Json] {
-    def unmarshal(entity: HttpEntity) = entity match {
-      case HttpEntity.NonEmpty(ctype, data) => Parse.parse(data.asString).toEither.left map { MalformedContent(_: String) }
-      case _ => Left(ContentExpected)
+  implicit def OperationFailureReporter: UnifiedErrorReporter[OperationFailure] = UnifiedErrorReporter[OperationFailure] {
+    case AddMemberFailed(topic, user, cause) =>
+      new DbCausedOperationFailure("ADD_MEMBER_FAILED", cause, "topic" := topic, "user" := user)
+    case SendInviteFailed(topic, user, cause) =>
+      new ErrorReportFromCause("SEND_INVITE_FAILED", cause, "topic" := topic, "user" := user)
+    case CreateTopicFailed(user, init, cause) =>
+      new DbCausedOperationFailure("CREATE_TOPIC_FAILED", cause, "user" := user)
+    case SetFirstMemberFailed(topic, cause) =>
+      new DbCausedOperationFailure("SET_FIRST_MEMBER_FAILED", cause, "topic" := topic)
+    case UserNotLocal(user, server) =>
+      new GenericErrorReport(StatusCodes.InternalServerError, "USER_NOT_LOCAL", "user" := user, "server" := server)
+  }
+
+  implicit def unifiedErrorResponseMarshaller[A](implicit reporter: UnifiedErrorReporter[A]): ToResponseMarshaller[A] =
+    ToResponseMarshaller.delegate[A, UnifiedErrorReport](`application/json`) { err: A => reporter(err) }
+
+  import Uri.Path
+
+  def coordinatePath(c: Coordinate): Path = (c.walk.reverse flatMap { Coordinate.idAndName } foldLeft (Path.Empty: Path)) {
+    case (p, (n, id)) => p / n / id
+  }
+
+  type TripleResponse[A] = (StatusCode, Seq[HttpHeader], A)
+  implicit def createdResponseMarshaller[A <: HasCoordinate[Coordinate]: Marshaller]: ToResponseMarshaller[Created[A]] =
+    ToResponseMarshaller.delegate[Created[A], TripleResponse[A]](`application/json`) { created: Created[A] =>
+      (StatusCodes.Created,
+        Location(Uri(path = coordinatePath(created.coordinate))) :: Nil,
+        created.a)
     }
-
-    val canUnmarshalFrom: Seq[ContentTypeRange] = `application/json` :: Nil
-  }
-
-  implicit def delegateFromJson[A: DecodeJson] = Unmarshaller.delegate[Json, A](`application/json`) { j: Json =>
-    j.as[A].fold((m, h) => throw new IllegalArgumentException(m), identity)
-  }
-
-  implicit def CoordinateEncodeJson = EncodeJson[Coordinate] {
-    case RootCoordinate => jEmptyObject
-    case c: ServerCoordinate => c.asJson
-    case c: UserCoordinate => c.asJson
-    case c: TopicCoordinate => c.asJson
-    case c: MessageCoordinate => c.asJson
-  }
-
-  implicit def ArrayEncodeJson[A](implicit e: EncodeJson[List[A]]) = e.contramap[Array[A]] { _.toList }
-
-  implicit def stackTraceElementEncodeJson = EncodeJson[StackTraceElement] { ste =>
-    ("class" :=? Option(ste.getClassName)) ->?: // according to the docs, class and method should never be null
-      ("method" :=? Option(ste.getMethodName)) ->?: //but it doesn't hurt to check, right?
-      ("file" :=? Option(ste.getFileName)) ->?:
-      ("line" := ste.getLineNumber) ->:
-      jEmptyObject
-  }
-
-  /** needs explicit type annotation because it recursively encodes throwables. */
-  implicit def throwableEncodeJson: EncodeJson[Throwable] = EncodeJson[Throwable] { t =>
-    ("type" := t.getClass.toString) ->:
-      ("message" :=? Option(t.getMessage)) ->?:
-      ("trace" := t.getStackTrace ?? Array()) ->:
-      ("cause" :=? Option(t.getCause)) ->?:
-      jEmptyObject
-  }
-
-  object Errors extends Enumeration {
-    type Error = Value
-    val ID_ALREADY_USED,
-    GENERATE_ID_FAILED,
-    READ_FAILURE,
-    WRITE_FAILURE,
-    MISSING_COUNTER,
-    DESERIALIZATION_ERRORS = Value
-  }
-  import Errors._
-  def x_chatless_error(value: Error): HttpHeader = HttpHeaders.RawHeader("X-Chatless-Error", value.toString)
-  def x_chatless_errors(errors: Error*): Seq[HttpHeader] = errors map { x_chatless_error }
-
-  def produceResponseForError(err: DbError): (StatusCode, Seq[HttpHeader], Json) = err match {
-    case IdAlreadyUsed(coord) => (
-      StatusCodes.BadRequest,
-      x_chatless_errors(ID_ALREADY_USED),
-      coord.asJson
-      )
-    case GenerateIdFailed(what, parent, attempted) => (
-      StatusCodes.InternalServerError,
-      x_chatless_errors(GENERATE_ID_FAILED),
-      ("parent" := parent) ->: ("attempted" := attempted) ->: jEmptyObject
-      )
-    case WriteFailure(what, t) => (
-      StatusCodes.InternalServerError,
-      x_chatless_errors(WRITE_FAILURE),
-      ("what" := what) ->: ("t" := t) ->: jEmptyObject
-      )
-    case WriteFailureWithCoordinate(what, coordinate, t) => (
-      StatusCodes.InternalServerError,
-      x_chatless_errors(WRITE_FAILURE),
-      ("what" := what) ->: ("coordinate" := coordinate) ->: ("t" := t) ->: jEmptyObject
-      )
-    case DeserializationErrors(messages) => (
-      StatusCodes.InternalServerError,
-      x_chatless_errors(DESERIALIZATION_ERRORS),
-      messages.asJson
-      )
-    case MissingCounter(purpose, coordinate) => (
-      StatusCodes.InternalServerError,
-      x_chatless_errors(MISSING_COUNTER),
-      ("purpose" := purpose) ->: ("coordinate" := coordinate) ->: jEmptyObject
-      )
-    case NoSuchObject(c) => (StatusCodes.NotFound, Nil, c.asJson)
-    case ReadFailure(what, t) => (
-      StatusCodes.InternalServerError,
-      x_chatless_errors(READ_FAILURE),
-      ("what" := what) ->: ("t" := t) ->: jEmptyObject
-      )
-    case ReadFailureWithCoordinate(what, coordinate, t) => (
-      StatusCodes.InternalServerError,
-      x_chatless_errors(READ_FAILURE),
-      ("what" := what) ->: ("coordinate" := coordinate) ->: ("t" := t) ->: jEmptyObject
-      )
-  }
-
-  implicit def dbErrorResponseMarshaller: ToResponseMarshaller[DbError] = 
-    ToResponseMarshaller.delegate[DbError, (StatusCode, Seq[HttpHeader], Json)](`application/json`) {
-      produceResponseForError _
-    }
-
-  implicit def scalazEitherToResMarshaller[A, B](implicit ma: ToResponseMarshaller[A], mb: ToResponseMarshaller[B]) =
-    ToResponseMarshaller[A \/ B] { (value, ctx) =>
-      value.fold(ma(_, ctx), mb(_, ctx))
-    }
-
-
 }

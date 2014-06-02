@@ -6,7 +6,7 @@ import argonaut._
 import chatless.model.topic._
 import chatless.model.TopicCoordinate
 
-trait TopicCodecs { this: CoordinateCodec with JsonCodec =>
+trait TopicCodecs { this: IdCodecs with CoordinateCodec with JsonCodec =>
   implicit val memberModeCodecBson = BsonMacros.deriveCaseCodecBson[MemberMode]
 
   implicit val memberCodecBson = BsonMacros.deriveCaseCodecBson[Member]

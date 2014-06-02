@@ -22,7 +22,7 @@ class MongoCounterDAO @Inject() (@CounterCollection collection: MongoCollection)
   def inc(purpose: String, coordinate: Coordinate): DbError \/ Long = for {
     res <- runOperation(purpose, coordinate) { atomicIncInner(counterId(purpose, coordinate)) }
     dbo <- res \/> MissingCounter(purpose, coordinate) //hopefully we won't run into these
-    count <- dbo.field[Long]("counter") leftMap { wrapDecodeErrors }
+    count <- dbo.field[Long]("counter") leftMap wrapDecodeErrors(s"$purpose-counter", coordinate)
   } yield count
 
   private def coordinateId(coordinate: Coordinate): String = coordinate match {
