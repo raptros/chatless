@@ -66,7 +66,7 @@ class MongoMessageDAO @Inject() (
 
   def rq(topic: TopicCoordinate, id: Option[String @@ MessageId], forward: Boolean, inclusive: Boolean, count: Int): DbResult[Iterable[Message]] = for {
     query <- buildQuery(topic.asBson, forward, inclusive) { id map { topic.message } }
-    //todo: what about streaming instead?
+    //todo: what about streaming instead? or instead how about limiting the size of count?
     dbos <- safeFindList("messages" atCoord topic)(query, limit = count.some, orderBy = DBO("pos" :> (forward ? 1 | -1)))
     msgs <- dbos.traverse[DbResult, Message] { _.decode[Message] leftMap wrapDecodeErrors("message", topic) }
   } yield msgs

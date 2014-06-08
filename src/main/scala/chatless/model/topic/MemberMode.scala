@@ -12,33 +12,45 @@ import chatless.macros.JsonMacros
 case class MemberMode(
   voiced: Boolean,
   read: Boolean,
-  write: Boolean)
+  write: Boolean,
+  invite: Boolean,
+  setMember: Boolean,
+  setBanner: Boolean,
+  setInfo: Boolean,
+  setMode: Boolean)
 
 object MemberMode {
   /** this is the mode given to the creating member of a topic */
   lazy val creator = MemberMode(
     voiced = true,
     read = true,
-    write = true
+    write = true,
+    invite = true,
+    setMember = true,
+    setBanner = true,
+    setInfo = true,
+    setMode = true
   )
 
-  lazy val joinedPrivate = MemberMode(
+  lazy val modeDeny = MemberMode(
     voiced = false,
     read = false,
-    write = false
+    write = false,
+    invite = false,
+    setMember = false,
+    setBanner = false,
+    setInfo = false,
+    setMode = false
   )
+
+  def nonMemberMode(mode: TopicMode) = modeDeny.copy(read = mode.readable && !mode.members)
 
   //todo
   def joinerMode(topicMode: TopicMode): MemberMode =
-    MemberMode(
-      voiced = false,
-      read = topicMode.readable,
-      write = topicMode.writable
-    )
+    modeDeny.copy(read = topicMode.readable, write = topicMode.writable)
 
   //todo
-  def invitedMode(topicMode: TopicMode): MemberMode =
-    MemberMode(voiced = false, read = true, write = true)
+  def invitedMode(topicMode: TopicMode): MemberMode = modeDeny.copy(read = true, write = topicMode.writable)
 
   implicit val memberModeCodecJson = JsonMacros.deriveCaseCodecJson[MemberMode]
 }

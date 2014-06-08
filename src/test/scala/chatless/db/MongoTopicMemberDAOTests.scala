@@ -43,7 +43,6 @@ class MongoTopicMemberDAOTests extends FlatSpec with Matchers {
   it should "return none when no members" in withDb { f =>
     val topic = ServerCoordinate("s1".serverId).user("u1".userId).topic("t1".topicId)
     val user = ServerCoordinate("s2".serverId).user("u2".userId)
-    val mode = MemberMode(voiced = false, read = false, write = false)
     val res = f.dao.get(topic, user) valueOr opFailed("get")
     res shouldBe empty
   }
@@ -51,7 +50,7 @@ class MongoTopicMemberDAOTests extends FlatSpec with Matchers {
   it should "insert a new member" in withDb { f =>
     val topic = ServerCoordinate("s1".serverId).user("u1".userId).topic("t1".topicId)
     val user = ServerCoordinate("s2".serverId).user("u2".userId)
-    val mode = MemberMode(voiced = false, read = false, write = false)
+    val mode = MemberMode.modeDeny
     val res = f.dao.set(topic, user, mode) valueOr opFailed("insert")
     res should have (
       'topic (topic),
@@ -63,7 +62,7 @@ class MongoTopicMemberDAOTests extends FlatSpec with Matchers {
   it should "not find a user in some other topic" in withDb { f =>
     val topic = ServerCoordinate("s1".serverId).user("u1".userId).topic("t1".topicId)
     val user = ServerCoordinate("s2".serverId).user("u2".userId)
-    val mode = MemberMode(voiced = false, read = false, write = false)
+    val mode = MemberMode.modeDeny
     val res = f.dao.set(topic, user, mode) valueOr opFailed("insert")
     val topic2 = ServerCoordinate("s1".serverId).user("u1".userId).topic("t2".topicId)
     val res2 = f.dao.get(topic2, user) valueOr opFailed("get")
@@ -73,7 +72,7 @@ class MongoTopicMemberDAOTests extends FlatSpec with Matchers {
   it should "not pull in a user who is in the topic for one that isn't" in withDb { f =>
     val topic = ServerCoordinate("s1".serverId).user("u1".userId).topic("t1".topicId)
     val user = ServerCoordinate("s2".serverId).user("u2".userId)
-    val mode = MemberMode(voiced = false, read = false, write = false)
+    val mode = MemberMode.modeDeny
     val res = f.dao.set(topic, user, mode) valueOr opFailed("insert")
     val user2 = ServerCoordinate("s2".serverId).user("u3".userId)
     val res2 = f.dao.get(topic, user2) valueOr opFailed("get")
@@ -83,7 +82,7 @@ class MongoTopicMemberDAOTests extends FlatSpec with Matchers {
   it should "insert and then get" in withDb { f =>
     val topic = ServerCoordinate("s1".serverId).user("u1".userId).topic("t1".topicId)
     val user = ServerCoordinate("s2".serverId).user("u2".userId)
-    val mode = MemberMode(voiced = false, read = false, write = false)
+    val mode = MemberMode.modeDeny
     val res = f.dao.set(topic, user, mode) valueOr opFailed("insert")
     res.mode shouldBe mode
     val member = f.dao.get(topic, user) valueOr opFailed("get")
@@ -98,7 +97,7 @@ class MongoTopicMemberDAOTests extends FlatSpec with Matchers {
   it should "insert, get, and update" in withDb { f =>
     val topic = ServerCoordinate("s1".serverId).user("u1".userId).topic("t1".topicId)
     val user = ServerCoordinate("s2".serverId).user("u2".userId)
-    val mode = MemberMode(voiced = false, read = false, write = false)
+    val mode = MemberMode.modeDeny
     val res = f.dao.set(topic, user, mode) valueOr opFailed("insert")
     res.mode shouldBe mode
     val member = f.dao.get(topic, user) valueOr opFailed("get")
@@ -108,7 +107,7 @@ class MongoTopicMemberDAOTests extends FlatSpec with Matchers {
       'user (user),
       'mode (mode)
     )
-    val mode2 = MemberMode(voiced = false, read = true, write = true)
+    val mode2 = MemberMode.modeDeny
     val res2 = f.dao.set(topic, user, mode2) valueOr opFailed("update")
     res2 should have (
       'topic (topic),
@@ -135,8 +134,8 @@ class MongoTopicMemberDAOTests extends FlatSpec with Matchers {
     val user3 = UserCoordinate("s1".serverId, "u3".userId)
     val user4 = UserCoordinate("s2".serverId, "u4".userId)
     val user5 = UserCoordinate("s4".serverId, "u5".userId)
-    val mode1 = MemberMode(voiced = false, read = true, write = false)
-    val mode2 = MemberMode(voiced = false, read = true, write = true)
+    val mode1 = MemberMode.modeDeny
+    val mode2 = MemberMode.modeDeny
     val m1 = f.dao.set(topic1, user1, mode1) valueOr opFailed("insert")
     val m2 = f.dao.set(topic2, user2, mode1) valueOr opFailed("insert")
     val m3 = f.dao.set(topic1, user3, mode2) valueOr opFailed("insert")

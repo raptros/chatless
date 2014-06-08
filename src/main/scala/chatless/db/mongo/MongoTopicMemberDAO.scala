@@ -43,7 +43,7 @@ class MongoTopicMemberDAO @Inject() (@TopicMemberCollection val collection: Mong
       Member(topic, user, mode)
     }
 
-  def list(topic: TopicCoordinate): DbResult[Seq[Member]] = for {
+  def list(topic: TopicCoordinate): DbResult[List[Member]] = for {
     items <- safeFindList("members" atCoord topic)(DBO("topic" :> topic))
     results <- items.traverse[DbResult, Member] { _.decode[Member] leftMap wrapDecodeErrors("member", topic) }
   } yield results

@@ -10,7 +10,7 @@ import chatless.db.{TopicMemberDAO, MessageDAO, TopicDAO, UserDAO}
 import akka.actor.ActorLogging
 import chatless.wiring.params.ServerIdParam
 import chatless.model.ServerCoordinate
-import chatless.ops.TopicOps
+import chatless.ops.topic.TopicOps
 
 /** this is the actor for the chatless service. */
 class ClientApiActor @Inject() (

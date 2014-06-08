@@ -11,6 +11,7 @@ case class User(
     server: String @@ ServerId,
     id: String @@ UserId,
     about: String @@ TopicId,
+    invites: String @@ TopicId,
     pull: List[TopicCoordinate])
   extends HasCoordinate[UserCoordinate] {
 

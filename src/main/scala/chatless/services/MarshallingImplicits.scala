@@ -12,42 +12,47 @@ import scalaz.syntax.std.option._
 import chatless.ops._
 import spray.http.HttpHeaders.Location
 import chatless.ops.Created
+import chatless.ops.Preconditions._
+import chatless.model.topic.MemberMode
 
 object MarshallingImplicits {
   val debug = true
 
   implicit def DbErrorReporter = UnifiedErrorReporter[DbError] {
     case NoSuchObject(c) =>
-      new CoordinateProblem(StatusCodes.NotFound, "MISSING", c)
+      new SimpleErrorReport(StatusCodes.NotFound, "GET", "MISSING", "coordinate" := c)
     case IdAlreadyUsed(coordinate) =>
-      new CoordinateProblem(StatusCodes.BadRequest, "ALREADY_USED", coordinate)
+      new SimpleErrorReport(StatusCodes.BadRequest, "CREATE", "CONFLICT", "coordinate" := coordinate)
     case MissingCounter(purpose, coordinate) =>
-      new CoordinateProblem(StatusCodes.InternalServerError, "COUNTER_MISSING", coordinate, purpose.some)
+      new SimpleErrorReport(StatusCodes.InternalServerError, "INC_COUNTER", "MISSING", "coordinate" := coordinate, "purpose" := purpose.some)
     case GenerateIdFailed(what, parent, attempted) =>
-      new IdGenerationProblem(what, parent, attempted)
+      new SimpleErrorReport(StatusCodes.InternalServerError, "GENERATE_ID", "FAILED", "what" := what, "coordinate" := parent, "attempted" := attempted)
     case WriteFailure(what, t) =>
-      new DbOpFailure("WRITE_FAILED", what, None, debug option t)
+      new ExceptionErrorReport("WRITE", debug option t, "what" := what)
     case WriteFailureWithCoordinate(what, coordinate, t) =>
-      new DbOpFailure("WRITE_FAILED", what, coordinate.some, debug option t)
+      new ExceptionErrorReport("WRITE", debug option t, "what" := what, "coordinate" := coordinate)
     case ReadFailure(what, t) =>
-      new DbOpFailure("READ_FAILED", what, None, debug option t)
+      new ExceptionErrorReport("READ", debug option t, "what" := what)
     case ReadFailureWithCoordinate(what, coordinate, t) =>
-      new DbOpFailure("READ_FAILED", what, coordinate.some, debug option t)
+      new ExceptionErrorReport("READ", debug option t, "what" := what, "coordinate" := coordinate)
     case DecodeFailure(what, coordinate, causes) =>
-      new DbOpListedFailure("DECODE_FAILED", what, coordinate.some, causes)
+      new MultiCauseErrorReport("DECODE", causes, "what" := what, "coordinate" := coordinate)
   }
 
   implicit def OperationFailureReporter: UnifiedErrorReporter[OperationFailure] = UnifiedErrorReporter[OperationFailure] {
-    case AddMemberFailed(topic, user, cause) =>
-      new DbCausedOperationFailure("ADD_MEMBER_FAILED", cause, "topic" := topic, "user" := user)
-    case SendInviteFailed(topic, user, cause) =>
-      new ErrorReportFromCause("SEND_INVITE_FAILED", cause, "topic" := topic, "user" := user)
-    case CreateTopicFailed(user, init, cause) =>
-      new DbCausedOperationFailure("CREATE_TOPIC_FAILED", cause, "user" := user)
-    case SetFirstMemberFailed(topic, cause) =>
-      new DbCausedOperationFailure("SET_FIRST_MEMBER_FAILED", cause, "topic" := topic)
-    case UserNotLocal(user, server) =>
-      new GenericErrorReport(StatusCodes.InternalServerError, "USER_NOT_LOCAL", "user" := user, "server" := server)
+    case PreconditionFailed(op, failure, coordinates @ _*) =>
+      new SimpleErrorReport(codeForPrecondition(failure), op.toString, failure.toString, coordinates.toSeq map pair2jAssoc: _*)
+    case DbOperationFailed(operation, resource, cause) =>
+      new ErrorReportFromCause(operation.toString, cause, "resource" := resource)
+    case InnerOperationFailed(operation, resource, cause) =>
+      new ErrorReportFromCause(operation.toString, cause, "resource" := resource)
+  }
+
+  private def pair2jAssoc[A: EncodeJson]: ((String, A)) => (String, Json) = p => p._1 := p._2
+
+  private def codeForPrecondition(pre: Precondition): StatusCode = pre match {
+    case READ_DENIED => StatusCodes.Forbidden
+    case USER_NOT_LOCAL => StatusCodes.InternalServerError
   }
 
   implicit def unifiedErrorResponseMarshaller[A](implicit reporter: UnifiedErrorReporter[A]): ToResponseMarshaller[A] =

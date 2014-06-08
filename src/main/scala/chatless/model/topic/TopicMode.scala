@@ -15,8 +15,7 @@ case class TopicMode(
   writable: Boolean,
   muted: Boolean,
   members: Boolean,
-  authenticated: Boolean
-  )
+  authenticated: Boolean)
 
 /** contains default etc modes for topics, along with json codec*/
 object TopicMode {

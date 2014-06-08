@@ -9,5 +9,5 @@ trait TopicMemberDAO {
 
   def set(topic: TopicCoordinate, user: UserCoordinate, mode: MemberMode): DbResult[Member]
 
-  def list(topic: TopicCoordinate): DbResult[Seq[Member]]
+  def list(topic: TopicCoordinate): DbResult[List[Member]]
 }

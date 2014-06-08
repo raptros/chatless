@@ -46,10 +46,9 @@ class MongoTopicDAO @Inject() (
 
   def listUserTopics(coordinate: UserCoordinate): DbResult[List[TopicCoordinate]] = for {
     res <- safeFindList("topics" atCoord coordinate)(coordinate.asBson, fields = DBO("id" :> 1))
-    ids <- res.traverse[DbResult, TopicCoordinate] {
-      _.field[String @@ TopicId]("id") leftMap wrapDecodeErrors("topic.id", coordinate) map coordinate.topic
-    }
-  } yield ids
+    ids = res map { _.field[String @@ TopicId]("id").bimap(wrapDecodeErrors("topic.id", coordinate), coordinate.topic) }
+    idList <- ids.sequence[DbResult, TopicCoordinate]
+  } yield idList
 
 
   def insertUnique(topic: Topic) = writeMongo("topic", topic.coordinate.some) {

@@ -2,31 +2,46 @@ package chatless.ops
 
 import chatless.model._
 import chatless.db.DbError
-import chatless.model.topic.TopicInit
+import chatless.model.topic.{MemberMode, TopicMode, TopicInit}
 import scalaz.syntax.id._
+import scalaz.std.{boolean => BoolUtils}
+import OperationTypes.OperationType
+import Preconditions.Precondition
 
 sealed trait OperationFailure {
   def result[A]: OperationResult[A] = this.left[A]
+
+  def failWhenM[A](b: Boolean): OperationResult[Unit] = BoolUtils.whenM[OperationResult, A](b)(result)
+
+  def failUnlessM[A](b: Boolean): OperationResult[Unit] = BoolUtils.unlessM[OperationResult, A](b)(result)
 }
 
-case class AddMemberFailed(topic: TopicCoordinate, user: UserCoordinate, cause: DbError)
+case class PreconditionFailed(op: OperationType, failure: Precondition, coordinates: (String, Coordinate)*)
   extends OperationFailure
 
-case class SendInviteFailed(topic: TopicCoordinate, user: UserCoordinate, cause: OperationFailure)
+case class DbOperationFailed(op: OperationType, resource: Coordinate, cause: DbError)
   extends OperationFailure
 
-case class CreateTopicFailed(user: UserCoordinate, init: TopicInit, cause: DbError)
+case class InnerOperationFailed(op: OperationType, resource: Coordinate, cause: OperationFailure)
   extends OperationFailure
 
-case class SetFirstMemberFailed(topic: TopicCoordinate, cause: DbError)
-  extends OperationFailure
+object OperationFailure {
+  import scala.language.higherKinds
+  import scalaz.MonadTrans
 
-case class UserNotLocal(user: UserCoordinate, server: ServerCoordinate)
-  extends OperationFailure
+  implicit class BooleanFailureConditions(b: Boolean) {
 
+    def failWhenM[A](f: => OperationFailure): OperationResult[Unit] =
+      BoolUtils.whenM[OperationResult, A](b)(f.result)
 
-case class GetMembershipFailed(topic: TopicCoordinate, user: UserCoordinate, cause: DbError)
-  extends OperationFailure
+    def failWhenLiftM[G[_[_], _]](f: => OperationFailure)(implicit G: MonadTrans[G]): G[OperationResult, Unit] =
+      G.liftM[OperationResult, Unit](failWhenM(f))
 
-case class UserReadDenied(topic: TopicCoordinate, user: UserCoordinate)
-  extends OperationFailure
+    def failUnlessM[A](f: => OperationFailure): OperationResult[Unit] =
+      BoolUtils.unlessM[OperationResult, A](b)(f.result)
+
+    def failUnlessLiftM[G[_[_], _]](f: => OperationFailure)(implicit G: MonadTrans[G]): G[OperationResult, Unit] =
+      G.liftM[OperationResult, Unit](failUnlessM(f))
+  }
+
+}

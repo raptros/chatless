@@ -7,7 +7,10 @@ import chatless.macros.JsonMacros
 case class Member(
   topic: TopicCoordinate,
   user: UserCoordinate,
-  mode: MemberMode)
+  mode: MemberMode) {
+
+  def partial = PartialMember(user, mode)
+}
 
 object Member {
   implicit val memberCodecJson = JsonMacros.deriveCaseCodecJson[Member]

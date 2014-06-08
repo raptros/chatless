@@ -7,8 +7,8 @@ import scalaz.\/
 
 trait UserDAO {
 
-  def get(user: UserCoordinate): DbError \/ User
+  def get(user: UserCoordinate): DbResult[User]
 
-  def insertUnique(user: User): DbError \/ String
+  def insertUnique(user: User): DbResult[User]
 
 }

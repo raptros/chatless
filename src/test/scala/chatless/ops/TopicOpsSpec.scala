@@ -8,6 +8,9 @@ import chatless.model.ids._
 import chatless.model.topic.{Member, MemberMode, Topic, TopicInit}
 import scalaz.syntax.id._
 import scalaz.{-\/, \/-}
+import OperationTypes._
+import Preconditions._
+import chatless.ops.topic.{TopicOps, TopicOpsImpl}
 
 class TopicOpsSpec extends FlatSpec with Matchers with MockFactory2 {
 
@@ -25,15 +28,15 @@ class TopicOpsSpec extends FlatSpec with Matchers with MockFactory2 {
 
   it should "not allow a topic to be created for a non-local user" in new Fixture {
     val uc = UserCoordinate("bad-server".serverId, "u-fake".userId)
-    val user = User(uc.server, uc.id, "fake".topicId, Nil)
+    val user = User(uc.server, uc.id, "fake".topicId, "fake2".topicId, Nil)
     val ti = TopicInit(banner = "create and add")
     val res = topicOps.createTopic(user, ti)
-    res shouldBe -\/(UserNotLocal(uc, serverId))
+    res shouldBe -\/(PreconditionFailed(CREATE_TOPIC, USER_NOT_LOCAL, "user" -> uc, "server" -> serverId))
   }
 
   it should "create a topic and add a member" in new Fixture {
     val uc = serverId.user("u1".userId)
-    val user = User(uc.server, uc.id, "fake".topicId, Nil)
+    val user = User(uc.server, uc.id, "fake".topicId, "fake2".topicId, Nil)
     val ti = TopicInit(banner = "create and add")
     val tc = uc.topic("t1".topicId)
     val topic = Topic(tc, ti.banner, ti.info, ti.mode)
@@ -45,12 +48,12 @@ class TopicOpsSpec extends FlatSpec with Matchers with MockFactory2 {
 
   it should "report a db error preventing it from creating a topic" in new Fixture {
     val uc = serverId.user("u1".userId)
-    val user = User(uc.server, uc.id, "fake".topicId, Nil)
+    val user = User(uc.server, uc.id, "fake".topicId, "fake2".topicId, Nil)
     val ti = TopicInit(banner = "create and add")
     val tc = uc.topic("t1".topicId)
     val failure = GenerateIdFailed("topic", uc, "one" :: "two" :: "three" :: Nil)
     topicDao.createLocal _ expects ("u1".userId, ti) returning failure.left
     val res = topicOps.createTopic(user, ti)
-    res shouldBe -\/(CreateTopicFailed(uc, ti, failure))
+    res shouldBe -\/(DbOperationFailed(CREATE_TOPIC, uc, failure))
   }
 }

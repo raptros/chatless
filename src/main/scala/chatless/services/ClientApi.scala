@@ -1,24 +1,21 @@
 package chatless.services
-import chatless._
 import spray.routing._
 import chatless.db._
 import spray.http._
-import spray.http.MediaTypes._
 import chatless.model._
 import chatless.model.ids._
-import spray.httpx.marshalling.{ToResponseMarshaller, Marshaller}
+import spray.httpx.marshalling.Marshaller
 import argonaut._
 import Argonaut._
 import spray.httpx.unmarshalling.FromRequestUnmarshaller
 import scalaz._
-import scalaz.EitherT._
-import MarshallingImplicits._
 import chatless.model.topic.{MemberMode, Topic, TopicInit}
 import shapeless._
-import shapeless.::
-import chatless.ops.{TopicOps, Created}
+import chatless.ops.Created
+import chatless.ops.topic.TopicOps
+import MarshallingImplicits._
 
-trait ClientApi extends HttpService {
+trait ClientApi extends HttpService with IdMatchers {
 
   val serverId: ServerCoordinate
   val userDao: UserDAO
@@ -27,38 +24,46 @@ trait ClientApi extends HttpService {
   val topicOps: TopicOps
 
   def withTopic(tc: TopicCoordinate): Directive1[Topic] =
-    topicDao.get(tc) map { provide } valueOr { err => complete(err) }
+    topicDao.get(tc) map {
+      provide
+    } valueOr { err => complete(err)}
 
-  private def stringSegOpt(s: String): PathMatcher1[Option[String]] = (s / Segment).?
+  def withUser(uc: UserCoordinate): Directive1[User] =
+    userDao.get(uc) map {
+      provide
+    } valueOr { err => complete(err)}
 
-  private val serverMatcher: PathMatcher1[ServerCoordinate] =  stringSegOpt("server") hmap {
-    case s :: HNil => (s fold serverId) { s1 => ServerCoordinate(ServerId(s1)) } :: HNil
-  }
+  def emptyJson: Directive1[Json] = requestEntityEmpty & provide(jEmptyObject)
 
-  private val userMatcher: PathMatcher1[UserCoordinate] = (serverMatcher / "user" / Segment) hmap {
-    case server :: uid :: HNil => server.user(UserId(uid)) :: HNil
-  }
-
-  def localTopicRoute(caller: User, coordinate: TopicCoordinate): Route = withTopic(coordinate) { topic =>
-    pathEndOrSingleSlash {
-      get {
+  def targetMemberRoute(caller: User, topic: Topic, uc: UserCoordinate): Route =
+    get {
+      complete {
+        topicOps.getMember(caller, topic, uc)
+      }
+    } ~ (put & entity(as[MemberMode])) { mode =>
+      complete {
+        topicOps.setMember(caller, topic, uc, mode)
+      }
+    } ~ (post & (entity(as[Json]) | emptyJson)) { j =>
+      withUser(uc) { user =>
         complete {
-          topic
+          topicOps.inviteUser(caller, topic, user, j)
         }
       }
-    } ~ path("member") {
-      get {
-        complete { topicOps.getMembers(caller, topic) }
+    }
+
+  def localTopicRoute(caller: User, coordinate: TopicCoordinate): Route = withTopic(coordinate) { topic =>
+    (pathEndOrSingleSlash & get) {
+      complete { topic }
+    } ~ pathPrefix("member") {
+      (pathEndOrSingleSlash & get) {
+        complete {
+          topicOps.getMembers(caller, topic)
+        }
+      } ~ path(userCoordinateMatcher) {
+        targetMemberRoute(caller, topic, _)
       }
     }
-  }
-
-//  def newTopicRoute()
-
-  private def postedEntity[A](um: FromRequestUnmarshaller[A]): Directive1[A] = post & entity(um)
-
-  private val localTopicMatcher: PathMatcher1[TopicCoordinate] = ("user" / Segment / "topic" / Segment) hmap {
-    case uid :: tid :: HNil => serverId.user(UserId(uid)).topic(TopicId(tid)) :: HNil
   }
 
   def meRoute(caller: User): Route =
@@ -72,7 +77,7 @@ trait ClientApi extends HttpService {
       pathEndOrSingleSlash {
         get {
           complete { topicDao.listUserTopics(caller.coordinate) }
-        } ~ postedEntity(as[TopicInit]) { ti: TopicInit =>
+        } ~ (post & entity(as[TopicInit])) { ti =>
           complete { topicOps.createTopic(caller, ti) }
         }
       } ~ pathPrefix(Segment) { topicId =>
