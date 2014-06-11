@@ -22,7 +22,7 @@ trait UnifiedErrorReport {
 
   def details: Seq[(String, Json)]
 
-  lazy val json: Json = ("operation" := operation) ->: ("reason" := reason) ->: jObjectAssocList(details.toList)
+  lazy val json: Json = ("operation" := operation) ->: ("reason" := reason) ->: Json(details: _*)
 
   def asResponse = errorCode -> json
 }
@@ -86,7 +86,7 @@ class ErrorReportFromCause[E](
 
   lazy val errorCode = reason.errorCode
 
-  lazy val info = jObjectFields(details: _*)
+  lazy val info = Json(details: _*)
 }
 
 

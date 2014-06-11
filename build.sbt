@@ -60,7 +60,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
   "net.codingwell" %% "scala-guice" % "4.0.0-beta4",
   "com.google.inject.extensions" % "guice-assistedinject" % "4.0-beta",
-  "io.github.raptros" %% "the-bson" % "0.1-SNAPSHOT" changing()
+  "io.github.raptros" %% "the-bson" % "0.1"
 )
 
 //addCompilerPlugin("org.scalamacros" % "paradise" % "2.0.0" cross CrossVersion.full)

@@ -24,7 +24,7 @@ class TopicOpsSpec extends FlatSpec with Matchers with MockFactory2 {
     val topicOps = new TopicOpsImpl(serverId, userDao, topicDao, messageDao, topicMemberDao)
   }
 
-  behavior of "the topic ops tool"
+  behavior of "the topic ops create method"
 
   it should "not allow a topic to be created for a non-local user" in new Fixture {
     val uc = UserCoordinate("bad-server".serverId, "u-fake".userId)
@@ -56,4 +56,13 @@ class TopicOpsSpec extends FlatSpec with Matchers with MockFactory2 {
     val res = topicOps.createTopic(user, ti)
     res shouldBe -\/(DbOperationFailed(CREATE_TOPIC, uc, failure))
   }
+
+  behavior of "the topic ops invite method"
+
+  it should "check permissions, add a member, and send an invite message" in pending
+
+  it should "attempt to join the user to the invites topic before adding a member" in pending
+
+  it should "not add a member if it would not be able to send an invite message" in pending
+
 }

@@ -15,18 +15,20 @@ import chatless.model.topic._
 import argonaut._
 import Argonaut._
 import spray.http.HttpHeaders.Location
-import spray.http.{HttpResponse, StatusCodes}
+import spray.http.{HttpEntity, HttpResponse, StatusCodes}
 import chatless.ops.Created
 import spray.httpx.unmarshalling._
 import spray.routing.{Route, Directives}
 import chatless.ops.topic.TopicOps
 import chatless.ops.Created
 import chatless.db.NoSuchObject
+import org.scalatest.matchers.{Matcher, MatchResult, HavePropertyMatchResult}
 
 class ClientApiSpec extends FlatSpec
   with ScalatestRouteTest
   with Inspectors
   with Matchers
+  with ErrorReportMatchers
   with MockFactory2 {
 
   trait Fixture { self =>
@@ -99,9 +101,12 @@ class ClientApiSpec extends FlatSpec
     (Get(s"/me/topic/${tc.id}") ~> authedApi)(injectIntoRoute) ~> check {
       mediaType === `application/json`
       status shouldBe StatusCodes.NotFound
-      val js = body.as[Json].disjunction valueOr { e => fail(s"could not read body as json: $e") }
-      info(js.nospaces)
-      js -| "reason" getOrElse fail("no description!") stringOr fail("description not a string!") shouldBe "MISSING"
+      val report = getErrorReport[String](body)
+      report should have (
+        reason ("MISSING"),
+        operation ("GET")
+      )
+      info(report.toString)
     }
   }
 
@@ -147,12 +152,53 @@ class ClientApiSpec extends FlatSpec
       mediaType === `application/json`
       status === StatusCodes.OK
       entity should not be empty
-      val jsonEntity =  body.as[Json].disjunction valueOr failLeft("json parse faiure")
-      info(jsonEntity.nospaces)
-      val memberList = jsonEntity.as[List[PartialMember]].result valueOr { case (s, ch) => fail(s"decode failed: $s, history: $ch") }
+      info(body.asString)
+      val memberList =  body.as[List[PartialMember]].disjunction valueOr failLeft("json parse faiure")
       memberList shouldBe members
     }
   }
+
+  it should "allow you to invite new members" in new Fixture {
+    uDao.get _ expects user1.coordinate once () returning user1.right
+    val tc = user1.coordinate.topic("test-listmembers".topicId)
+    val topic = Topic(tc, banner = "test2", jEmptyObject, TopicMode.default)
+    tDao.get _ expects tc once() returning topic.right
+    val target = UserCoordinate("fakeServer".serverId, "fakeUser".userId)
+    val targetUser = User(target.server, target.user, "about".topicId, "invites".topicId, Nil)
+    uDao.get _ expects target once() returning targetUser.right
+    val sendJson = jObjectFields("invite" := true)
+    topicOps.inviteUser _ expects (user1, topic, targetUser, sendJson) once() returning Member(tc, target, MemberMode.invitedMode(topic.mode)).right
+    val path = s"/me/topic/${tc.id}/member/server/${target.server}/user/${target.id}"
+    (Post(path, sendJson) ~> authedApi)(injectIntoRoute) ~> check {
+      status === StatusCodes.OK
+      entity should not be empty
+      info(body.asString)
+    }
+  }
+
+  it should "refuse to invite non-existent users" in new Fixture {
+    uDao.get _ expects user1.coordinate once () returning user1.right
+    val tc = user1.coordinate.topic("test-listmembers".topicId)
+    val topic = Topic(tc, banner = "test2", jEmptyObject, TopicMode.default)
+    tDao.get _ expects tc once() returning topic.right
+    val target = UserCoordinate("fakeServer".serverId, "fakeUser".userId)
+    uDao.get _ expects target once() returning NoSuchObject(target).left
+    val path = s"/me/topic/${tc.id}/member/server/${target.server}/user/${target.id}"
+    (Post(path) ~> authedApi)(injectIntoRoute) ~> check {
+      mediaType === `application/json`
+      status === StatusCodes.NotFound
+      val report = getErrorReport[String](body)
+      report should have (
+        reason ("MISSING"),
+        operation ("GET")
+      )
+      info(report.toString)
+    }
+  }
+
+  private def getErrorReport[A: DecodeJson](body: HttpEntity.NonEmpty): ErrorReport[A] =
+    body.as[ErrorReport[A]].disjunction valueOr { err => fail(s"failed to extract an error report: $err")}
+
 
   private def failLeft[A](what: String): A => Nothing = a => fail(s"$what: $a")
 }
