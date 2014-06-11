@@ -65,4 +65,13 @@ class TopicOpsSpec extends FlatSpec with Matchers with MockFactory2 {
 
   it should "not add a member if it would not be able to send an invite message" in pending
 
+  it should "tell the topic about the invited user" in pending
+
+  behavior of "the topic ops join method"
+
+  it should "set the right mode" in pending
+
+  it should "send the right message to the joined topic" in pending
+
+  it should "not modify an existing membership" in pending
 }

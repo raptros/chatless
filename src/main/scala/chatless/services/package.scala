@@ -78,4 +78,18 @@ package object services {
     ToResponseMarshaller[A \/ B] { (value, ctx) =>
       value.fold(ma(_, ctx), mb(_, ctx))
     }
+
+  implicit def dateTimeEncodeJson = EncodeJson[DateTime] { dt => jString(dt.toString) }
+
+  implicit def dateTimeDecodeJson = DecodeJson[DateTime] { c =>
+    for {
+      ts <- c.as[String]
+      dt <- catchJodaParseFailure(c)(DateTime.parse(ts))
+    } yield dt
+  }
+
+  private def catchJodaParseFailure(c: HCursor)(jOp: => DateTime): DecodeResult[DateTime] = try { okResult(jOp) } catch {
+    case e: IllegalArgumentException => failResult(e.getMessage, c.history)
+  }
+
 }

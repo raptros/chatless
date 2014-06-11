@@ -11,7 +11,7 @@ import OperationTypes._
 import Preconditions._
 import OperationFailure.BooleanFailureConditions
 
-trait MembersImpl { this: TopicOps =>
+trait MembersImpl { this: TopicOps with ImplUtils =>
 
   override def getMembers(caller: User, topic: Topic) = getMembersInner(caller, topic).underlying
 
@@ -29,21 +29,6 @@ trait MembersImpl { this: TopicOps =>
       DbOperationFailed(LIST_MEMBERS, topic.coordinate, _)
     }
   }
-
-  import scala.language.higherKinds
-  def liftedCallerEffectiveMode[MT[_[+_], _] : MonadTrans](op: OperationType, caller: User, topic: Topic) = liftMOR {
-    callerEffectiveMode(op, caller, topic)
-  }
-
-  def callerEffectiveMode(op: OperationType, caller: User, topic: Topic): OperationResult[MemberMode] =
-    if (caller.server == topic.server && caller.id == topic.user)
-      MemberMode.creator.right //important!
-    else
-      topicMemberDao.get(topic.coordinate, caller.coordinate).bimap(
-        DbOperationFailed(op, topic.coordinate, _),
-        _.fold(MemberMode.nonMemberMode(topic.mode)) { _.mode }
-      )
-
   override def getMember(caller: User, topic: Topic, member: UserCoordinate) = getMemberInner(caller, topic, member).run
 
   def getMemberInner(caller: User, topic: Topic, member: UserCoordinate): OptionT[OperationResult, MemberMode] = for {

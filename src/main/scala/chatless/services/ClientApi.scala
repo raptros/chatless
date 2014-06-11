@@ -4,7 +4,7 @@ import chatless.db._
 import spray.http._
 import chatless.model._
 import chatless.model.ids._
-import spray.httpx.marshalling.Marshaller
+import spray.httpx.marshalling.{ToResponseMarshallable, Marshaller}
 import argonaut._
 import Argonaut._
 import spray.httpx.unmarshalling.FromRequestUnmarshaller

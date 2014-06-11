@@ -101,6 +101,55 @@ object UserJoinedMessage {
     JsonMacros.deriveCaseCodecJson[UserJoinedMessage]
 }
 
+case class InvitationMessage(
+    server: String @@ ServerId,
+    user: String @@ UserId,
+    topic: String @@ TopicId,
+    id: String @@ MessageId,
+    timestamp: DateTime,
+    sender: UserCoordinate,
+    join: TopicCoordinate,
+    mode: MemberMode,
+    body: Json)
+  extends Message("pls") {
+
+  def modify(
+    server: String @@ ServerId,
+    user: String @@ UserId,
+    topic: String @@ TopicId,
+    id: String @@ MessageId,
+    timestamp: DateTime) = copy(server = server, user = user, topic = topic, id = id, timestamp = timestamp)
+}
+
+object InvitationMessage {
+  implicit def codecJson(implicit dte: EncodeJson[DateTime], dtd: DecodeJson[DateTime]) =
+    JsonMacros.deriveCaseCodecJson[InvitationMessage]
+}
+
+case class InvitedUserMessage(
+    server: String @@ ServerId,
+    user: String @@ UserId,
+    topic: String @@ TopicId,
+    id: String @@ MessageId,
+    timestamp: DateTime,
+    sender: UserCoordinate,
+    invitee: UserCoordinate,
+    mode: MemberMode)
+  extends Message("inv") {
+
+  def modify(
+    server: String @@ ServerId,
+    user: String @@ UserId,
+    topic: String @@ TopicId,
+    id: String @@ MessageId,
+    timestamp: DateTime) = copy(server = server, user = user, topic = topic, id = id, timestamp = timestamp)
+}
+
+object InvitedUserMessage {
+  implicit def codecJson(implicit dte: EncodeJson[DateTime], dtd: DecodeJson[DateTime]) =
+    JsonMacros.deriveCaseCodecJson[InvitedUserMessage]
+}
+
 case class MemberModeChangedMessage(
     server: String @@ ServerId,
     user: String @@ UserId,
@@ -131,7 +180,9 @@ object Message {
     PostedMessage.codecJson orElse
       BannerChangedMessage.codecJson orElse
       UserJoinedMessage.codecJson orElse
-      MemberModeChangedMessage.codecJson
+      MemberModeChangedMessage.codecJson orElse
+      InvitationMessage.codecJson orElse
+      InvitedUserMessage.codecJson
 
   implicit def messageEncodeJson(implicit dte: EncodeJson[DateTime], dtd: DecodeJson[DateTime]): EncodeJson[Message] =
     EncodeJson {
@@ -139,5 +190,7 @@ object Message {
       case m: BannerChangedMessage => m.asJson
       case m: UserJoinedMessage => m.asJson
       case m: MemberModeChangedMessage => m.asJson
+      case m: InvitedUserMessage => m.asJson
+      case m: InvitationMessage => m.asJson
     }
 }

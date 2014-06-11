@@ -13,6 +13,7 @@ class TopicOpsImpl @Inject() (
     val messageDao: MessageDAO,
     val topicMemberDao: TopicMemberDAO)
   extends TopicOps
+  with ImplUtils
   with InviteImpl
   with CreateImpl
   with JoinImpl

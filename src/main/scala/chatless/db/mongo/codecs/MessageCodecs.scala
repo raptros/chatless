@@ -17,15 +17,21 @@ trait MessageCodecs { this: IdCodecs with CoordinateCodec with JsonCodec with To
 
   def memberModeChangedCodec = BsonMacros.deriveCaseCodecBson[MemberModeChangedMessage]
 
+  def invitationCodec = BsonMacros.deriveCaseCodecBson[InvitationMessage]
+
+  def invitedUserCodec = BsonMacros.deriveCaseCodecBson[InvitedUserMessage]
+
 
   implicit def messageEncodeBson = EncodeBson[Message] {
     case m: PostedMessage => m.asBson(postedMessageCodec)
     case m: BannerChangedMessage => m.asBson(bannerChangedCodec)
     case m: UserJoinedMessage => m.asBson(userJoinedCodec)
     case m: MemberModeChangedMessage => m.asBson(memberModeChangedCodec)
+    case m: InvitationMessage => m.asBson(invitationCodec)
+    case m: InvitedUserMessage => m.asBson(invitedUserCodec)
   }
 
   implicit def messageDecodeBson: DecodeBson[Message] =
-    postedMessageCodec ||| bannerChangedCodec ||| userJoinedCodec ||| memberModeChangedCodec
+    postedMessageCodec ||| bannerChangedCodec ||| userJoinedCodec ||| memberModeChangedCodec ||| invitationCodec ||| invitedUserCodec
 
 }

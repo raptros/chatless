@@ -7,20 +7,11 @@ import org.joda.time.DateTime
 import chatless.model.topic.MemberMode
 import chatless.model.ids._
 
+import chatless.services.dateTimeEncodeJson
+import chatless.services.dateTimeDecodeJson
+
+
 class MessageCodecSpec extends FlatSpec with Matchers {
-  implicit def dateTimeEncodeJson = EncodeJson[DateTime] { dt => jString(dt.toString) }
-
-  implicit def dateTimeDecodeJson = DecodeJson[DateTime] { c =>
-    for {
-      ts <- c.as[String]
-      dt <- catchJodaParseFailure(c)(DateTime.parse(ts))
-    } yield dt
-  }
-
-  private def catchJodaParseFailure(c: HCursor)(jOp: => DateTime): DecodeResult[DateTime] = try { okResult(jOp) } catch {
-    case e: IllegalArgumentException => failResult(e.getMessage, c.history)
-  }
-
   behavior of "the message codecs"
 
   val tc = TopicCoordinate("test".serverId, "model".userId, "MessageCodecSpec".topicId)

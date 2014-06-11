@@ -30,6 +30,12 @@ case class MessageBuilder(
 
   def memberModeChanged(member: UserCoordinate, changer: UserCoordinate, mode: MemberMode) =
     MemberModeChangedMessage(server, user, topic, message, timestamp, member, changer, mode)
+
+  def invitation(sender: UserCoordinate, join: TopicCoordinate, mode: MemberMode, body: Json) =
+    InvitationMessage(server, user, topic, message, timestamp, sender, join, mode, body)
+
+  def invitedUser(sender: UserCoordinate, invitee: UserCoordinate, mode: MemberMode) =
+    InvitedUserMessage(server, user, topic, message, timestamp, sender, invitee, mode)
 }
 
 object MessageBuilder {

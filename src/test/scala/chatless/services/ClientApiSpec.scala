@@ -16,11 +16,10 @@ import argonaut._
 import Argonaut._
 import spray.http.HttpHeaders.Location
 import spray.http.{HttpEntity, HttpResponse, StatusCodes}
-import chatless.ops.Created
+import chatless.ops.{OperationFailure, Created}
 import spray.httpx.unmarshalling._
 import spray.routing.{Route, Directives}
 import chatless.ops.topic.TopicOps
-import chatless.ops.Created
 import chatless.db.NoSuchObject
 import org.scalatest.matchers.{Matcher, MatchResult, HavePropertyMatchResult}
 
@@ -167,10 +166,17 @@ class ClientApiSpec extends FlatSpec
     val targetUser = User(target.server, target.user, "about".topicId, "invites".topicId, Nil)
     uDao.get _ expects target once() returning targetUser.right
     val sendJson = jObjectFields("invite" := true)
-    topicOps.inviteUser _ expects (user1, topic, targetUser, sendJson) once() returning Member(tc, target, MemberMode.invitedMode(topic.mode)).right
+    val membershipMessage = MessageBuilder.
+      blank(tc).
+      invitedUser(user1.coordinate, target, MemberMode.invitedMode(topic.mode)).
+      change("fake-invite").
+      asInstanceOf[InvitedUserMessage]
+    topicOps.inviteUser _ expects (user1, topic, targetUser, sendJson) once() returning Created(membershipMessage).right[OperationFailure]
     val path = s"/me/topic/${tc.id}/member/server/${target.server}/user/${target.id}"
     (Post(path, sendJson) ~> authedApi)(injectIntoRoute) ~> check {
       status === StatusCodes.OK
+      header[Location] should not be empty
+      header[Location].get.uri.toString should (include (topic.id) and include (membershipMessage.id))
       entity should not be empty
       info(body.asString)
     }

@@ -5,6 +5,7 @@ object Preconditions extends Enumeration {
   val READ_DENIED,
   SET_MEMBER_DENIED,
   WRITE_DENIED,
+  INVITE_DENIED,
   USER_NOT_LOCAL = Value
 
 }

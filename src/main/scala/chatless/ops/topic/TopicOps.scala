@@ -14,7 +14,7 @@ trait TopicOps {
 
   def createTopic(caller: User, init: TopicInit): OperationResult[Created[Topic]]
 
-  def inviteUser(caller: User, topic: Topic, user: User, body: Json): OperationResult[Member]
+  def inviteUser(caller: User, topic: Topic, user: User, body: Json): OperationResult[Created[InvitedUserMessage]]
 
   def getMembers(caller: User, topic: Topic): OperationResult[List[PartialMember]]
 

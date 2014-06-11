@@ -1,7 +1,9 @@
 package chatless.ops.topic
 
-import chatless.model.User
+import chatless.model.ids.MessageId
+import chatless.model.{MessageBuilder, User}
 import chatless.model.topic.{Member, MemberMode, Topic}
+import scalaz.@@
 import scalaz.syntax.id._
 import chatless.ops._
 import chatless.ops.OperationTypes._
@@ -13,6 +15,9 @@ trait JoinImpl { this: TopicOps =>
     existingMembership <- callerMembershipOp(JOIN_TOPIC, caller, topic)
     joinerMode = MemberMode.joinerMode(topic.mode)
     membership <- (existingMembership fold setModeOp(JOIN_TOPIC, caller, topic, joinerMode)) { _.mode.right }
+    msg = MessageBuilder.blank(topic.coordinate).userJoined(caller.coordinate, membership)
+    //todo: what really happens if this fails
+    joinMsg <- messageDao.createNew(msg) leftMap { DbOperationFailed(SEND_MESSAGE, topic.coordinate, _) }
   } yield membership
 
   @inline
