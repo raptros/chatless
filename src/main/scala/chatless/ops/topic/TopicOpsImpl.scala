@@ -17,7 +17,7 @@ class TopicOpsImpl @Inject() (
   with InviteImpl
   with CreateImpl
   with JoinImpl
-  with SendMessageImpl
+  with MessagesImpl
   with MembersImpl {
 }
 

@@ -1,15 +1,9 @@
 package chatless.ops.topic
 
-import chatless.model.ids.MessageId
-import chatless.model.{RMB, UserJoinedMessage, MessageBuilder, User}
-import chatless.model.topic.{Member, MemberMode, Topic}
-import scalaz.{Monad, OptionT, @@}
-import scalaz.syntax.id._
-import scalaz.syntax.bind._
-import scalaz.syntax.std.option._
-import chatless.ops._
+import chatless.model.topic.{MemberMode, Topic}
+import chatless.model.{RMB, User}
 import chatless.ops.OperationTypes._
-import chatless.ops.DbOperationFailed
+import chatless.ops._
 
 trait JoinImpl { this: TopicOps with ImplUtils =>
 

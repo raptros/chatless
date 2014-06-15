@@ -24,6 +24,6 @@ trait TopicOps {
 
   def joinTopic(caller: User, topic: Topic): OperationResult[MemberMode]
 
-  def sendMessage(caller: User, topic: Topic, message: Message): OperationResult[Message]
+  def postMessage(caller: User, topic: Topic, body: Json): OperationResult[Created[PostedMessage]]
 
 }

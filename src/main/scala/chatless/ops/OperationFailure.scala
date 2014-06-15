@@ -29,6 +29,23 @@ object OperationFailure {
   import scala.language.higherKinds
   import scalaz.MonadTrans
 
+  def precondition[A](
+    b: Boolean,
+    op: OperationType,
+    failure: Precondition,
+    coordinates: (String, Coordinate)*): OperationResult[Unit] = BoolUtils.unlessM[OperationResult, A](b) {
+    PreconditionFailed(op, failure, coordinates: _*).result
+  }
+
+  def preconditionLift[G[_[_], _]](
+    b: Boolean,
+    op: OperationType,
+    failure: Precondition,
+    coordinates: (String, Coordinate)*)(
+    implicit G: MonadTrans[G]): G[OperationResult, Unit] = G.liftM[OperationResult, Unit] {
+    precondition(b, op, failure, coordinates: _*)
+  }
+
   implicit class BooleanFailureConditions(b: Boolean) {
 
     def failWhenM[A](f: => OperationFailure): OperationResult[Unit] =

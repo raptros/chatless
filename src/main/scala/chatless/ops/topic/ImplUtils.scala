@@ -28,7 +28,7 @@ trait ImplUtils { this: TopicOps =>
     if (caller.server == topic.server && caller.id == topic.user)
       MemberMode.creator.right //the creator of a topic always has this mode, no matter what's in the DB
     else
-      getMemberOp(op, topic.coordinate, caller.coordinate).fold(_.mode, MemberMode.nonMemberMode(topic.mode))
+      getMemberModeOp(op, topic.coordinate, caller.coordinate) getOrElse MemberMode.nonMemberMode(topic.mode)
 
   def setMemberModeOp(op: OperationType, tc: TopicCoordinate, member: UserCoordinate, mode: MemberMode): OperationResult[MemberMode] =
     topicMemberDao.set(tc, member, mode).bimap(DbOperationFailed(op, tc, _), _.mode)
