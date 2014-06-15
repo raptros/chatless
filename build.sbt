@@ -1,20 +1,28 @@
 val sprayVersion = settingKey[String]("current version of spray")
 val akkaVersion = settingKey[String]("current version of akka")
-val json4sVersion = settingKey[String]("curren version of json4s")
 
-organization := "chatless"
+lazy val buildSettings = Defaults.defaultSettings ++ Seq(
+  libraryDependencies ++= Seq(
+    "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+    "io.argonaut" %% "argonaut" % "6.0.4" withSources()
+  ),
+  scalaVersion := "2.11.1",
+  crossScalaVersions := Seq(scalaVersion.value),
+  startYear := Some(2014),
+  organization := "chatless"
+)
+
+lazy val macros = project settings (buildSettings: _*)
+
+lazy val chatless = (project in file(".")) settings (buildSettings: _*) dependsOn macros
 
 name := "chatless"
 
 version := "0.1-SNAPSHOT"
 
-scalaVersion := "2.11.1"
-
 seq(Revolver.settings: _*)
 
 sprayVersion := "1.3.1-20140423"
-
-json4sVersion := "3.2.5"
 
 akkaVersion := "2.3.3"
 
@@ -44,17 +52,9 @@ libraryDependencies ++= Seq(
   "io.spray" %% "spray-testkit" % sprayVersion.value % "test"
 )
 
-//libraryDependencies ++= Seq(
-//  "org.json4s" %% "json4s-native" % json4sVersion.value,
-//  "org.json4s" %% "json4s-ext" % json4sVersion.value
-//)
-
 libraryDependencies ++= Seq(
-  "io.argonaut" %% "argonaut" % "6.0.4" withSources(),
-  "org.scala-lang" % "scala-reflect" % scalaVersion.value,
-//  "org.scalamacros" %% "quasiquotes" % "2.0.0",
   "org.mongodb" %% "casbah" % "2.7.2",
-  "org.scalaz" %% "scalaz-core" % "7.0.6" withJavadoc(),
+  "org.scalaz" %% "scalaz-core" % "7.0.6" withSources(),
   "com.chuusai" %% "shapeless" % "1.2.4",
   "ch.qos.logback" % "logback-classic" % "1.1.2",
   "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
@@ -62,8 +62,6 @@ libraryDependencies ++= Seq(
   "com.google.inject.extensions" % "guice-assistedinject" % "4.0-beta",
   "io.github.raptros" %% "the-bson" % "0.1"
 )
-
-//addCompilerPlugin("org.scalamacros" % "paradise" % "2.0.0" cross CrossVersion.full)
 
 libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.1.5" % "test",

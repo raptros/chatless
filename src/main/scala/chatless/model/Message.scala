@@ -12,7 +12,15 @@ import chatless.model.topic.MemberMode
 import scalaz._
 import chatless.model.ids._
 
-sealed abstract class Message(shortName: String) extends HasCoordinate[MessageCoordinate] {
+sealed abstract class Message(shortName: String) extends HasCoordinate[MessageCoordinate] { self =>
+  /** this type requirement means that change will always return the same subtype of Message that change was called on.
+    * for instance, if you have a value `m` of type `A \<: Message`, you can safely call
+    * {{{
+    * m.change("whatever").asInstanceOf[A]
+    * }}}
+    */
+  type M >: self.type <: Message { type M = self.M }
+
   def server: String @@ ServerId
   def user: String @@ UserId
   def topic: String @@ TopicId
@@ -21,7 +29,8 @@ sealed abstract class Message(shortName: String) extends HasCoordinate[MessageCo
 
   lazy val coordinate = MessageCoordinate(server, user, topic, id)
 
-  def change(part: String, timestamp: DateTime = DateTime.now()) =
+
+  def change(part: String, timestamp: DateTime = DateTime.now()): M=
     modify(id = MessageId(s"$shortName-$part"), timestamp = timestamp)
 
   def modify(
@@ -29,7 +38,7 @@ sealed abstract class Message(shortName: String) extends HasCoordinate[MessageCo
     user: String @@ UserId = user,
     topic: String @@ TopicId = topic,
     id: String @@ MessageId = id,
-    timestamp: DateTime = timestamp): Message
+    timestamp: DateTime = timestamp): M
 }
 
 case class PostedMessage(
@@ -41,6 +50,8 @@ case class PostedMessage(
     poster: UserCoordinate,
     body: Json)
   extends Message("pst") {
+
+  type M = PostedMessage
 
   def modify(
     server: String @@ ServerId,
@@ -65,6 +76,8 @@ case class BannerChangedMessage(
     banner: String)
   extends Message("bnr") {
 
+  type M = BannerChangedMessage
+
   def modify(
     server: String @@ ServerId,
     user: String @@ UserId,
@@ -87,6 +100,8 @@ case class UserJoinedMessage(
     joined: UserCoordinate,
     mode: MemberMode)
   extends Message("jnd") {
+
+  type M = UserJoinedMessage
 
   def modify(
     server: String @@ ServerId,
@@ -113,6 +128,8 @@ case class InvitationMessage(
     body: Json)
   extends Message("pls") {
 
+  type M = InvitationMessage
+
   def modify(
     server: String @@ ServerId,
     user: String @@ UserId,
@@ -137,6 +154,8 @@ case class InvitedUserMessage(
     mode: MemberMode)
   extends Message("inv") {
 
+  type M = InvitedUserMessage
+
   def modify(
     server: String @@ ServerId,
     user: String @@ UserId,
@@ -160,6 +179,8 @@ case class MemberModeChangedMessage(
     changer: UserCoordinate,
     mode: MemberMode
   ) extends Message("mdc") {
+
+  type M = MemberModeChangedMessage
 
   def modify(
     server: String @@ ServerId,

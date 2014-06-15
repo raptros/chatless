@@ -21,6 +21,10 @@ trait IdMatchers extends PathMatchers with ImplicitPathMatcherConstruction  {
     case s :: HNil => UserId(s) :: HNil
   }
 
+  val topicIdMatcher: PathMatcher1[String @@ TopicId] = ("topic" / Segment) hmap {
+    case s :: HNil => TopicId(s) :: HNil
+  }
+
   val userServerMatcher: PathMatcher[(String @@ ServerId) :: (String @@ UserId) :: HNil] = serverIdMatcher / userIdMatcher
 
   val userWithServerMatcher: PathMatcher1[UserCoordinate] = userServerMatcher hmap {

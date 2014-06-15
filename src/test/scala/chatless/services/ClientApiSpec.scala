@@ -1,5 +1,7 @@
 package chatless.services
 
+import chatless.ops.Preconditions.USER_ALREADY_MEMBER
+import chatless.ops.OperationTypes._
 import org.scalatest.{Inspectors, FlatSpec, Matchers}
 import spray.testkit.ScalatestRouteTest
 import chatless._
@@ -16,7 +18,7 @@ import argonaut._
 import Argonaut._
 import spray.http.HttpHeaders.Location
 import spray.http.{HttpEntity, HttpResponse, StatusCodes}
-import chatless.ops.{OperationFailure, Created}
+import chatless.ops.{PreconditionFailed, OperationFailure, Created}
 import spray.httpx.unmarshalling._
 import spray.routing.{Route, Directives}
 import chatless.ops.topic.TopicOps
@@ -197,6 +199,34 @@ class ClientApiSpec extends FlatSpec
       report should have (
         reason ("MISSING"),
         operation ("GET")
+      )
+      info(report.toString)
+    }
+  }
+
+  it should "correctly serialize a report refusing to invite already-present users" in new Fixture {
+    uDao.get _ expects user1.coordinate once () returning user1.right
+    val tc = user1.coordinate.topic("test-inviteAlready".topicId)
+    val topic = Topic(tc, banner = "test2", jEmptyObject, TopicMode.default)
+    tDao.get _ expects tc once() returning topic.right
+    val target = UserCoordinate("fakeServer".serverId, "fakeUser".userId)
+    val targetUser = User(target.server, target.user, "about".topicId, "invites".topicId, Nil)
+    uDao.get _ expects target once() returning targetUser.right
+    val sendJson = jObjectFields("invite" := true)
+    val membershipMessage = MessageBuilder.
+      blank(tc).
+      invitedUser(user1.coordinate, target, MemberMode.invitedMode(topic.mode)).
+      change("fake-invite").
+      asInstanceOf[InvitedUserMessage]
+    topicOps.inviteUser _ expects (user1, topic, targetUser, sendJson) once() returning PreconditionFailed(SEND_INVITE, USER_ALREADY_MEMBER, "topic" -> tc, "user" -> target).left
+    val path = s"/me/topic/${tc.id}/member/server/${target.server}/user/${target.id}"
+    (Post(path, sendJson) ~> authedApi)(injectIntoRoute) ~> check {
+      status === StatusCodes.BadRequest
+      mediaType === `application/json`
+      val report = getErrorReport[String](body)
+      report should have (
+        reason ("USER_ALREADY_MEMBER"),
+        operation ("SEND_INVITE")
       )
       info(report.toString)
     }

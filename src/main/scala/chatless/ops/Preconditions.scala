@@ -1,11 +1,28 @@
 package chatless.ops
 
-object Preconditions extends Enumeration {
-  type Precondition = Value
-  val READ_DENIED,
-  SET_MEMBER_DENIED,
-  WRITE_DENIED,
-  INVITE_DENIED,
-  USER_NOT_LOCAL = Value
+import spray.http.{StatusCodes, StatusCode}
 
+object Preconditions {
+  sealed class Precondition(val statusCode: StatusCode)
+
+  case object READ_DENIED
+    extends Precondition(StatusCodes.Forbidden)
+
+  case object USER_ALREADY_MEMBER
+    extends Precondition(StatusCodes.BadRequest)
+
+  case object USER_NOT_MEMBER
+    extends Precondition(StatusCodes.BadRequest)
+
+  case object SET_MEMBER_DENIED
+    extends Precondition(StatusCodes.Forbidden)
+
+  case object WRITE_DENIED
+    extends Precondition(StatusCodes.Forbidden)
+
+  case object INVITE_DENIED
+    extends Precondition(StatusCodes.Forbidden)
+
+  case object USER_NOT_LOCAL
+    extends Precondition(StatusCodes.InternalServerError)
 }

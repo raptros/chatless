@@ -24,14 +24,10 @@ trait ClientApi extends HttpService with IdMatchers {
   val topicOps: TopicOps
 
   def withTopic(tc: TopicCoordinate): Directive1[Topic] =
-    topicDao.get(tc) map {
-      provide
-    } valueOr { err => complete(err)}
+    topicDao.get(tc).fold(err => complete(err), provide)
 
   def withUser(uc: UserCoordinate): Directive1[User] =
-    userDao.get(uc) map {
-      provide
-    } valueOr { err => complete(err)}
+    userDao.get(uc).fold(err => complete(err), provide)
 
   def emptyJson: Directive1[Json] = requestEntityEmpty & provide(jEmptyObject)
 
@@ -63,8 +59,18 @@ trait ClientApi extends HttpService with IdMatchers {
       } ~ path(userCoordinateMatcher) {
         targetMemberRoute(caller, topic, _)
       }
+    } ~ pathPrefix("message") {
+      pathEndOrSingleSlash {
+        get { //don't return all messages
+          complete ("") //todo
+        } ~ post {
+          complete ("") //todo
+        }
+      }
     }
   }
+
+  def pathSlashable[L <: HList](pm: PathMatcher[L]): Directive[L] = pathPrefix(pm ~ Slash.? ~ PathEnd)
 
   def meRoute(caller: User): Route =
     pathEndOrSingleSlash {
@@ -73,30 +79,39 @@ trait ClientApi extends HttpService with IdMatchers {
       dynamic { //dangit
         localTopicRoute(caller, caller.coordinate.topic(caller.about))
       }
-    } ~ pathPrefix("topic") {
-      pathEndOrSingleSlash {
-        get {
-          complete { topicDao.listUserTopics(caller.coordinate) }
-        } ~ (post & entity(as[TopicInit])) { ti =>
-          complete { topicOps.createTopic(caller, ti) }
-        }
-      } ~ pathPrefix(Segment) { topicId =>
-        localTopicRoute(caller, caller.coordinate.topic(TopicId(topicId)))
-      } ~ pathPrefix("pull") {
-        complete { "no" }
+    } ~ pathPrefix("invites") {
+      dynamic {
+        localTopicRoute(caller, caller.coordinate.topic(caller.invites))
       }
+    } ~ pathSlashable("topic") {
+      get {
+        complete { topicDao.listUserTopics(caller.coordinate) }
+      } ~ (post & entity(as[TopicInit])) { ti =>
+        complete { topicOps.createTopic(caller, ti) }
+      }
+    } ~ pathPrefix(topicIdMatcher) { tid =>
+        localTopicRoute(caller, caller.coordinate.topic(tid))
+    } ~ pathPrefix("pull") {
+        complete { "no" } //todo
     }
 
   def loadLocalUser(userId: String) = userDao.get(serverId.user(UserId(userId))) getOrElse {
     throw new IllegalRequestException(StatusCodes.NotFound, s"could not find local user with id $userId")
   }
 
-  def localUserRoute(caller: User) =
-    pathPrefix(Segment) map { loadLocalUser } apply { user: User =>
-      pathEndOrSingleSlash {
-        get { complete(user) }
+  def localUserRoute(caller: User, uc: UserCoordinate) = withUser(uc) { user =>
+    pathEndOrSingleSlash {
+      get { complete { user } }
+    } ~  pathPrefix("about") {
+      dynamic {
+        localTopicRoute(caller, uc.topic(user.about))
       }
+    } ~ pathSlashable("topic") {
+      get { complete { topicDao.listUserTopics(uc) } }
+    } ~ pathPrefix(topicIdMatcher) { tid =>
+      localTopicRoute(caller, uc.topic(tid))
     }
+  }
 
   def authedApi(callerId: String @@ UserId): Route = {
     val caller = userDao.get(serverId.user(callerId)) getOrElse {
@@ -104,10 +119,10 @@ trait ClientApi extends HttpService with IdMatchers {
     }
     pathPrefix("me") {
       meRoute(caller)
-    } ~ pathPrefix("user") {
-      localUserRoute(caller)
-    } ~ pathPrefix("server") {
-      complete {"no"}
+    } ~ pathPrefix(userWithoutServerMatcher) { user =>
+      localUserRoute(caller, user)
+    } ~ pathPrefix(userWithServerMatcher) { user =>
+      complete {"no"} //todo
     }
   }
 }

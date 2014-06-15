@@ -14,15 +14,15 @@ trait MessageDAO {
 
   /** attempts to insert the message as a unique message
     * @param message a message
-    * @return id or failure
+    * @return the message or failure
     */
-  def insertUnique(message: Message): DbResult[String @@ MessageId]
+  def insertUnique[A <: Message](message: A): DbResult[A]
 
   /** creates a new message
     * @param m a message - the ID of this Message object will be discarded
     * @return if not an error, the ID of the created message
     */
-  def createNew(m: Message): DbResult[String @@ MessageId]
+  def createNew[A <: Message](m: A): DbResult[A]
 
   /** relative query
     * @param topic the coordinate of the topic to query in

@@ -40,10 +40,10 @@ class MongoMessageDAO @Inject() (
     msg <- dbo.decode[Message] leftMap wrapDecodeErrors("messsage", coord)
   } yield msg
 
-  def insertUnique(message: Message): DbResult[String @@ MessageId] = for {
+  override def insertUnique[A <: Message](message: A) = for {
     nextPos <- counterDao.inc("msgs", message.coordinate.parent)
     id <- insertUniqueInner(message, nextPos)
-  } yield id
+  } yield message
 
   private def insertUniqueInner(message: Message, pos: Long): DbResult[String @@ MessageId] =
     writeMongo("message" atCoord message.coordinate) {
@@ -52,16 +52,16 @@ class MongoMessageDAO @Inject() (
       message.id
     }
 
-  def createNew(m: Message): DbResult[String @@ MessageId] = insertRetry(m, 3, Nil)
+  override def createNew[A <: Message](m: A) = insertRetry(m, 3, Nil)
 
-  private def insertRetry(m: Message, tries: Int, tried: List[String]): DbResult[String @@ MessageId] =
+  private def insertRetry[A <: Message](m: A, tries: Int, tried: List[String]): DbResult[A] =
     if (tries <= 0)
       GenerateIdFailed("message", m.coordinate.parent, tried).left
     else
-      (idGenerator.nextMessageId() |> { m.change(_) } |> insertUnique) attemptLeft  {
+      (idGenerator.nextMessageId() |> { i => m.change(i).asInstanceOf[A] } |> insertUnique[A]) attemptLeft  {
         case IdAlreadyUsed(c) => c.id.asInstanceOf[String]
       } thenTry { last =>
-        insertRetry(m, tries - 1, last :: tried)
+        insertRetry[A](m, tries - 1, last :: tried)
       }
 
   def rq(topic: TopicCoordinate, id: Option[String @@ MessageId], forward: Boolean, inclusive: Boolean, count: Int): DbResult[Iterable[Message]] = for {

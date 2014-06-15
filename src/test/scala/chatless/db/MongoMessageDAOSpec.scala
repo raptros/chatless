@@ -48,7 +48,7 @@ class MongoMessageDAOSpec extends WordSpec with Matchers with MockFactory2 {
     val json = ("index" := i) ->: jEmptyObject
     val msg = MessageBuilder.at(mc, DateTime.now()).posted(userCoordinate, json)
     val insertRes = dao.insertUnique(msg) valueOr opFailed("insert")
-    insertRes shouldBe mc.id
+    insertRes shouldBe msg
     msg
   }
 
@@ -59,7 +59,7 @@ class MongoMessageDAOSpec extends WordSpec with Matchers with MockFactory2 {
       val mb = MessageBuilder.at(mc, DateTime.now())
       val message = mb.bannerChanged(userCoordinate, "updated banner")
       val res = f.dao.insertUnique(message) valueOr opFailed("insert")
-      res should be (mc.id)
+      res shouldBe message
     }
 
     "insert and get" in withDb { f =>
@@ -68,7 +68,7 @@ class MongoMessageDAOSpec extends WordSpec with Matchers with MockFactory2 {
       val mb = MessageBuilder.at(mc, DateTime.now())
       val message = mb.bannerChanged(userCoordinate, "updated banner")
       val res = f.dao.insertUnique(message) valueOr opFailed("insert")
-      res should be (mc.id)
+      res should be (message)
       val res2 = f.dao.get(mc) valueOr opFailed("get")
       res2 should be (message)
     }
@@ -78,9 +78,9 @@ class MongoMessageDAOSpec extends WordSpec with Matchers with MockFactory2 {
         val mc = topicCoordinate.message("test-duplicate".messageId)
         val m1 = MessageBuilder.at(mc, DateTime.now()).bannerChanged(userCoordinate, "updated banner")
         val res1 = f.dao.insertUnique(m1) valueOr opFailed("insert")
-        res1 should be (mc.id)
+        res1 should be (m1)
         val m2 = MessageBuilder.at(mc, DateTime.now()).posted(userCoordinate, jEmptyObject)
-        val res2: (DbError \/ String) = f.dao.insertUnique(m2)
+        val res2: (DbError \/ Message) = f.dao.insertUnique(m2)
         res2 shouldBe -\/(IdAlreadyUsed(mc))
       }
     }
@@ -207,9 +207,10 @@ class MongoMessageDAOSpec extends WordSpec with Matchers with MockFactory2 {
       "successfully insert" in withDb { f =>
         val tc = userCoordinate.topic("topic3".topicId)
         f.idGen.nextMessageId _ expects() once() returning "fake1".messageId
-        val response = f.dao.createNew(MessageBuilder.blank(tc).posted(userCoordinate, jEmptyObject))
+        val message: PostedMessage = MessageBuilder.blank(tc).posted(userCoordinate, jEmptyObject)
+        val response = f.dao.createNew(message)
         val res = response valueOr opFailed("insert")
-        res shouldBe "pst-fake1"
+        res shouldBe message.copy(id = "pst-fake1".messageId, timestamp = res.timestamp)
       }
       "retry and suceeed" in withDb { f =>
         val tc = userCoordinate.topic("topic3".topicId)
@@ -217,22 +218,25 @@ class MongoMessageDAOSpec extends WordSpec with Matchers with MockFactory2 {
           f.idGen.nextMessageId _ expects() twice() returning "fake1".messageId
           f.idGen.nextMessageId _ expects() once() returning "fake2".messageId
         }
-        val response1 = f.dao.createNew(MessageBuilder.blank(tc).posted(userCoordinate, jEmptyObject))
+        val message1 = MessageBuilder.blank(tc).posted(userCoordinate, jEmptyObject)
+        val response1 = f.dao.createNew(message1)
         val res1 = response1 valueOr opFailed("insert")
-        res1 shouldBe "pst-fake1"
+        res1 shouldBe message1.copy(id = "pst-fake1".messageId, timestamp = res1.timestamp)
 
-        val response2 = f.dao.createNew(MessageBuilder.blank(tc).posted(userCoordinate, jEmptyObject))
+        val message2 = MessageBuilder.blank(tc).posted(userCoordinate, jEmptyObject)
+        val response2 = f.dao.createNew(message2)
         val res2 = response2 valueOr opFailed("insert")
-        res2 shouldBe "pst-fake2"
+        res2 shouldBe message2.copy(id = "pst-fake2".messageId, timestamp = res2.timestamp)
       }
       "retry and give up" in withDb { f =>
         val tc = userCoordinate.topic("topic3".topicId)
         inSequence {
           f.idGen.nextMessageId _ expects() repeat 4 returning "fake1".messageId
         }
-        val response1 = f.dao.createNew(MessageBuilder.blank(tc).posted(userCoordinate, jEmptyObject))
+        val message1 = MessageBuilder.blank(tc).posted(userCoordinate, jEmptyObject)
+        val response1 = f.dao.createNew(message1)
         val res1 = response1 valueOr opFailed("insert")
-        res1 shouldBe "pst-fake1"
+        res1 shouldBe message1.copy(id = "pst-fake1".messageId)
         val response2 = f.dao.createNew(MessageBuilder.blank(tc).posted(userCoordinate, jEmptyObject))
         val res2 = response2.swap valueOr { x => fail(s"somehow inserted $x!") }
         res2 shouldBe a [GenerateIdFailed]

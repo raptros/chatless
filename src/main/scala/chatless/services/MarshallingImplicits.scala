@@ -41,7 +41,7 @@ object MarshallingImplicits {
 
   implicit def OperationFailureReporter: UnifiedErrorReporter[OperationFailure] = UnifiedErrorReporter[OperationFailure] {
     case PreconditionFailed(op, failure, coordinates @ _*) =>
-      new SimpleErrorReport(codeForPrecondition(failure), op.toString, failure.toString, coordinates.toSeq map pair2jAssoc: _*)
+      new SimpleErrorReport(failure.statusCode, op.toString, failure.toString, coordinates.toSeq map pair2jAssoc: _*)
     case DbOperationFailed(operation, resource, cause) =>
       new ErrorReportFromCause(operation.toString, cause, "resource" := resource)
     case InnerOperationFailed(operation, resource, cause) =>
@@ -49,11 +49,6 @@ object MarshallingImplicits {
   }
 
   private def pair2jAssoc[A: EncodeJson]: ((String, A)) => (String, Json) = p => p._1 := p._2
-
-  private def codeForPrecondition(pre: Precondition): StatusCode = pre match {
-    case READ_DENIED => StatusCodes.Forbidden
-    case USER_NOT_LOCAL => StatusCodes.InternalServerError
-  }
 
   implicit def unifiedErrorResponseMarshaller[A](implicit reporter: UnifiedErrorReporter[A]): ToResponseMarshaller[A] =
     ToResponseMarshaller.delegate[A, UnifiedErrorReport](`application/json`) { err: A => reporter(err) }
